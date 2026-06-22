@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0d10" />
+  <meta name="description" content="Hairport Barbering — premium barbershop in Bushey Heath. Sharp fades, classic cuts, hot-towel shaves and beard sculpting. Book your chair today." />
+  <meta name="color-scheme" content="dark" />
+
+  <title>Hairport Barbering — Premium Barbershop · Bushey Heath</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Hairport Barbering — Premium Barbershop" />
+  <meta property="og:description" content="Sharp fades, classic cuts and hot-towel shaves in Bushey Heath." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_GB" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Hairport" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Skip link -->
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- Decorative top progress bar -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="#home" class="brand" aria-label="Hairport Barbering home">
+        <span class="brand-pole" aria-hidden="true">
+          <span class="pole-stripes"></span>
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">HAIRPORT</span>
+          <span class="brand-sub">BARBERING</span>
+        </span>
+      </a>
+
+      <nav class="nav-desktop" aria-label="Primary">
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#visit">Visit</a>
+      </nav>
+
+      <a href="#book" class="btn btn-primary nav-cta">Book a chair</a>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <nav aria-label="Mobile">
+      <a href="#services">Services</a>
+      <a href="#about">About</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#visit">Visit</a>
+      <a href="#book" class="btn btn-primary">Book a chair</a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="home">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-grain" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <p class="eyebrow reveal" data-reveal>Bushey Heath · Hertfordshire</p>
+        <h1 class="hero-title">
+          <span class="reveal" data-reveal style="--d:0ms">SHARP CUTS.</span>
+          <span class="reveal accent" data-reveal style="--d:90ms">CLEAN FADES.</span>
+          <span class="reveal" data-reveal style="--d:180ms">REAL CRAFT.</span>
+        </h1>
+        <p class="hero-lede reveal" data-reveal style="--d:280ms">
+          A modern barbershop built on old-school discipline. Walk in sharp, walk out sharper.
+        </p>
+        <div class="hero-actions reveal" data-reveal style="--d:360ms">
+          <a href="#book" class="btn btn-primary btn-lg">Book your appointment</a>
+          <a href="#services" class="btn btn-ghost btn-lg">View services</a>
+        </div>
+        <ul class="hero-badges reveal" data-reveal style="--d:440ms">
+          <li><strong data-count="12">0</strong><span>Years on the High Road</span></li>
+          <li><strong data-count="4.9" data-decimals="1">0</strong><span>Average rating</span></li>
+          <li><strong data-count="20000" data-suffix="+">0</strong><span>Fresh cuts &amp; counting</span></li>
+        </ul>
+      </div>
+      <a href="#services" class="scroll-cue" aria-label="Scroll to services">
+        <span></span>
+      </a>
+    </section>
+
+    <!-- ============ MARQUEE ============ -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Skin Fades</span><span>★</span><span>Hot Towel Shaves</span><span>★</span>
+        <span>Beard Sculpting</span><span>★</span><span>Classic Cuts</span><span>★</span>
+        <span>Kids Cuts</span><span>★</span><span>Hair Design</span><span>★</span>
+        <span>Skin Fades</span><span>★</span><span>Hot Towel Shaves</span><span>★</span>
+        <span>Beard Sculpting</span><span>★</span><span>Classic Cuts</span><span>★</span>
+        <span>Kids Cuts</span><span>★</span><span>Hair Design</span><span>★</span>
+      </div>
+    </div>
+
+    <!-- ============ SERVICES ============ -->
+    <section class="section" id="services">
+      <div class="container">
+        <header class="section-head reveal" data-reveal>
+          <p class="eyebrow">The menu</p>
+          <h2 class="section-title">Services &amp; pricing</h2>
+          <p class="section-sub">Honest prices, no surprises. Every service finished with a hot towel and styling.</p>
+        </header>
+
+        <div class="service-grid">
+          <!-- cards injected statically for fast first paint -->
+          <article class="service-card reveal" data-reveal>
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg>
+            </div>
+            <h3>Skin Fade</h3>
+            <p>Precision fade tapered to the skin, scissor work on top and a clean finish.</p>
+            <div class="service-foot"><span class="price">£22</span><span class="dur">40 min</span></div>
+          </article>
+
+          <article class="service-card reveal" data-reveal style="--d:60ms">
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6a8 8 0 0 0 16 0V4"/><path d="M2 4h4M18 4h4M12 18v3"/></svg>
+            </div>
+            <h3>Cut &amp; Beard</h3>
+            <p>Full haircut paired with a sculpted beard line-up and hot-towel finish.</p>
+            <div class="service-foot"><span class="price">£30</span><span class="dur">55 min</span></div>
+          </article>
+
+          <article class="service-card reveal" data-reveal style="--d:120ms">
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7l2-3 2 6 2-3h5"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <h3>Hot Towel Shave</h3>
+            <p>Traditional cut-throat razor shave, hot towels and soothing balm.</p>
+            <div class="service-foot"><span class="price">£25</span><span class="dur">35 min</span></div>
+          </article>
+
+          <article class="service-card reveal" data-reveal style="--d:180ms">
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8c0-2 2-4 7-4M19 8c0-2-2-4-7-4M5 8c0 6 3 9 7 13 4-4 7-7 7-13"/></svg>
+            </div>
+            <h3>Classic Cut</h3>
+            <p>Timeless scissor cut, tailored to your style with a sharp neckline.</p>
+            <div class="service-foot"><span class="price">£18</span><span class="dur">30 min</span></div>
+          </article>
+
+          <article class="service-card reveal" data-reveal style="--d:240ms">
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21c1.5-4 4-6 7-6s5.5 2 7 6"/></svg>
+            </div>
+            <h3>Kids Cut</h3>
+            <p>Patient, friendly cuts for under-12s. We make the first chair a good one.</p>
+            <div class="service-foot"><span class="price">£15</span><span class="dur">30 min</span></div>
+          </article>
+
+          <article class="service-card reveal" data-reveal style="--d:300ms">
+            <div class="service-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M18 15l3 2-3 2"/></svg>
+            </div>
+            <h3>Hair Design</h3>
+            <p>Custom razor patterns and partings. Bring a reference, we'll make it clean.</p>
+            <div class="service-foot"><span class="price">from £5</span><span class="dur">+ add-on</span></div>
+          </article>
+        </div>
+
+        <p class="services-note reveal" data-reveal>Student &amp; senior discounts available Mon–Wed. Card &amp; cash welcome.</p>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section section-about" id="about">
+      <div class="container about-grid">
+        <div class="about-media reveal" data-reveal aria-hidden="true">
+          <div class="about-pole">
+            <div class="pole-glass"><div class="pole-spin"></div></div>
+          </div>
+          <div class="about-stat">
+            <span class="num" data-count="4.9" data-decimals="1">0</span>
+            <span class="lbl">★ Google rating</span>
+          </div>
+        </div>
+        <div class="about-copy">
+          <p class="eyebrow reveal" data-reveal>Our craft</p>
+          <h2 class="section-title reveal" data-reveal>Barbering the way it should be</h2>
+          <p class="reveal" data-reveal>
+            Hairport Barbering has been a fixture in Bushey Heath for over a decade. We blend
+            traditional barbering with modern styling — sharp fades, sculpted beards and the kind
+            of attention to detail that keeps people coming back.
+          </p>
+          <p class="reveal" data-reveal>
+            No conveyor belt. No rushing. Just skilled barbers, a proper chair and a finish you'll
+            be proud of.
+          </p>
+          <ul class="feature-list reveal" data-reveal>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Master barbers, fully qualified</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Premium products &amp; spotless tools</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg> Walk-ins welcome, bookings preferred</li>
+          </ul>
+          <a href="#book" class="btn btn-primary reveal" data-reveal>Book with us</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GALLERY ============ -->
+    <section class="section" id="gallery">
+      <div class="container">
+        <header class="section-head reveal" data-reveal>
+          <p class="eyebrow">The work</p>
+          <h2 class="section-title">Fresh from the chair</h2>
+          <p class="section-sub">A taste of the cuts leaving our shop every week.</p>
+        </header>
+        <div class="gallery-grid" id="galleryGrid">
+          <!-- Self-contained SVG art tiles, generated in JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REVIEWS ============ -->
+    <section class="section section-reviews" id="reviews">
+      <div class="container">
+        <header class="section-head reveal" data-reveal>
+          <p class="eyebrow">Word on the street</p>
+          <h2 class="section-title">What clients say</h2>
+        </header>
+        <div class="review-grid">
+          <figure class="review-card reveal" data-reveal>
+            <div class="stars" aria-label="5 out of 5 stars">★★★★★</div>
+            <blockquote>Best fade I've had in years. Took his time, listened, and the finish was spotless.</blockquote>
+            <figcaption><span class="avatar">JM</span> James M.</figcaption>
+          </figure>
+          <figure class="review-card reveal" data-reveal style="--d:80ms">
+            <div class="stars" aria-label="5 out of 5 stars">★★★★★</div>
+            <blockquote>Been coming here for years. Friendly, professional and always a sharp cut. Highly recommend.</blockquote>
+            <figcaption><span class="avatar">DA</span> Daniel A.</figcaption>
+          </figure>
+          <figure class="review-card reveal" data-reveal style="--d:160ms">
+            <div class="stars" aria-label="5 out of 5 stars">★★★★★</div>
+            <blockquote>Took my son for his first proper haircut. So patient and kind — he actually enjoyed it!</blockquote>
+            <figcaption><span class="avatar">SR</span> Sophie R.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VISIT / HOURS / MAP ============ -->
+    <section class="section section-visit" id="visit">
+      <div class="container visit-grid">
+        <div class="visit-info">
+          <p class="eyebrow reveal" data-reveal>Find us</p>
+          <h2 class="section-title reveal" data-reveal>Visit the shop</h2>
+
+          <div class="info-block reveal" data-reveal>
+            <h3>Address</h3>
+            <p>High Road, Bushey Heath<br />Hertfordshire, WD23</p>
+            <a class="link-arrow" id="directionsLink" href="https://maps.app.goo.gl/xR8uXkm8Qkkx2niM9" target="_blank" rel="noopener">
+              Get directions
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            </a>
+          </div>
+
+          <div class="info-block reveal" data-reveal>
+            <h3>Opening hours</h3>
+            <table class="hours" id="hoursTable">
+              <tbody><!-- filled by JS, with today highlighted --></tbody>
+            </table>
+          </div>
+
+          <div class="info-block reveal" data-reveal>
+            <h3>Contact</h3>
+            <ul class="contact-list">
+              <li>
+                <a id="phoneLink" href="tel:+440000000000">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.5a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>
+                  Call the shop
+                </a>
+              </li>
+              <li>
+                <a id="waLink" href="https://wa.me/440000000000" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.3L3 21l2.3-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+                  WhatsApp us
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="visit-map reveal" data-reveal>
+          <iframe
+            title="Map showing Hairport Barbering in Bushey Heath"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q=Hairport+Barbering+Bushey+Heath&output=embed">
+          </iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BOOKING CTA ============ -->
+    <section class="section section-book" id="book">
+      <div class="hero-grain" aria-hidden="true"></div>
+      <div class="container book-inner">
+        <div class="book-copy reveal" data-reveal>
+          <h2 class="section-title">Ready for a fresh cut?</h2>
+          <p>Book online in seconds, or give the shop a call. Same-day chairs often available.</p>
+        </div>
+        <form class="book-form reveal" data-reveal id="bookForm" novalidate>
+          <div class="field">
+            <label for="bf-name">Name</label>
+            <input id="bf-name" name="name" type="text" autocomplete="name" required placeholder="Your name" />
+            <span class="err" data-err="bf-name"></span>
+          </div>
+          <div class="field">
+            <label for="bf-phone">Phone</label>
+            <input id="bf-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required placeholder="07…" />
+            <span class="err" data-err="bf-phone"></span>
+          </div>
+          <div class="field">
+            <label for="bf-service">Service</label>
+            <select id="bf-service" name="service" required>
+              <option value="">Choose a service</option>
+              <option>Skin Fade — £22</option>
+              <option>Cut &amp; Beard — £30</option>
+              <option>Hot Towel Shave — £25</option>
+              <option>Classic Cut — £18</option>
+              <option>Kids Cut — £15</option>
+            </select>
+            <span class="err" data-err="bf-service"></span>
+          </div>
+          <div class="field">
+            <label for="bf-when">Preferred day/time</label>
+            <input id="bf-when" name="when" type="text" placeholder="e.g. Sat morning" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">Request booking</button>
+          <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-name">HAIRPORT</span>
+        <span class="brand-sub">BARBERING · BUSHEY HEATH</span>
+        <p>Premium barbering with old-school discipline.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#visit">Visit</a>
+        <a href="#book">Book</a>
+      </nav>
+      <div class="footer-social">
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 3h-3a4 4 0 0 0-4 4v3H5v4h3v7h4v-7h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+        <a id="footerPhone" href="tel:+440000000000" aria-label="Phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.5a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg></a>
+      </div>
+    </div>
+    <div class="container footer-base">
+      <span>© <span id="year"></span> Hairport Barbering. All rights reserved.</span>
+      <span class="made">Crafted with care.</span>
+    </div>
+  </footer>
+
+  <!-- ============ STICKY MOBILE BOOK BAR ============ -->
+  <div class="book-bar" id="bookBar">
+    <a id="barCall" href="tel:+440000000000" class="btn btn-ghost">Call</a>
+    <a href="#book" class="btn btn-primary">Book a chair</a>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    Viewport: lock width to device, prevent user zoom so the camera UI
+    behaves like a native app. viewport-fit=cover lets us paint under the
+    iOS notch / home indicator (we pad with env(safe-area-inset-*) in CSS).
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <!-- iOS standalone PWA hints. apple-mobile-web-app-capable makes it run
+       full-screen (no Safari chrome) when launched from the Home Screen. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TeleProm" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0d12" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <title>TeleProm — Teleprompter Video Recorder</title>
+</head>
+<body>
+  <!--
+    Single-page, state-driven view switching. `data-view` on <body> drives
+    which screen is visible (see CSS). Views: script | recorder | review.
+    Settings + countdown are overlays that can appear over any view.
+  -->
+  <div id="app">
+
+    <!-- ============================ SCRIPT SCREEN ============================ -->
+    <section class="view view-script" data-screen="script">
+      <header class="topbar">
+        <h1 class="brand">TeleProm</h1>
+        <button class="icon-btn" id="btn-open-settings" title="Settings" aria-label="Settings">⚙️</button>
+      </header>
+
+      <!-- Library list (shown when not editing) -->
+      <div id="library-panel" class="panel">
+        <div class="panel-head">
+          <h2>Scripts</h2>
+          <div class="row gap">
+            <button class="btn small" id="btn-import">Import</button>
+            <button class="btn small" id="btn-export-all">Export all</button>
+            <button class="btn small primary" id="btn-new-script">+ New</button>
+          </div>
+        </div>
+
+        <ul id="script-list" class="script-list"></ul>
+
+        <!-- Friendly empty state (first launch / empty library) -->
+        <div id="empty-state" class="empty-state hidden">
+          <p class="empty-title">No scripts yet</p>
+          <p class="empty-sub">Create your first script or import an existing one.</p>
+          <div class="row gap center">
+            <button class="btn primary" id="btn-empty-new">+ New script</button>
+            <button class="btn" id="btn-empty-import">Import</button>
+          </div>
+        </div>
+
+        <input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden />
+      </div>
+
+      <!-- Editor (shown when creating/editing a script) -->
+      <div id="editor-panel" class="panel hidden">
+        <div class="panel-head">
+          <h2 id="editor-title">New script</h2>
+          <button class="btn small" id="btn-editor-back">← Library</button>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Title <small>(optional — auto-derived from first line)</small></span>
+          <input type="text" id="script-title" class="text-input" placeholder="Untitled" />
+        </label>
+
+        <label class="field grow">
+          <span class="field-label">Script</span>
+          <textarea id="script-text" class="textarea" placeholder="Paste or type your script here…"></textarea>
+        </label>
+
+        <div class="reading-readout" id="editor-reading">
+          Estimated read: <strong>~0:00</strong>
+        </div>
+
+        <div class="row gap wrap editor-actions">
+          <button class="btn" id="btn-export-single-json">Export .json</button>
+          <button class="btn" id="btn-export-single-txt">Export .txt</button>
+          <button class="btn" id="btn-save-script">Save</button>
+          <button class="btn primary" id="btn-save-start">Save &amp; Record →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ RECORDER SCREEN ============================ -->
+    <section class="view view-recorder" data-screen="recorder">
+      <!-- Camera preview sits at the very back. object-fit:cover prevents
+           stretching when the stream aspect ratio != screen aspect ratio.
+           muted + playsinline are REQUIRED for iOS autoplay of the preview. -->
+      <video id="preview" class="preview" autoplay muted playsinline></video>
+
+      <!--
+        Teleprompter band. Absolutely positioned over the preview.
+        Default position is the UPPER portion of the screen (CSS var --tp-top),
+        deliberately close to the front-camera lens: keeping the scrolling text
+        near the lens means the reader's gaze stays near the lens, so on camera
+        they appear to look at the viewer instead of down at their script.
+      -->
+      <div id="tp-band" class="tp-band" aria-hidden="false">
+        <div id="tp-scroller" class="tp-scroller">
+          <div id="tp-text" class="tp-text"></div>
+        </div>
+      </div>
+
+      <!-- Camera permission / error message -->
+      <div id="cam-error" class="cam-error hidden"></div>
+
+      <!-- Backgrounded warning (recording cannot continue in the background) -->
+      <div id="bg-warn" class="bg-warn hidden">⚠️ Recording must stay in the foreground. Don't switch apps.</div>
+
+      <!-- Top HUD: back, timer, resolution readout, settings -->
+      <header class="hud hud-top">
+        <button class="icon-btn" id="btn-rec-back" title="Back to scripts" aria-label="Back">←</button>
+        <div class="hud-center">
+          <span id="rec-dot" class="rec-dot hidden"></span>
+          <span id="rec-timer" class="rec-timer">00:00</span>
+        </div>
+        <div class="hud-right">
+          <span id="res-readout" class="readout" title="Actual capture resolution">—</span>
+          <button class="icon-btn" id="btn-rec-settings" title="Settings" aria-label="Settings">⚙️</button>
+        </div>
+      </header>
+
+      <!-- Teleprompter controls: thin bar near the bottom so it doesn't cover
+           the lens area at the top. Safe to change mid-recording. -->
+      <div class="tp-controls">
+        <div class="tp-controls-row">
+          <button class="icon-btn" id="btn-tp-play" title="Play / Pause scroll">▶︎</button>
+          <button class="icon-btn" id="btn-tp-reset" title="Reset to top">⟲</button>
+
+          <label class="slider-group" title="Scroll speed">
+            <span class="slider-icon">🏃</span>
+            <input type="range" id="speed-range" min="10" max="150" step="1" />
+            <span class="slider-val" id="speed-val">40 px/s</span>
+          </label>
+
+          <label class="slider-group" title="Font size">
+            <span class="slider-icon">A</span>
+            <input type="range" id="font-range" min="18" max="64" step="1" />
+            <span class="slider-val" id="font-val">32 px</span>
+          </label>
+        </div>
+
+        <div class="tp-controls-row second">
+          <label class="slider-group" title="Text band vertical position">
+            <span class="slider-icon">↕</span>
+            <input type="range" id="pos-range" min="0" max="55" step="1" />
+          </label>
+          <label class="slider-group" title="Text band height">
+            <span class="slider-icon">⇳</span>
+            <input type="range" id="height-range" min="15" max="80" step="1" />
+          </label>
+          <label class="slider-group" title="Text column padding (width)">
+            <span class="slider-icon">⇆</span>
+            <input type="range" id="pad-range" min="0" max="40" step="1" />
+          </label>
+          <label class="slider-group" title="Scrim darkness behind text">
+            <span class="slider-icon">◧</span>
+            <input type="range" id="scrim-range" min="0" max="90" step="1" />
+          </label>
+          <span class="readout" id="rec-reading" title="Estimated read time">~0:00</span>
+        </div>
+      </div>
+
+      <!-- Bottom action bar: flip camera, record, (placeholder for balance) -->
+      <div class="action-bar">
+        <button class="icon-btn big" id="btn-flip" title="Switch camera">🔄</button>
+        <button class="record-btn" id="btn-record" title="Record">
+          <span class="record-btn-inner"></span>
+        </button>
+        <div class="spacer-btn"></div>
+      </div>
+    </section>
+
+    <!-- ============================ REVIEW SCREEN ============================ -->
+    <section class="view view-review" data-screen="review">
+      <header class="topbar">
+        <h1 class="brand">Review</h1>
+      </header>
+      <div class="review-body">
+        <video id="review-video" class="review-video" controls playsinline></video>
+        <p class="review-meta" id="review-meta"></p>
+        <div class="row gap center wrap">
+          <button class="btn" id="btn-record-again">↺ Record again</button>
+          <button class="btn primary" id="btn-save">⬇ Save to device</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ COUNTDOWN OVERLAY ============================ -->
+    <div id="countdown" class="countdown hidden" aria-hidden="true">
+      <span id="countdown-num" class="countdown-num">3</span>
+    </div>
+
+    <!-- ============================ SETTINGS OVERLAY ============================ -->
+    <div id="settings" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="settings-panel">
+        <div class="panel-head">
+          <h2>Settings</h2>
+          <button class="icon-btn" id="btn-close-settings" aria-label="Close">✕</button>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Countdown before recording</span>
+          <select id="set-countdown" class="text-input">
+            <option value="0">Off</option>
+            <option value="3">3 seconds</option>
+            <option value="5">5 seconds</option>
+            <option value="10">10 seconds</option>
+          </select>
+        </label>
+
+        <!-- Resolution + bitrate change the camera stream / recorder, so they
+             are disabled while recording (handled in JS). -->
+        <label class="field">
+          <span class="field-label">Capture resolution <small id="res-lock-note"></small></span>
+          <select id="set-resolution" class="text-input">
+            <option value="480">480p</option>
+            <option value="720">720p</option>
+            <option value="1080">1080p</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Video bitrate <small>(hint only — some browsers ignore it)</small></span>
+          <select id="set-bitrate" class="text-input">
+            <option value="2500000">Low (~2.5 Mbps)</option>
+            <option value="5000000">Medium (~5 Mbps)</option>
+            <option value="9000000">High (~9 Mbps)</option>
+          </select>
+        </label>
+
+        <label class="field row between">
+          <span class="field-label">Mirror text (beam-splitter rig)</span>
+          <input type="checkbox" id="set-mirror" class="checkbox" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Default scroll speed: <span id="set-speed-val">40</span> px/s</span>
+          <input type="range" id="set-speed" min="10" max="150" step="1" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Default font size: <span id="set-font-val">32</span> px</span>
+          <input type="range" id="set-font" min="18" max="64" step="1" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Scrim opacity: <span id="set-scrim-val">35</span>%</span>
+          <input type="range" id="set-scrim" min="0" max="90" step="1" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Target length warning: <span id="set-target-val">90</span>s</span>
+          <input type="range" id="set-target" min="15" max="180" step="5" />
+        </label>
+
+        <p class="hint">Camera APIs require HTTPS in production (localhost is exempt).</p>
+      </div>
+    </div>
+
+    <!-- Toast for transient messages (import summaries, errors) -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <!-- Hidden off-screen element used to measure scroll height for reading-time
+       estimates from the script screen without disturbing the live UI. -->
+  <div id="measurer" class="measurer" aria-hidden="true"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

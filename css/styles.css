@@ -1,0 +1,277 @@
+/* ===========================================================================
+   TeleProm — styles
+   Mobile-first. Dark UI. Single-page, view-state switching driven by
+   <body data-view="script|recorder|review">.
+   =========================================================================== */
+
+:root {
+  --bg: #0b0d12;
+  --panel: #151922;
+  --panel-2: #1d222e;
+  --text: #f3f5f9;
+  --muted: #9aa3b2;
+  --accent: #4f8cff;
+  --danger: #ff3b30;
+  --ok: #34c759;
+  --warn: #ffcc00;
+  --radius: 14px;
+
+  /* Teleprompter band — live-driven by JS via these CSS variables.
+     --tp-top:    distance of the band from the top of the screen (vh)
+     --tp-height: band height (vh)
+     --tp-pad:    horizontal padding inside the band (vw)  → narrows the column
+     --tp-font:   font size (px)
+     --tp-scrim:  scrim (dark backdrop) opacity 0..1 */
+  --tp-top: 8vh;
+  --tp-height: 38vh;
+  --tp-pad: 6vw;
+  --tp-font: 32px;
+  --tp-scrim: 0.35;
+  --tp-mirror: 1; /* 1 = normal, -1 = horizontally flipped */
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overscroll-behavior: none;
+}
+
+#app { height: 100%; }
+
+/* --------------------------- View switching --------------------------- */
+.view { display: none; height: 100%; width: 100%; }
+body[data-view="script"]   .view-script   { display: flex; flex-direction: column; }
+body[data-view="recorder"] .view-recorder { display: block; position: relative; }
+body[data-view="review"]   .view-review   { display: flex; flex-direction: column; }
+
+.hidden { display: none !important; }
+
+/* --------------------------- Common bits --------------------------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  background: var(--bg);
+}
+.brand { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: .3px; }
+
+.icon-btn {
+  background: rgba(255,255,255,.08);
+  border: none; color: var(--text);
+  width: 42px; height: 42px; border-radius: 50%;
+  font-size: 18px; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s;
+}
+.icon-btn:hover { background: rgba(255,255,255,.16); }
+.icon-btn.big { width: 56px; height: 56px; font-size: 24px; }
+.icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.btn {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 11px 16px; border-radius: 10px; font-size: 15px;
+  cursor: pointer; transition: background .15s, transform .05s;
+}
+.btn:hover { background: #29303f; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent); border-color: transparent; font-weight: 600; }
+.btn.primary:hover { background: #3f7bf0; }
+.btn.small { padding: 7px 11px; font-size: 13px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.row { display: flex; align-items: center; }
+.row.gap { gap: 8px; }
+.row.between { justify-content: space-between; }
+.row.center { justify-content: center; }
+.row.wrap { flex-wrap: wrap; }
+.gap { gap: 8px; }
+
+/* --------------------------- Script screen --------------------------- */
+.panel { padding: 0 16px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; gap: 8px; }
+.panel-head h2 { font-size: 17px; margin: 0; }
+
+.script-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.script-item {
+  background: var(--panel); border-radius: var(--radius); padding: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.script-item.active { outline: 2px solid var(--accent); }
+.script-item .si-title { font-weight: 600; font-size: 16px; }
+.script-item .si-preview { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.script-item .si-meta { color: var(--muted); font-size: 11px; display: flex; justify-content: space-between; }
+.script-item .si-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+.empty-state { text-align: center; margin: auto; padding: 40px 16px; color: var(--muted); }
+.empty-title { font-size: 18px; color: var(--text); margin: 0 0 6px; }
+.empty-sub { margin: 0 0 18px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field.grow { flex: 1; }
+.field-label { font-size: 13px; color: var(--muted); }
+.field-label small { color: #6b7280; font-weight: 400; }
+.text-input, .textarea {
+  background: var(--panel); border: 1px solid rgba(255,255,255,.1); color: var(--text);
+  border-radius: 10px; padding: 12px; font-size: 16px; width: 100%; font-family: inherit;
+}
+.textarea { resize: none; min-height: 180px; flex: 1; line-height: 1.5; }
+.checkbox { width: 22px; height: 22px; accent-color: var(--accent); }
+
+.reading-readout { font-size: 14px; color: var(--muted); margin: 4px 0 12px; }
+.reading-readout.over { color: var(--warn); }
+.editor-actions { margin-top: auto; padding-top: 8px; }
+
+/* --------------------------- Recorder screen --------------------------- */
+.preview {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover;            /* avoid stretching the preview */
+  background: #000;
+  transform: scaleX(1);         /* front-cam selfie mirroring handled in JS */
+}
+
+/* Teleprompter band */
+.tp-band {
+  position: absolute; left: 0; right: 0;
+  top: var(--tp-top);
+  height: var(--tp-height);
+  padding: 0 var(--tp-pad);
+  overflow: hidden;
+  pointer-events: none;         /* don't block taps to controls/preview */
+  /* Dark scrim for contrast: stronger in the middle where text sits,
+     fading at the edges so the camera remains partly visible. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+}
+.tp-band::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,1) 45%, rgba(0,0,0,1) 55%, rgba(0,0,0,0));
+  opacity: var(--tp-scrim);
+}
+.tp-scroller { position: absolute; left: var(--tp-pad); right: var(--tp-pad); will-change: transform; }
+.tp-text {
+  color: #fff;
+  font-size: var(--tp-font);
+  line-height: 1.45;
+  font-weight: 600;
+  text-align: center;
+  white-space: pre-wrap;
+  /* high-contrast: white text + shadow so it reads over any bright video */
+  text-shadow: 0 1px 4px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
+  transform: scaleX(var(--tp-mirror));   /* mirror mode */
+}
+
+/* HUD */
+.hud {
+  position: absolute; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; z-index: 5;
+}
+.hud-top { top: 0; padding-top: calc(env(safe-area-inset-top) + 10px);
+  background: linear-gradient(to bottom, rgba(0,0,0,.55), rgba(0,0,0,0)); }
+.hud-center { display: flex; align-items: center; gap: 8px; }
+.hud-right { display: flex; align-items: center; gap: 8px; }
+.rec-timer { font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 600;
+  background: rgba(0,0,0,.4); padding: 4px 10px; border-radius: 20px; }
+.rec-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--danger);
+  animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.readout { font-size: 12px; color: #d7dbe3; background: rgba(0,0,0,.4);
+  padding: 4px 8px; border-radius: 12px; font-variant-numeric: tabular-nums; }
+
+/* Teleprompter control bar */
+.tp-controls {
+  position: absolute; left: 0; right: 0; bottom: 96px; z-index: 5;
+  padding: 8px 12px calc(8px);
+  background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,.15));
+  display: flex; flex-direction: column; gap: 8px;
+}
+.tp-controls-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tp-controls-row.second { gap: 12px; }
+.slider-group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 120px; }
+.slider-icon { font-size: 13px; color: #cfd4dd; width: 16px; text-align: center; flex: 0 0 auto; }
+.slider-val { font-size: 11px; color: #cfd4dd; min-width: 48px; text-align: right; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent); height: 24px; }
+.icon-btn:disabled[data-locktip]::after { content: ""; }
+
+/* Bottom action bar with record button */
+.action-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 28px calc(env(safe-area-inset-bottom) + 16px);
+}
+.spacer-btn { width: 56px; }
+.record-btn {
+  width: 74px; height: 74px; border-radius: 50%;
+  background: rgba(255,255,255,.18); border: 4px solid #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  padding: 0;
+}
+.record-btn-inner {
+  width: 54px; height: 54px; border-radius: 50%; background: var(--danger);
+  transition: border-radius .2s, width .2s, height .2s;
+}
+.record-btn.recording .record-btn-inner { border-radius: 8px; width: 30px; height: 30px; }
+
+/* Errors / warnings on recorder */
+.cam-error {
+  position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 40px; background: rgba(0,0,0,.85); color: var(--text); font-size: 16px; line-height: 1.5;
+}
+.bg-warn {
+  position: absolute; top: calc(env(safe-area-inset-top) + 64px); left: 12px; right: 12px; z-index: 7;
+  background: rgba(255,59,48,.92); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; text-align: center;
+}
+
+/* --------------------------- Review screen --------------------------- */
+.review-body { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16px); overflow-y: auto; }
+.review-video { width: 100%; flex: 1; max-height: 70vh; background: #000; border-radius: var(--radius); }
+.review-meta { color: var(--muted); font-size: 13px; text-align: center; margin: 0; }
+
+/* --------------------------- Countdown overlay --------------------------- */
+.countdown {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.35); pointer-events: none;
+}
+.countdown-num {
+  font-size: 28vh; font-weight: 800; color: #fff; line-height: 1;
+  text-shadow: 0 4px 30px rgba(0,0,0,.8);
+}
+.countdown-num.tick { animation: cd-tick .9s ease-out; }
+@keyframes cd-tick {
+  0%   { opacity: 0; transform: scale(.4); }
+  20%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* --------------------------- Settings overlay --------------------------- */
+.settings-overlay {
+  position: fixed; inset: 0; z-index: 15; background: rgba(0,0,0,.6);
+  display: flex; justify-content: flex-end;
+}
+.settings-panel {
+  width: min(420px, 90vw); height: 100%; background: var(--panel);
+  padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  overflow-y: auto; box-shadow: -8px 0 30px rgba(0,0,0,.5);
+  animation: slide-in .2s ease-out;
+}
+@keyframes slide-in { from { transform: translateX(30px); opacity: .4; } to { transform: none; opacity: 1; } }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 8px; }
+
+/* --------------------------- Toast --------------------------- */
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translateX(-50%);
+  background: #2a3040; color: #fff; padding: 12px 18px; border-radius: 10px; z-index: 30;
+  font-size: 14px; max-width: 88vw; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.toast.error { background: #5a1f1c; }
+
+/* Off-screen measurer for reading-time estimates */
+.measurer {
+  position: fixed; visibility: hidden; pointer-events: none; left: -9999px; top: 0;
+  white-space: pre-wrap; text-align: center; line-height: 1.45; font-weight: 600;
+}

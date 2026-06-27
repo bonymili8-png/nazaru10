@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    Viewport: lock width to device, prevent user zoom so the camera UI behaves
+    like a native app. viewport-fit=cover lets us paint under the iOS notch /
+    home indicator (we pad with env(safe-area-inset-*) in CSS).
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <!-- iOS standalone PWA hints. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TeleProm" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0f1a" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <!-- Inter — refined, technical, premium type system (font-display: swap). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+  <title>TeleProm — Teleprompter Video Recorder</title>
+</head>
+<body>
+  <!-- ===================== SVG icon sprite (Lucide-style, stroke 2) ===================== -->
+  <svg width="0" height="0" class="svg-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+      <symbol id="i-flip" viewBox="0 0 24 24"><path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><path d="m18 22-3-3 3-3"/><path d="m6 2 3 3-3 3"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+      <symbol id="i-speed" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+      <symbol id="i-type" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></symbol>
+      <symbol id="i-move-v" viewBox="0 0 24 24"><polyline points="8 18 12 22 16 18"/><polyline points="8 6 12 2 16 6"/><line x1="12" y1="2" x2="12" y2="22"/></symbol>
+      <symbol id="i-height" viewBox="0 0 24 24"><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/></symbol>
+      <symbol id="i-width" viewBox="0 0 24 24"><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/><path d="m8 3-4 4 4 4"/></symbol>
+      <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></symbol>
+    </defs>
+  </svg>
+
+  <div id="app">
+
+    <!-- ============================ SCRIPT SCREEN ============================ -->
+    <section class="view view-script" data-screen="script">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark"></span><span>TeleProm</span></div>
+        <button class="icon-btn ghost" id="btn-open-settings" title="Settings" aria-label="Settings"><svg class="ic"><use href="#i-settings"/></svg></button>
+      </header>
+
+      <!-- Library list -->
+      <div id="library-panel" class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Your scripts</h2>
+            <p class="panel-sub">Pick one to record, or start fresh.</p>
+          </div>
+        </div>
+        <div class="lib-actions">
+          <button class="btn ghost" id="btn-import"><svg class="ic"><use href="#i-upload"/></svg> Import</button>
+          <button class="btn ghost" id="btn-export-all"><svg class="ic"><use href="#i-download"/></svg> Export</button>
+          <button class="btn primary" id="btn-new-script"><svg class="ic"><use href="#i-plus"/></svg> New</button>
+        </div>
+
+        <ul id="script-list" class="script-list"></ul>
+
+        <div id="empty-state" class="empty-state hidden">
+          <div class="empty-icon"><svg class="ic"><use href="#i-video"/></svg></div>
+          <p class="empty-title">No scripts yet</p>
+          <p class="empty-sub">Create your first script or import an existing one to start recording.</p>
+          <div class="row gap center">
+            <button class="btn primary" id="btn-empty-new"><svg class="ic"><use href="#i-plus"/></svg> New script</button>
+            <button class="btn ghost" id="btn-empty-import"><svg class="ic"><use href="#i-upload"/></svg> Import</button>
+          </div>
+        </div>
+
+        <input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden />
+      </div>
+
+      <!-- Editor -->
+      <div id="editor-panel" class="panel hidden">
+        <div class="panel-head">
+          <button class="icon-btn ghost" id="btn-editor-back" aria-label="Back to library"><svg class="ic"><use href="#i-back"/></svg></button>
+          <h2 id="editor-title">New script</h2>
+          <span style="width:44px"></span>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Title <small>optional — taken from the first line</small></span>
+          <input type="text" id="script-title" class="text-input" placeholder="Untitled" />
+        </label>
+
+        <label class="field grow">
+          <span class="field-label">Script</span>
+          <textarea id="script-text" class="textarea" placeholder="Paste or type your script here…"></textarea>
+        </label>
+
+        <div class="reading-readout" id="editor-reading">
+          <svg class="ic"><use href="#i-clock"/></svg> Estimated read: <strong>~0:00</strong>
+        </div>
+
+        <div class="editor-actions">
+          <div class="row gap">
+            <button class="btn ghost small" id="btn-export-single-json">.json</button>
+            <button class="btn ghost small" id="btn-export-single-txt">.txt</button>
+            <button class="btn ghost" id="btn-save-script">Save</button>
+          </div>
+          <button class="btn primary" id="btn-save-start">Save &amp; Record <svg class="ic"><use href="#i-back" transform="rotate(180 12 12)"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ RECORDER SCREEN ============================ -->
+    <section class="view view-recorder" data-screen="recorder">
+      <!-- Camera preview at the back. object-fit:cover prevents stretching;
+           muted + playsinline are REQUIRED for iOS autoplay of the preview. -->
+      <video id="preview" class="preview" autoplay muted playsinline></video>
+
+      <!-- Subtle vignette so floating glass UI stays legible over bright video. -->
+      <div class="vignette" aria-hidden="true"></div>
+
+      <!-- Tap-and-hold edge zones: hold left to slow the scroll, right to speed
+           it up. Release restores the slider speed (never persisted). -->
+      <div id="zone-left" class="edge-zone left" title="Hold to slow the scroll"><span>−</span></div>
+      <div id="zone-right" class="edge-zone right" title="Hold to speed up the scroll"><span>+</span></div>
+
+      <!--
+        Teleprompter reading window. Positioned in the UPPER portion of the
+        screen (CSS var --tp-top), deliberately close to the front-camera lens:
+        keeping the read line near the lens means the reader's gaze stays on
+        camera. The window shows only a few crisp lines — the rest fades out top
+        and bottom (mask), and a center guide marks the line to read, so text
+        flows through line-by-line rather than appearing as one static block.
+      -->
+      <div id="tp-band" class="tp-band" aria-hidden="false">
+        <div id="tp-scroller" class="tp-scroller">
+          <div id="tp-text" class="tp-text"></div>
+        </div>
+        <div class="tp-guide" aria-hidden="true"><span class="tp-caret left"></span><span class="tp-caret right"></span></div>
+      </div>
+
+      <!-- Camera permission / error -->
+      <div id="cam-error" class="cam-error hidden"></div>
+
+      <!-- Backgrounded warning -->
+      <div id="bg-warn" class="bg-warn hidden">Recording must stay in the foreground — don't switch apps.</div>
+
+      <!-- Top HUD: back · timer · resolution · settings -->
+      <header class="hud-top">
+        <button class="icon-btn glass" id="btn-rec-back" title="Back to scripts" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="timer-pill"><span id="rec-dot" class="rec-dot hidden"></span><span id="rec-timer">00:00</span></div>
+        <div class="hud-right">
+          <span id="res-readout" class="res-pill" title="Actual capture resolution">—</span>
+          <button class="icon-btn glass" id="btn-rec-settings" title="Settings" aria-label="Settings"><svg class="ic"><use href="#i-settings"/></svg></button>
+        </div>
+      </header>
+
+      <!-- Teleprompter controls — glass panel, thin, near the bottom (away from
+           the lens). All settings here are safe to change mid-recording. -->
+      <div class="tp-controls glass-panel">
+        <div class="tp-row">
+          <button class="ctrl-btn" id="btn-tp-play" title="Play / Pause scroll" aria-label="Play or pause">
+            <svg class="ic ic-play"><use href="#i-play"/></svg><svg class="ic ic-pause"><use href="#i-pause"/></svg>
+          </button>
+          <button class="ctrl-btn" id="btn-tp-reset" title="Reset to top" aria-label="Reset"><svg class="ic"><use href="#i-reset"/></svg></button>
+
+          <label class="slider-group" title="Scroll speed">
+            <svg class="ic dim"><use href="#i-speed"/></svg>
+            <input type="range" id="speed-range" min="10" max="150" step="1" />
+            <span class="slider-val" id="speed-val">40 px/s</span>
+          </label>
+
+          <label class="slider-group" title="Font size">
+            <svg class="ic dim"><use href="#i-type"/></svg>
+            <input type="range" id="font-range" min="18" max="64" step="1" />
+            <span class="slider-val" id="font-val">32 px</span>
+          </label>
+
+          <span class="reading-pill" id="rec-reading" title="Estimated read time"><svg class="ic"><use href="#i-clock"/></svg> ~0:00</span>
+        </div>
+
+        <div class="tp-row geo">
+          <label class="slider-group" title="Vertical position"><svg class="ic dim"><use href="#i-move-v"/></svg><input type="range" id="pos-range" min="0" max="55" step="1" /></label>
+          <label class="slider-group" title="Window height"><svg class="ic dim"><use href="#i-height"/></svg><input type="range" id="height-range" min="15" max="80" step="1" /></label>
+          <label class="slider-group" title="Column width"><svg class="ic dim"><use href="#i-width"/></svg><input type="range" id="pad-range" min="0" max="40" step="1" /></label>
+          <label class="slider-group" title="Scrim darkness"><svg class="ic dim"><use href="#i-contrast"/></svg><input type="range" id="scrim-range" min="0" max="90" step="1" /></label>
+        </div>
+      </div>
+
+      <!-- Bottom action bar: flip · record. -->
+      <div class="action-bar">
+        <button class="icon-btn glass big" id="btn-flip" title="Switch camera" aria-label="Switch camera"><svg class="ic"><use href="#i-flip"/></svg></button>
+        <button class="record-btn" id="btn-record" title="Record" aria-label="Record"><span class="record-btn-inner"></span></button>
+        <div class="spacer-btn"></div>
+      </div>
+    </section>
+
+    <!-- ============================ REVIEW SCREEN ============================ -->
+    <section class="view view-review" data-screen="review">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark"></span><span>Review</span></div>
+      </header>
+      <div class="review-body">
+        <video id="review-video" class="review-video" controls playsinline></video>
+        <p class="review-meta" id="review-meta"></p>
+        <div class="review-actions">
+          <button class="btn ghost" id="btn-record-again"><svg class="ic"><use href="#i-reset"/></svg> Record again</button>
+          <button class="btn primary" id="btn-save"><svg class="ic"><use href="#i-download"/></svg> Save to device</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ COUNTDOWN OVERLAY ============================ -->
+    <div id="countdown" class="countdown hidden" aria-hidden="true">
+      <span id="countdown-num" class="countdown-num">3</span>
+    </div>
+
+    <!-- ============================ SETTINGS OVERLAY ============================ -->
+    <div id="settings" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="settings-panel">
+        <div class="panel-head">
+          <h2>Settings</h2>
+          <button class="icon-btn ghost" id="btn-close-settings" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="group-title">Recording</span>
+
+          <label class="field">
+            <span class="field-label">Countdown before recording</span>
+            <select id="set-countdown" class="text-input">
+              <option value="0">Off</option><option value="3">3 seconds</option>
+              <option value="5">5 seconds</option><option value="10">10 seconds</option>
+            </select>
+          </label>
+
+          <!-- Stream/recorder settings — disabled while recording (handled in JS). -->
+          <label class="field">
+            <span class="field-label">Capture resolution <small id="res-lock-note"></small></span>
+            <select id="set-resolution" class="text-input">
+              <option value="480">480p</option><option value="720">720p</option><option value="1080">1080p</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Video bitrate <small>hint only — some browsers ignore it</small></span>
+            <select id="set-bitrate" class="text-input">
+              <option value="2500000">Low (~2.5 Mbps)</option>
+              <option value="5000000">Medium (~5 Mbps)</option>
+              <option value="9000000">High (~9 Mbps)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <span class="group-title">Teleprompter</span>
+
+          <label class="field switch-row">
+            <span class="field-label">Mirror front-camera preview</span>
+            <span class="switch"><input type="checkbox" id="set-mirror-preview" /><span class="switch-track"></span></span>
+          </label>
+
+          <label class="field switch-row">
+            <span class="field-label">Mirror text <small>(beam-splitter rig)</small></span>
+            <span class="switch"><input type="checkbox" id="set-mirror" /><span class="switch-track"></span></span>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Default scroll speed <em id="set-speed-val">40</em> px/s</span>
+            <input type="range" id="set-speed" min="10" max="150" step="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Default font size <em id="set-font-val">32</em> px</span>
+            <input type="range" id="set-font" min="18" max="64" step="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Scrim opacity <em id="set-scrim-val">35</em>%</span>
+            <input type="range" id="set-scrim" min="0" max="90" step="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Target length warning <em id="set-target-val">90</em>s</span>
+            <input type="range" id="set-target" min="15" max="180" step="5" />
+          </label>
+        </div>
+
+        <p class="hint">Camera APIs require HTTPS in production (localhost is exempt).</p>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <!-- Off-screen measurer for reading-time estimates. -->
+  <div id="measurer" class="measurer" aria-hidden="true"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

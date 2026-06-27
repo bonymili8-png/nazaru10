@@ -20,7 +20,12 @@ TikTok / Reels / Shorts where keeping eye contact matters.
   on camera.
 - **Live controls** (safe to change mid-recording): scroll speed, font size,
   band vertical position / height / column width, scrim opacity, play / pause /
-  reset, mirror mode (for beam-splitter rigs).
+  reset, mirror mode (for beam-splitter rigs). **Tap-and-hold** the left/right
+  screen edges to momentarily slow down / speed up the scroll (released = back
+  to the slider speed).
+- **Clear lock feedback** — controls that can't change mid-recording (camera
+  flip, resolution, bitrate) are greyed out with a tooltip / toast explaining
+  you must stop recording first.
 - **Countdown** — configurable 3 / 5 / 10s (or off) before recording starts; the
   scroll begins exactly when recording does, so timing matches the video.
 - **Settings** — countdown length, capture **resolution** (480/720/1080p, `ideal`

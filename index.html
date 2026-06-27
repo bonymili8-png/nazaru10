@@ -114,6 +114,13 @@
         </div>
       </div>
 
+      <!-- Tap-and-hold edge zones: hold the left edge to temporarily slow the
+           scroll, the right edge to speed it up. Releasing restores the slider
+           speed (does NOT change the persisted setting). Sit below the HUD and
+           control bar so those stay tappable. -->
+      <div id="zone-left" class="edge-zone left" title="Hold to slow the scroll"><span>−</span></div>
+      <div id="zone-right" class="edge-zone right" title="Hold to speed up the scroll"><span>+</span></div>
+
       <!-- Camera permission / error message -->
       <div id="cam-error" class="cam-error hidden"></div>
 

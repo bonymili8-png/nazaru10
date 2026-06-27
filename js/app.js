@@ -105,6 +105,9 @@ function openSettings() {
   const recording = recorder.isRecording();
   $('set-resolution').disabled = recording;
   $('set-bitrate').disabled = recording;
+  const lockTip = recording ? 'Stop recording to change this' : '';
+  $('set-resolution').title = lockTip;
+  $('set-bitrate').title = lockTip;
   $('res-lock-note').textContent = recording ? '(locked while recording)' : '';
   $('settings').classList.remove('hidden');
 }
@@ -445,13 +448,15 @@ function updateRecReadingReadout() {
 
 // Disable controls that can't change mid-recording (facing, resolution,
 // bitrate). Live controls (speed/font/position/scrim) stay enabled.
+// The flip button is greyed via `.locked` (not `disabled`) so a tap still
+// fires and we can explain *why* it's unavailable.
 function setRecordingLocks(recording) {
-  $('btn-flip').disabled = recording;
-  $('btn-flip').title = recording ? 'Cannot switch camera while recording' : 'Switch camera';
+  $('btn-flip').classList.toggle('locked', recording);
+  $('btn-flip').title = recording ? 'Stop recording to switch camera' : 'Switch camera';
 }
 
 async function flipCamera() {
-  if (recorder.isRecording()) return;
+  if (recorder.isRecording()) { toast('Stop recording to switch camera.'); return; }
   const next = recorder.facingMode === 'user' ? 'environment' : 'user';
   try {
     await recorder.start({ facingMode: next, resolution: state.settings.resolution });
@@ -654,6 +659,34 @@ function wireLiveControls() {
   tp.onEnd = () => { $('btn-tp-play').textContent = '▶︎'; };
 }
 
+// Tap-and-hold edge zones: while held, apply a temporary scroll speed.
+// On release, restore the slider/persisted speed — we never write the temp
+// value to settings, so this is purely a momentary nudge.
+function wireEdgeZones() {
+  const bind = (el, speedFn) => {
+    if (!el) return;
+    let active = false;
+    const start = (e) => {
+      e.preventDefault();
+      active = true;
+      el.classList.add('active');
+      tp.setSpeed(speedFn(state.settings.speed));
+    };
+    const end = () => {
+      if (!active) return;
+      active = false;
+      el.classList.remove('active');
+      tp.setSpeed(state.settings.speed); // restore
+    };
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('pointerleave', end);
+  };
+  bind($('zone-left'),  (s) => Math.max(5, Math.round(s * 0.35)));    // slow down
+  bind($('zone-right'), (s) => Math.min(300, Math.round(s * 2.2)));   // speed up
+}
+
 function wireButtons() {
   // Library actions
   on($('btn-new-script'), 'click', () => { clearDraft(); openEditor(null); });
@@ -717,6 +750,7 @@ function init() {
 
   wireButtons();
   wireLiveControls();
+  wireEdgeZones();
   wireSettings();
 
   // Start on the script library.

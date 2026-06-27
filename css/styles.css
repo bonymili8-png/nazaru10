@@ -216,6 +216,28 @@ input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent); hei
 }
 .record-btn.recording .record-btn-inner { border-radius: 8px; width: 30px; height: 30px; }
 
+/* Tap-and-hold speed zones (left = slower, right = faster). Transparent
+   strips on the side edges, in the mid band so they don't cover HUD/controls.
+   touch-action:none stops the page from scrolling while held. */
+.edge-zone {
+  position: absolute; top: 18%; bottom: 30%; width: 20%; z-index: 4;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.edge-zone.left { left: 0; }
+.edge-zone.right { right: 0; }
+.edge-zone span {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,.4); opacity: 0; transition: opacity .12s, transform .12s;
+  transform: scale(.8);
+}
+.edge-zone.active span { opacity: 1; transform: scale(1); }
+
+/* Greyed-but-tappable lock (vs disabled) so a tap can explain why. */
+.icon-btn.locked { opacity: .35; }
+
 /* Errors / warnings on recorder */
 .cam-error {
   position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;

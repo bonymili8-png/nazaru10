@@ -14,10 +14,18 @@ TikTok / Reels / Shorts where keeping eye contact matters.
 - **Camera + recording** — full-screen preview via `getUserMedia`, front/rear
   toggle, `MediaRecorder` with runtime MIME detection (MP4 on iOS, WebM/VP9 on
   Android/Chrome), red indicator + `mm:ss` timer.
-- **Teleprompter overlay** — semi-transparent scrolling text over the preview,
-  delta-time `requestAnimationFrame` loop (frame-rate independent), high-contrast
-  white text with a dark scrim. Positioned **near the lens** so your gaze stays
-  on camera.
+- **Teleprompter overlay** — a focused reading window over the preview: only a
+  few crisp lines show, the rest fades out top and bottom, and a centre guide
+  marks the read line, so text flows through **line-by-line** rather than as one
+  static block. Delta-time `requestAnimationFrame` loop (frame-rate independent),
+  high-contrast white text with a dark scrim, positioned **near the lens** so
+  your gaze stays on camera.
+- **Mirror controls** — the front-camera *preview* is mirrored (selfie view) by
+  default and can be toggled in Settings; this is cosmetic only — the recorded
+  file is never mirrored. A separate "mirror text" option exists for
+  beam-splitter rigs.
+- **Liquid-glass UI** — dark cinematic theme, Inter type, glassmorphic floating
+  controls, SVG icons (no emoji), gradient accents.
 - **Live controls** (safe to change mid-recording): scroll speed, font size,
   band vertical position / height / column width, scrim opacity, play / pause /
   reset, mirror mode (for beam-splitter rigs). **Tap-and-hold** the left/right

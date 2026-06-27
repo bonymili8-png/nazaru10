@@ -16,6 +16,8 @@ const DEFAULT_SETTINGS = {
   resolution: 720,         // 480 | 720 | 1080
   bitrate: 5000000,        // bits/sec
   mirror: false,           // mirror teleprompter text (beam-splitter rig)
+  mirrorPreview: true,     // mirror the front-camera PREVIEW (selfie view).
+                           // Cosmetic only — the recorded file is never mirrored.
   speed: 40,               // default scroll speed px/s
   font: 32,                // default font size px
   scrim: 35,               // scrim opacity %  (0..90)

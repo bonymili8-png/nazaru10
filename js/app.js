@@ -82,6 +82,7 @@ function syncSettingsUI() {
   $('set-resolution').value = String(s.resolution);
   $('set-bitrate').value = String(s.bitrate);
   $('set-mirror').checked = s.mirror;
+  $('set-mirror-preview').checked = s.mirrorPreview;
   $('set-speed').value = s.speed;       $('set-speed-val').textContent = s.speed;
   $('set-font').value = s.font;         $('set-font-val').textContent = s.font;
   $('set-scrim').value = s.scrim;       $('set-scrim-val').textContent = s.scrim;
@@ -136,6 +137,7 @@ function wireSettings() {
 
   on($('set-bitrate'), 'change', (e) => { state.settings.bitrate = +e.target.value; persistSettings(); });
   on($('set-mirror'), 'change', (e) => { state.settings.mirror = e.target.checked; tp.setMirror(e.target.checked); persistSettings(); });
+  on($('set-mirror-preview'), 'change', (e) => { state.settings.mirrorPreview = e.target.checked; applyPreviewMirror(); persistSettings(); });
 
   on($('set-speed'), 'input', (e) => {
     state.settings.speed = +e.target.value; $('set-speed-val').textContent = e.target.value;
@@ -191,10 +193,10 @@ function renderScriptList() {
       <div class="si-preview"></div>
       <div class="si-meta"><span class="si-date"></span><span class="si-len"></span></div>
       <div class="si-actions">
-        <button class="btn small" data-act="load">Load</button>
-        <button class="btn small" data-act="edit">Edit</button>
-        <button class="btn small" data-act="dup">Duplicate</button>
-        <button class="btn small" data-act="del">Delete</button>
+        <button class="btn primary small" data-act="load"><svg class="ic"><use href="#i-video"/></svg> Load</button>
+        <button class="btn ghost small" data-act="edit"><svg class="ic"><use href="#i-edit"/></svg> Edit</button>
+        <button class="btn ghost small" data-act="dup"><svg class="ic"><use href="#i-copy"/></svg></button>
+        <button class="btn ghost small danger" data-act="del"><svg class="ic"><use href="#i-trash"/></svg></button>
       </div>`;
     li.querySelector('.si-title').textContent = sc.title || deriveTitle(sc.text);
     li.querySelector('.si-preview').textContent = firstLine(sc.text) || '(empty)';
@@ -427,10 +429,13 @@ async function enterRecorder() {
   }
 }
 
-// Mirror the *preview* for the front camera (selfie view) — this is cosmetic
-// and does NOT affect the recorded file.
+// Mirror the *preview* for the front camera (selfie view). This is purely
+// cosmetic — the recorded video is NEVER mirrored (the transform lives on the
+// <video> element, not the stream). Rear camera is always shown un-mirrored.
+// Controlled by the "Mirror front-camera preview" setting.
 function applyPreviewMirror() {
-  $('preview').style.transform = recorder.facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+  const mirror = recorder.facingMode === 'user' && state.settings.mirrorPreview;
+  $('preview').style.transform = mirror ? 'scaleX(-1)' : 'scaleX(1)';
 }
 
 function updateResReadout() {
@@ -520,6 +525,7 @@ async function onRecordTap() {
   // on-screen script timing matches the captured video.
   tp.reset();
   tp.play();
+  syncPlayBtn();
 
   // UI: red dot + timer + button morph + lock non-live controls.
   $('btn-record').classList.add('recording');
@@ -531,6 +537,7 @@ async function onRecordTap() {
 async function stopRecording() {
   stopTimer();
   tp.pause();
+  syncPlayBtn();
   $('btn-record').classList.remove('recording');
   $('rec-dot').classList.add('hidden');
   setRecordingLocks(false);
@@ -650,13 +657,15 @@ function wireLiveControls() {
   // Scrim opacity (live)
   on($('scrim-range'), 'input', (e) => { state.settings.scrim = +e.target.value; tp.setScrim(state.settings.scrim); persistSettings(); });
 
-  on($('btn-tp-play'), 'click', () => {
-    tp.toggle();
-    $('btn-tp-play').textContent = tp.playing ? '❚❚' : '▶︎';
-  });
+  on($('btn-tp-play'), 'click', () => { tp.toggle(); syncPlayBtn(); });
   on($('btn-tp-reset'), 'click', () => { tp.reset(); });
-  // Keep the play/pause glyph in sync if the scroll auto-stops at the end.
-  tp.onEnd = () => { $('btn-tp-play').textContent = '▶︎'; };
+  // Keep the play/pause icon in sync if the scroll auto-stops at the end.
+  tp.onEnd = () => { syncPlayBtn(); };
+}
+
+// Toggle the play/pause icon (CSS swaps the SVG based on .is-playing).
+function syncPlayBtn() {
+  $('btn-tp-play').classList.toggle('is-playing', tp.playing);
 }
 
 // Tap-and-hold edge zones: while held, apply a temporary scroll speed.

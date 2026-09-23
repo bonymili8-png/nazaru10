@@ -18,7 +18,7 @@ const NAV = [
   { href: "/horses/", label: "Horses", Icon: HorseIcon },
   { href: "/races/", label: "Races", Icon: Flag },
   { href: "/rankings/", label: "Rankings", Icon: Trophy },
-  { href: "/shop/", label: "Shop", Icon: Store },
+  { href: "/shop/", label: "Market", Icon: Store },
 ];
 
 function routeForStartParam(p: string | undefined): string | null {
@@ -177,7 +177,8 @@ function Chrome({ children }: { children: ReactNode }) {
                 ? path === "/"
                 : path.startsWith(href.replace(/\/$/, "")) ||
                   (href === "/horses/" && path.startsWith("/horse")) ||
-                  (href === "/races/" && path.startsWith("/race"));
+                  (href === "/races/" && path.startsWith("/race")) ||
+                  (href === "/shop/" && path.startsWith("/listing"));
             return (
               <li key={href}>
                 <Link

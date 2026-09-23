@@ -38,9 +38,22 @@ export class HorsesController {
   ): Promise<HorseDetailDto> {
     await this.training.settleDueForOwner(user.id);
     const h = await getHorse(this.db.pool, id);
-    const active =
-      h.owner_id === user.id ? ((await this.training.active(this.db.pool, [h.id])).get(h.id) ?? null) : null;
-    return this.horses.detail(h, user.id, this.clock.now(), await this.horses.ownerName(h.owner_id), active);
+    const mine = h.owner_id === user.id;
+    const active = mine ? ((await this.training.active(this.db.pool, [h.id])).get(h.id) ?? null) : null;
+    const listing = mine
+      ? await this.db.one<{ id: string }>(
+          "SELECT id FROM market_listings WHERE horse_id = $1 AND status = 'ACTIVE'",
+          [h.id],
+        )
+      : null;
+    return this.horses.detail(
+      h,
+      user.id,
+      this.clock.now(),
+      await this.horses.ownerName(h.owner_id),
+      active,
+      listing?.id ?? null,
+    );
   }
 
   @Get(":id/races")

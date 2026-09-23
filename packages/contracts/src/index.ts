@@ -221,6 +221,10 @@ export interface HorseDetailDto extends HorseSummaryDto {
     aptitudes: Aptitudes;
     /** 1–5 stars summarising genetic potential (exact values need diagnostics). */
     potentialStars: number;
+    /** Reference market value (valuation model) — the market accepts 0.2×–20× of it. */
+    marketValue: number;
+    /** Active market listing of this horse, if any. */
+    listingId: string | null;
     condition: ConditionDto;
     injuredUntil: string | null;
     activeTraining: TrainingSessionDto | null;

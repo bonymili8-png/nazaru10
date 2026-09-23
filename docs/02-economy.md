@@ -136,3 +136,14 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 * Closing (1 h grace after the end): rewards by final owner rank (credits, gems, reputation,
   prestige — all minted from the `SEASON_REWARDS` source), Hall of Fame entries for the
   champion owner and champion horse (append-only).
+
+## Tournaments (Phase 2)
+
+* Faucet: one final purse per tournament (Local 6 000 daily … Elite 100 000 fortnightly),
+  paid through the normal race prize split; champion prestige/reputation from
+  `TOURNAMENT_PRIZE`.
+* Sink: entry fees (`TOURNAMENT_FEES`). A full Local Cup (36 × 200 = 7 200) burns more than
+  it mints; a thin one mints — acceptable at this scale and visible on the economy dashboard
+  per source/sink. Refunds go through `TOURNAMENT_REFUND` so the fee sink stays honest.
+* Heats pay no purse: a tournament horse spends one committed day for a chance at a purse
+  worth ≈ 30× the entry fee, which keeps tournaments aspirational without inflating income.

@@ -1,7 +1,7 @@
 "use client";
 import { type HorseSummaryDto, type RaceDetailDto, STRATEGIES, type Strategy } from "@thoroughline/contracts";
 import { trackByCode } from "@thoroughline/engine";
-import { Share2, ShieldCheck } from "lucide-react";
+import { Share2, ShieldCheck, Trophy } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
@@ -45,6 +45,14 @@ function RacePage() {
           </Badge>
         </div>
         <h1 className="mt-2 font-display text-2xl font-bold">{race.name}</h1>
+        {race.tournamentId && (
+          <a
+            href={`/tournament/?id=${race.tournamentId}`}
+            className="mt-1 inline-flex items-center gap-1 text-sm text-gold hover:underline"
+          >
+            <Trophy className="size-4" aria-hidden /> Tournament bracket
+          </a>
+        )}
         <p className="text-sm text-muted">
           {track.archetype} · {race.distance}m {titleCase(race.surface)} ·{" "}
           <W className="inline size-4 align-[-3px]" aria-hidden /> {titleCase(race.weather)},{" "}
@@ -64,17 +72,17 @@ function RacePage() {
             }
           />
         </dl>
-        {race.eligibility.maidenOnly && (
+        {!race.tournamentId && race.eligibility.maidenOnly && (
           <p className="mt-2 text-xs text-muted">For horses that have never won.</p>
         )}
-        {(race.eligibility.minRating || race.eligibility.maxRating) && (
+        {!race.tournamentId && (race.eligibility.minRating || race.eligibility.maxRating) && (
           <p className="mt-2 text-xs text-muted">
             Rating band {race.eligibility.minRating ?? "any"}–{race.eligibility.maxRating ?? "any"}.
           </p>
         )}
       </Card>
 
-      {race.status === "OPEN" && <EntryForm race={race} />}
+      {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
       {(race.status === "RUNNING" || race.status === "COMPLETED") && <LiveRace race={race} />}
 
       {race.status !== "COMPLETED" && (
@@ -101,7 +109,9 @@ function RacePage() {
                   </p>
                 </div>
                 <span className="num text-sm text-gold">{Math.round(e.abilityRating)}</span>
-                {e.mine && race.status === "OPEN" && <Withdraw raceId={race.id} horseId={e.horseId} />}
+                {e.mine && race.status === "OPEN" && !race.tournamentId && (
+                  <Withdraw raceId={race.id} horseId={e.horseId} />
+                )}
               </div>
             ))}
           </Card>

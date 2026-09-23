@@ -1,5 +1,7 @@
 "use client";
 import { RACE_CLASSES, type RaceSummaryDto } from "@thoroughline/contracts";
+import { Trophy } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { RaceCard } from "@/components/RaceCard";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
@@ -16,7 +18,16 @@ export default function RacesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Race card</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-3xl font-bold">Race card</h1>
+        <Link
+          href="/tournaments/"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3.5 text-sm font-medium text-gold"
+        >
+          <Trophy className="size-4" aria-hidden />
+          Tournaments
+        </Link>
+      </div>
       <div
         className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1"
         role="tablist"

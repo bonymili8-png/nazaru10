@@ -186,15 +186,40 @@ verifiable and cannot be re-rolled by the server silently.
 Prize money (credits) split 50/22/13/8/5/2 % over the top 6. Reputation for top 3.
 raceRating: multi-player Elo, K = 32/(n−1) per pair.
 
-## J. Tournament System (Phase 2)
+## J. Tournament System (Phase 2 — implemented)
 
-Tiers: LOCAL → REGIONAL → NATIONAL → INTERNATIONAL → ELITE → WORLD. Each tier has
-rating band, entry requirement, season points table, reputation reward. Qualification
-= season points ∨ raceRating ∨ invitation; **never purchasable**. Tournaments are
-compositions of scheduled races (heats → final) sharing the race engine. Edge cases
-handled by design: ties (dead heat splits points), withdrawals (before lock: refund;
-after lock: forfeit), cancellations (full refund via ledger reversal), server
-restarts (race runner is idempotent, results keyed by raceId unique).
+Tiers (config `tournaments.tiers`; only the first four are live — International/World are
+reserved for a larger player base):
+
+| Tier | Every | Entry | Final purse | Qualification (either) | Heat/final class | Champion bonus |
+|---|---|---|---|---|---|---|
+| Local | 24 h (18:00 UTC) | 200 | 6 000 | open | Class 5 | +30 reputation |
+| Regional | 72 h | 500 | 15 000 | 20 season pts or rating 1100+ | Class 4 | +1 prestige, +60 rep |
+| National | 7 days | 1 200 | 40 000 | 60 season pts or rating 1200+ | Class 3 | +2 prestige, +120 rep |
+| Elite | 14 days | 3 000 | 100 000 | 150 season pts or rating 1300+ | Class 2 | +5 prestige, +250 rep |
+
+Qualification is **never purchasable** (season points are earned; rating is Elo).
+
+Lifecycle (`REGISTRATION → HEATS → FINAL → COMPLETED`, or `CANCELLED`):
+
+1. **Registration** opens 24 h before the heats and closes 10 min before. Max 2 horses per
+   owner; the horse must be idle, of racing age, healthy and fresh enough at the heats time.
+   The fee is burnt (`TOURNAMENT_FEES`) and the horse is committed (`ENTERED`) — no training
+   or other races until it is eliminated or the final is run. Withdrawal before the close
+   refunds in full; re-registration is allowed (fresh idempotency key).
+2. **Draw** at close: < 2 entrants → cancelled with refunds. ≤ 6 entrants → straight to a
+   final at the heats time. Otherwise ⌈n/6⌉ heats, snake-seeded by race rating so the best
+   horses are spread out, 3 minutes apart. Heats are ordinary races (purse 0, no fee,
+   house fillers to 8 runners, provably fair seeds) and cannot be entered directly.
+3. **Advance** when every heat is decided: the top 2 player finishers of each heat qualify;
+   a qualifier that was injured, sold or retired in the meantime is scratched. A cancelled
+   heat scratches and refunds its runners.
+4. **Final** 30 min after the heats: ordinary race carrying the tournament purse (normal
+   prize split). The best player finisher is champion (tier bonus via `TOURNAMENT_PRIZE`).
+   A cancelled final refunds every finalist.
+
+Heats and finals award season points like any race of their class. Every step is one
+transaction guarded by status + row lock, so the job can run on any number of workers.
 
 ## Race classes (MVP)
 

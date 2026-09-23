@@ -1,0 +1,28 @@
+# Local stack: Postgres + API (with job runner). The Mini App runs via `pnpm dev:web`.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: thoroughline
+      POSTGRES_PASSWORD: thoroughline
+      POSTGRES_DB: thoroughline
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "thoroughline"]
+      interval: 5s
+      retries: 10
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    depends_on: { postgres: { condition: service_healthy } }
+    ports: ["3000:3000"]
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://thoroughline:thoroughline@postgres:5432/thoroughline
+      JWT_SECRET: dev-only-secret-change-me-dev-only-secret
+      RACE_SEED_SECRET: dev-only-race-seed-secret-change-me-000
+      ALLOW_DEV_AUTH: "true"
+      JOB_RUNNER: "true"
+      CORS_ORIGINS: http://localhost:3001
+volumes:
+  pgdata:

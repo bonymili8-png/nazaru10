@@ -1,17 +1,38 @@
 {
   "project_status": "IN_PROGRESS",
-  "current_phase": "PHASE_1_FOUNDATION",
-  "current_task": "1.1.1",
-  "completed_tasks": ["0.1.1", "0.2.1", "0.2.2", "0.3.1"],
-  "active_tasks": ["1.1.1"],
-  "blocked_tasks": [],
+  "current_phase": "M4_MVP_HARDENING",
+  "last_checkpoint": "M3_VERTICAL_SLICE",
+  "completed_tasks": [
+    "0.1.1", "0.2.1", "0.2.2", "0.3.1",
+    "1.1.1", "1.1.2", "1.2.1", "1.2.2", "1.3.1", "1.3.2", "1.3.3",
+    "2.1.1", "2.1.2", "2.1.3", "2.1.4",
+    "3.1.1", "3.1.2", "3.1.3",
+    "4.1.1", "4.1.2",
+    "5.1.1", "5.1.2", "5.1.3", "5.2.1",
+    "6.1.1",
+    "7.1.1", "7.2.1",
+    "8.1.1",
+    "9.1.1", "9.1.2", "9.1.3", "9.1.4", "9.2.1", "9.3.1", "9.3.2", "9.4.1",
+    "14.1.1", "14.1.2",
+    "15.1.1", "15.1.2",
+    "16.1.1", "16.1.2",
+    "19.1.1",
+    "20.1.1"
+  ],
+  "active_tasks": ["20.2.1"],
+  "blocked_tasks": [
+    { "id": "15.x", "reason": "Needs a real bot token, webhook URL and hosting to validate on Telegram clients (owner action)" }
+  ],
   "failed_tasks": [],
-  "critical_path": ["0", "1", "2", "3", "4", "5", "7", "9", "9.2", "9.3", "14", "15", "16", "20", "production"],
-  "test_status": "n/a",
-  "security_status": "design reviewed",
-  "performance_status": "n/a",
+  "test_status": { "engine": "47/47", "api": "52/52 (real Postgres)", "web": "build + manual Playwright walkthrough" },
+  "security_status": "design + implementation reviewed per docs/04; formal pre-production audit (20.2.1) pending",
+  "performance_status": "race sim ~0.4 ms/race single-core; API load test (20.3.1) pending",
   "known_bugs": [],
-  "technical_debt": [],
-  "last_checkpoint": "M0_DESIGN",
-  "next_action": "Scaffold pnpm monorepo (1.1.1)"
+  "technical_debt": [
+    "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
+    "Docker image and CI workflow written but not yet executed in this environment",
+    "Admin UI is API-only (no web console yet)",
+    "No automated browser E2E suite yet (Playwright walkthrough was manual)"
+  ],
+  "next_action": "20.2.1 security audit pass, 20.3.1 load test, then Phase 2 decomposition (marketplace, breeding UI, tournaments)"
 }

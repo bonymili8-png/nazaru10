@@ -55,6 +55,11 @@ export class NotificationsService {
           userId: String(p.userId),
           text: `🤝 <b>${escape(p.horseName)}</b> sold for ${Number(p.price).toLocaleString("en")} credits (fee ${Number(p.fee).toLocaleString("en")}).`,
         };
+      case "season_reward":
+        return {
+          userId: String(p.userId),
+          text: `🏆 Season ${Number(p.season)} is over — you finished <b>${ordinal(Number(p.rank))}</b> with ${Number(p.points)} points and earned ${Number(p.credits).toLocaleString("en")} credits plus bonuses.`,
+        };
       case "foal_delivered":
         return {
           userId: String(p.userId),

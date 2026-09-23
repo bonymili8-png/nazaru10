@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnApplicationBootstrap, type OnApplicationShut
 import { LOGGER, type Logger } from "../../common/logger.js";
 import { ENV, type Env } from "../../config/env.js";
 import { BreedingService } from "../breeding/breeding.service.js";
+import { SeasonsService } from "../seasons/seasons.service.js";
 import { MarketService } from "../market/market.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
@@ -24,6 +25,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly shop: ShopService,
     private readonly market: MarketService,
     private readonly breeding: BreedingService,
+    private readonly seasons: SeasonsService,
     private readonly notifications: NotificationsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
@@ -48,6 +50,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         this.lastSlow = now;
         await this.step("schedule", () => this.races.scheduleAhead());
         await this.step("shop", () => this.shop.restock());
+        await this.step("seasons", () => this.seasons.closeDue());
       }
       await this.step("lock", () => this.races.lockDue());
       await this.step("run", () => this.races.runDue());

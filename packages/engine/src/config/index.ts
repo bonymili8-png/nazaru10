@@ -149,6 +149,23 @@ export interface GameConfig {
     vetCost: { MINOR: number; MODERATE: number };
     diagnosticsCostGems: number;
   };
+  seasons: {
+    /** Season 1 starts here (UTC); seasons are consecutive and last one game year. */
+    epoch: string;
+    /** Points by finishing position (index 0 = winner). */
+    placingPoints: number[];
+    /** Class weight applied to placing points. */
+    classMultiplier: Record<RaceClass, number>;
+    /** End-of-season owner rewards by final rank (inclusive rank ranges). */
+    rewards: {
+      fromRank: number;
+      toRank: number;
+      credits: number;
+      gems: number;
+      reputation: number;
+      prestige: number;
+    }[];
+  };
   market: {
     /** Platform fee on completed player-to-player sales (credit sink). */
     saleFeeRate: number;
@@ -404,6 +421,18 @@ export const defaultConfig: GameConfig = {
     stableUpgradeCost: [4000, 12000, 35000, 90000],
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
+  },
+  seasons: {
+    epoch: "2026-01-05T00:00:00.000Z",
+    placingPoints: [10, 6, 4, 3, 2, 1],
+    classMultiplier: { MAIDEN: 1, CLASS_5: 1.5, CLASS_4: 2, CLASS_3: 3, CLASS_2: 4, CLASS_1: 6 },
+    rewards: [
+      { fromRank: 1, toRank: 1, credits: 25000, gems: 100, reputation: 200, prestige: 3 },
+      { fromRank: 2, toRank: 2, credits: 15000, gems: 60, reputation: 120, prestige: 2 },
+      { fromRank: 3, toRank: 3, credits: 10000, gems: 40, reputation: 80, prestige: 1 },
+      { fromRank: 4, toRank: 10, credits: 5000, gems: 15, reputation: 40, prestige: 0 },
+      { fromRank: 11, toRank: 50, credits: 1500, gems: 5, reputation: 15, prestige: 0 },
+    ],
   },
   market: {
     saleFeeRate: 0.06,

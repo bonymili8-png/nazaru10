@@ -109,3 +109,14 @@ Ownership transfer and payment happen in one DB transaction; a horse can never h
 two owners (FK + unique current owner column). Price sanity: listing price must be
 within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 (same device/IP clusters, circular trades) feeds the risk score.
+
+## Seasons (Phase 2)
+
+* A season lasts one game year (`lifecycle.realDaysPerGameYear`, 28 days) starting from
+  `seasons.epoch`. **Set the epoch to the launch date** (admin `game_config` override) so the
+  first public season is Season 1.
+* Points: top-6 finishes `[10, 6, 4, 3, 2, 1]` × class weight (Maiden 1 … Class 1 ×6),
+  credited to the owner at race time; house horses never score.
+* Closing (1 h grace after the end): rewards by final owner rank (credits, gems, reputation,
+  prestige — all minted from the `SEASON_REWARDS` source), Hall of Fame entries for the
+  champion owner and champion horse (append-only).

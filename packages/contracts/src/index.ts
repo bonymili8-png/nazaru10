@@ -124,6 +124,12 @@ export const MarketQuery = z.object({
 });
 export type MarketQuery = z.infer<typeof MarketQuery>;
 
+export const SeasonBoardQuery = z.object({
+  kind: z.enum(["owners", "horses"]).default("owners"),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type SeasonBoardQuery = z.infer<typeof SeasonBoardQuery>;
+
 export const BreedRequest = z.object({ sireId: z.string().uuid(), damId: z.string().uuid() });
 export type BreedRequest = z.infer<typeof BreedRequest>;
 
@@ -406,6 +412,51 @@ export interface PedigreeNodeDto {
   wins: number;
   sire: PedigreeNodeDto | null;
   dam: PedigreeNodeDto | null;
+}
+
+export interface SeasonDto {
+  season: number;
+  startsAt: string;
+  endsAt: string;
+  me: { points: number; rank: number | null; races: number; wins: number };
+  rewards: {
+    fromRank: number;
+    toRank: number;
+    credits: number;
+    gems: number;
+    reputation: number;
+    prestige: number;
+  }[];
+}
+
+export interface SeasonOwnerRowDto {
+  rank: number;
+  userId: string;
+  name: string;
+  stableName: string;
+  points: number;
+  races: number;
+  wins: number;
+  mine: boolean;
+}
+
+export interface SeasonHorseRowDto {
+  rank: number;
+  horseId: string;
+  name: string;
+  ownerName: string | null;
+  points: number;
+  races: number;
+  wins: number;
+}
+
+export interface HallOfFameDto {
+  season: number;
+  category: "CHAMPION_OWNER" | "CHAMPION_HORSE" | "TOP_EARNER_HORSE";
+  userName: string | null;
+  horseId: string | null;
+  horseName: string | null;
+  value: number;
 }
 
 export interface ProductDto {

@@ -28,6 +28,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 import type { HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
+import { SeasonsService } from "../seasons/seasons.service.js";
 import { HouseService } from "./house.service.js";
 import {
   CLASS_LABEL,
@@ -55,6 +56,7 @@ export class RaceRunnerService {
     private readonly horses: HorsesService,
     private readonly house: HouseService,
     private readonly quests: QuestsService,
+    private readonly seasons: SeasonsService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
     private readonly clock: Clock,
@@ -566,6 +568,13 @@ export class RaceRunnerService {
           },
         });
       }
+      await this.seasons.award(
+        c,
+        race,
+        entries
+          .filter((e) => !e.is_house && e.owner_id)
+          .map((e) => ({ horseId: e.horse_id, ownerId: e.owner_id!, position: e.position! })),
+      );
       await c.query("UPDATE races SET status = 'COMPLETED', completed_at = $2, seed = $3 WHERE id = $1", [
         raceId,
         now,

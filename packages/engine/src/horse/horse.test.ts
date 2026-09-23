@@ -118,3 +118,20 @@ describe("valuation", () => {
     expect(potentialStars(strong)).toBeGreaterThan(potentialStars(weak));
   });
 });
+
+describe("seasons", () => {
+  it("maps dates to consecutive seasons and awards class-weighted points", async () => {
+    const { seasonAt, seasonWindow, seasonPoints, seasonReward } = await import("../season.js");
+    const s1 = seasonWindow(1, cfg);
+    expect(seasonAt(s1.startsAt, cfg).season).toBe(1);
+    expect(seasonAt(new Date(s1.endsAt.getTime() - 1), cfg).season).toBe(1);
+    expect(seasonAt(s1.endsAt, cfg).season).toBe(2);
+    expect(seasonWindow(2, cfg).startsAt).toEqual(s1.endsAt);
+    expect(seasonPoints(1, "CLASS_1", cfg)).toBe(60);
+    expect(seasonPoints(1, "MAIDEN", cfg)).toBe(10);
+    expect(seasonPoints(9, "CLASS_1", cfg)).toBe(0);
+    expect(seasonReward(1, cfg)?.prestige).toBe(3);
+    expect(seasonReward(7, cfg)?.fromRank).toBe(4);
+    expect(seasonReward(500, cfg)).toBeNull();
+  });
+});

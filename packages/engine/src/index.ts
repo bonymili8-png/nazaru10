@@ -17,3 +17,4 @@ export * from "./race/rating.js";
 export * from "./race/aftermath.js";
 export * from "./breeding/index.js";
 export * from "./race/validation.js";
+export * from "./season.js";

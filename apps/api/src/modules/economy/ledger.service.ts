@@ -22,7 +22,8 @@ export type SystemAccount =
   | "ADMIN_ADJUSTMENT"
   | "MARKET_FEES"
   | "STUD_FEES"
-  | "BREEDING";
+  | "BREEDING"
+  | "SEASON_REWARDS";
 
 /** Non-negative holding accounts (money in flight, e.g. auction bids). */
 export type EscrowAccount = "MARKET";

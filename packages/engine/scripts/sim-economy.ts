@@ -33,6 +33,7 @@ import {
   rollWetness,
   simulateRace,
   splitPurse,
+  updateRatings,
   TRACKS,
   trainingBlockReason,
   trainingCost,
@@ -57,6 +58,8 @@ interface SimHorse {
   birthHours: number;
   wins: number;
   starts: number;
+  /** Elo race rating, as in the API (drives class eligibility). */
+  rating: number;
   injuredUntil: number;
   trainedToday: number;
   /** Owner's plan: next race no earlier than this (hours). */
@@ -113,6 +116,7 @@ function newHorse(rng: Rng, quality: number, age: number, nowH: number, rarity?:
     birthHours: nowH - age * cfg.lifecycle.realDaysPerGameYear * 24,
     wins: 0,
     starts: 0,
+    rating: cfg.race.initialRating,
     injuredUntil: 0,
     trainedToday: 0,
     nextRaceAt: 0,
@@ -123,12 +127,28 @@ function condition(h: SimHorse, nowH: number): Condition {
   return projectCondition({ ...h.cond, updatedAt: at(h.condAt) }, at(nowH), h.attributes.endurance, cfg);
 }
 
+/** House fields are assumed to sit mid-band (the API's house horses carry real Elo ratings). */
+const HOUSE_RATING: Record<RaceClass, number> = {
+  MAIDEN: 1000,
+  CLASS_5: 1000,
+  CLASS_4: 1125,
+  CLASS_3: 1225,
+  CLASS_2: 1325,
+  CLASS_1: 1425,
+};
+
+/** Same eligibility as the API: maidens until the first win, then the lowest class whose rating band fits. */
 function raceClassFor(h: SimHorse): RaceClass {
   if (h.wins === 0) return "MAIDEN";
-  if (h.wins <= 2) return "CLASS_5";
-  if (h.wins <= 5) return "CLASS_4";
-  if (h.wins <= 9) return "CLASS_3";
-  return "CLASS_2";
+  for (const cls of ["CLASS_5", "CLASS_4", "CLASS_3", "CLASS_2", "CLASS_1"] as const) {
+    const c = cfg.race.classes[cls];
+    if (
+      (c.minRating === null || h.rating >= c.minRating) &&
+      (c.maxRating === null || h.rating <= c.maxRating)
+    )
+      return cls;
+  }
+  return "CLASS_1";
 }
 
 const TRAIN_ROTATION: TrainingType[] = [
@@ -187,6 +207,15 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   if (prize > 0) earn(p, "RACE_PRIZE", prize);
   h.starts++;
   if (pos === 1) h.wins++;
+  const ratings = updateRatings(
+    res.results.map((r) => ({
+      id: r.entrantId,
+      rating: r.entrantId === "me" ? h.rating : HOUSE_RATING[cls],
+      position: r.position,
+    })),
+    cfg.race.eloK,
+  );
+  h.rating = ratings.get("me") ?? h.rating;
   quest(p, "FIRST_RACE");
   if (pos <= 3) quest(p, "FIRST_PODIUM");
   if (pos === 1) quest(p, "FIRST_WIN");
@@ -209,6 +238,9 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   if (after.injury) h.injuredUntil = nowH + after.injury.hours;
   stats.races++;
   stats.positions.push(pos);
+  stats.byClass[cls] = stats.byClass[cls] ?? [0, 0];
+  stats.byClass[cls]![0]++;
+  if (pos === 1) stats.byClass[cls]![1]++;
 }
 
 const stats = {
@@ -221,6 +253,7 @@ const stats = {
   facilities: 0,
   vet: 0,
   positions: [] as number[],
+  byClass: {} as Partial<Record<RaceClass, [number, number]>>,
 };
 
 function session(rng: Rng, p: Player, nowH: number): void {
@@ -408,6 +441,12 @@ for (const s of snapshots) {
     `day ${String(s.day).padStart(2)}: median wallet ${fmt(s.median)} | p90 ${fmt(s.p90)} | avg horses ${s.horses.toFixed(2)} | broke ${(s.broke * 100).toFixed(1)}%`,
   );
 }
+console.log(
+  "win rate by class:",
+  Object.entries(stats.byClass)
+    .map(([c, [n, w]]) => `${c} ${((w / n) * 100).toFixed(1)}% of ${n}`)
+    .join(" | "),
+);
 const winRate = stats.positions.filter((x) => x === 1).length / Math.max(1, stats.positions.length);
 console.log(
   `player win rate ${(winRate * 100).toFixed(1)}% | top-3 ${((stats.positions.filter((x) => x <= 3).length / Math.max(1, stats.positions.length)) * 100).toFixed(1)}%`,

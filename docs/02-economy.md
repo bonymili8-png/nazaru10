@@ -41,7 +41,7 @@ purely virtual and keeps the game from being pay-to-win. Revisit only after lega
 | Stable upgrade cost | 3 000 / 12 000 / 35 000 / 90 000 |
 | Training session (NORMAL) | 60–120 credits by type; LIGHT ×0.6, HARD ×1.5 |
 | Vet treatment (heal injury faster) | 300 (minor) / 900 (moderate) |
-| Race entry / purse | class table in GDD (purse ≈ 12× entry fee) |
+| Race entry / purse | class table in GDD (purse ≈ 15–16× entry fee) |
 | Daily allowance (safety net) | 250 credits once per UTC day while below 400 |
 | House horse purchase (primary market) | 1 500 – 25 000 by quality |
 
@@ -61,21 +61,29 @@ showed they did not match the price scale and exposed three problems, now fixed:
 3. **Soft-lock** (28 % of owners ended below the cheapest entry fee): house maidens are now
    young horses (class age bands) and a small daily allowance exists for nearly-broke owners.
 
+4. **Class ladder mismatch** (found when staff and facilities were added): the simulation
+   promoted horses by number of wins, the game promotes by Elo rating bands. With the real rule
+   the player in-class win rate was ≈ 29 % (Class 4: 52 %): trained player horses sat in easy
+   classes against untrained house fields. The simulation now tracks Elo and uses the API's
+   eligibility; house quality was raised per class (C5 0.32–0.52 … C1 0.76–0.95) and purses
+   raised ≈ 25 % to keep income in range. Result: ≈ 23 % overall (Class 4 ≈ 36 % — only
+   the strongest horses get there).
+
 Current targets and results (seeded, deterministic; CI gate):
 
 | Target | Result |
 |---|---|
-| Recurring income 400–1 200 per owner-day | ≈ 425 |
-| No inflation: median wallet grows ≤ 25 % over the last two weeks | 4 006 → 3 823 |
-| No runaway top: p90 grows ≤ 50 % over the last two weeks | 5 764 → 6 837 |
+| Recurring income 400–1 200 per owner-day | ≈ 430 |
+| No inflation: median wallet grows ≤ 25 % over the last two weeks | 3 690 → 3 295 |
+| No runaway top: p90 grows ≤ 50 % over the last two weeks | 5 716 → 5 296 |
 | < 5 % of owners below the cheapest entry fee at season end | 0 % |
-| Average string ≥ 2 horses by season end | 2.56 |
-| ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 19.7 % |
-| In-class player win rate 10–25 % (training makes owners slightly better than house fields) | 24 % |
-| Allowance < 10 % of income | 0.7 % |
+| Average string ≥ 2 horses by season end | 2.52 |
+| ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 24 % |
+| In-class player win rate 10–25 % (Elo-based eligibility as in the game) | ≈ 23 % |
+| Allowance < 10 % of income | 0.9 % |
 | 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 76 % |
 | Trainer salaries 3–25 % of recurring income | ≈ 8 % |
-| 5–40 % of owners build a facility within a season | ≈ 13 % |
+| 5–40 % of owners build a facility within a season | ≈ 14 % |
 
 Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any
 single user's daily income > 10× P90.
@@ -158,7 +166,6 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   (keeping 2 500 in reserve and saving first for a stable upgrade when full) and lets the
   trainer go when a week can't be paid comfortably.
 * Tuning notes: the first pass (+0.3 %/skill, +8 % speciality) pushed the player in-class win
-  rate to the 25 % cap and cut stable upgrades to the 15 % floor, so the effect was reduced
-  to +0.25 %/skill and +5 % speciality. Win rate (≈ 24.5 %) and upgrades (≈ 15–17 %) now sit
-  close to their limits; re-run `pnpm sim:economy` after any staff, training or house-field
-  change.
+  rate to the 25 % cap, so the effect was reduced to +0.25 %/skill and +5 % speciality. After
+  the class-ladder fix (K.4 item 4) the margins are comfortable again; re-run
+  `pnpm sim:economy` after any staff, training or house-field change.

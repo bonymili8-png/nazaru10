@@ -82,8 +82,7 @@
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
     "Docker image written but not executed in this environment",
     "Admin UI is API-only (no web console yet)",
-    "Tournaments are not yet part of the economy cohort simulation",
-    "Economy sim margins are thin: in-class win rate ~24.5% (cap 25%), stable upgrades ~15-17% (floor 15%)"
+    "Tournaments are not yet part of the economy cohort simulation"
   ],
   "next_action": "Phase 2 remainder: jockeys as hireable staff; admin web console; owner: bot token + hosting"
 }

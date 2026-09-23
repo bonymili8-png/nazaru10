@@ -251,14 +251,16 @@ transaction guarded by status + row lock, so the job can run on any number of wo
 | Class | Eligibility | Entry fee | Base purse |
 |---|---|---|---|
 | MAIDEN | 0 wins | 100 | 1 500 |
-| CLASS_5 | raceRating < 1 100 | 150 | 2 500 |
-| CLASS_4 | 1 050–1 200 | 250 | 4 000 |
-| CLASS_3 | 1 150–1 300 | 400 | 7 000 |
-| CLASS_2 | 1 250–1 400 | 650 | 12 000 |
-| CLASS_1 | ≥ 1 350 | 1 000 | 20 000 |
+| CLASS_5 | raceRating < 1 100 | 150 | 2 400 |
+| CLASS_4 | 1 050–1 200 | 250 | 3 900 |
+| CLASS_3 | 1 150–1 300 | 400 | 6 300 |
+| CLASS_2 | 1 250–1 400 | 650 | 10 300 |
+| CLASS_1 | ≥ 1 350 | 1 000 | 16 300 |
 
 Fields below the minimum size are filled with house (NPC) horses of matching class
-so races always run, even with few players.
+so races always run, even with few players. House quality rises by class (config
+`houseQuality`, e.g. Maiden 0.18–0.42 … Class 1 0.76–0.95) because house horses are generated
+untrained while player horses are trained; the bands were set by the economy simulation.
 
 ## Tracks & weather
 

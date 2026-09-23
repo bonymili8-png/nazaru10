@@ -135,3 +135,29 @@ describe("seasons", () => {
     expect(seasonReward(500, cfg)).toBeNull();
   });
 });
+
+describe("config override validation", async () => {
+  const { defaultConfig: base, validateConfigOverride } = await import("../config/index.js");
+  it("accepts well-typed overrides of existing settings", () => {
+    expect(
+      validateConfigOverride(base, {
+        economy: { startingCredits: 6000, stableCapacity: [3, 6, 9, 12, 20] },
+        race: { classes: { CLASS_5: { purse: 2500, maxRating: 1150 } } },
+        seasons: { epoch: "2026-10-01T00:00:00.000Z" },
+      }),
+    ).toEqual([]);
+  });
+  it("rejects unknown keys and wrong types", () => {
+    const errors = validateConfigOverride(base, {
+      economy: { startingCredits: "lots", freeMoney: 1 },
+      race: { classes: { CLASS_5: { purse: Number.NaN } } },
+      training: { types: [] },
+    });
+    expect(errors).toEqual([
+      "economy.startingCredits: expected a number",
+      "economy.freeMoney: unknown setting",
+      "race.classes.CLASS_5.purse: expected a number",
+      "training.types: expected an object",
+    ]);
+  });
+});

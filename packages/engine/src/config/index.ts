@@ -637,6 +637,34 @@ export const defaultConfig: GameConfig = {
 };
 
 /** Deep-merge a partial override (e.g. from the admin `game_config` table) onto a base config. */
+/**
+ * Validate an admin config override against a base config: every key must exist in the base and
+ * every value must have the base's shape (numbers finite, arrays of the same element type).
+ * Returns human-readable problems (empty = valid).
+ */
+export function validateConfigOverride(base: unknown, override: unknown, path = ""): string[] {
+  const at = path || "(root)";
+  if (Array.isArray(base)) {
+    if (!Array.isArray(override)) return [`${at}: expected an array`];
+    if (base.length === 0) return [];
+    return override.flatMap((v, i) => validateConfigOverride(base[0], v, `${path}[${i}]`));
+  }
+  if (base !== null && typeof base === "object") {
+    if (override === null || typeof override !== "object" || Array.isArray(override))
+      return [`${at}: expected an object`];
+    return Object.entries(override as Record<string, unknown>).flatMap(([k, v]) =>
+      k in (base as Record<string, unknown>)
+        ? validateConfigOverride((base as Record<string, unknown>)[k], v, path ? `${path}.${k}` : k)
+        : [`${path ? `${path}.${k}` : k}: unknown setting`],
+    );
+  }
+  if (typeof base === "number")
+    return typeof override === "number" && Number.isFinite(override) ? [] : [`${at}: expected a number`];
+  if (base === null)
+    return override === null || typeof override === "number" ? [] : [`${at}: expected a number or null`];
+  return typeof override === typeof base ? [] : [`${at}: expected a ${typeof base}`];
+}
+
 export function mergeConfig<T>(base: T, override: unknown): T {
   if (override === undefined || override === null) return base;
   if (typeof base !== "object" || base === null || Array.isArray(base)) return override as T;

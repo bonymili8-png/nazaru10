@@ -59,7 +59,8 @@
     "10.1.2",
     "13.1.1",
     "17.1.1-e2e",
-    "13.2.1-facilities"
+    "13.2.1-facilities",
+    "18.1.1-admin-console"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -70,9 +71,9 @@
   ],
   "failed_tasks": [],
   "test_status": {
-    "engine": "55/55",
-    "api": "93/93 (real Postgres)",
-    "web": "Playwright E2E: 6 journeys (onboarding, training, race entry/withdraw, tournament, staff) — CI job",
+    "engine": "57/57",
+    "api": "97/97 (real Postgres)",
+    "web": "Playwright E2E: 8 journeys incl. admin console — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); 1 finding fixed (XFF trust)",
@@ -81,8 +82,7 @@
   "technical_debt": [
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
     "Docker image written but not executed in this environment",
-    "Admin UI is API-only (no web console yet)",
     "Tournaments are not yet part of the economy cohort simulation"
   ],
-  "next_action": "Phase 2 remainder: jockeys as hireable staff; admin web console; owner: bot token + hosting"
+  "next_action": "Jockeys as hireable staff; admin refunds/race tools in the console; owner: bot token + hosting"
 }

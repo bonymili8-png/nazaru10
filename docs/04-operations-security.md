@@ -6,17 +6,23 @@ Roles (RBAC, `users.role` + `admin_permissions` in P2): SUPER_ADMIN, GAME_ADMIN,
 ECONOMY_ADMIN, SUPPORT_ADMIN, TOURNAMENT_ADMIN, CONTENT_ADMIN, FINANCE_ADMIN,
 FRAUD_ANALYST.
 
-| Capability | Role | Phase |
+| Capability | Role | Status |
 |---|---|---|
-| Inspect user, wallet, ledger | SUPPORT, FINANCE | MVP (API) |
-| Grant/revoke currency (ledger ADMIN_ADJUSTMENT, reason required) | ECONOMY | MVP |
-| Refund payment | FINANCE | MVP |
-| Suspend user | SUPPORT | MVP |
-| Create special race / edit schedule | GAME, TOURNAMENT | MVP (API) |
-| Edit game config (versioned) | ECONOMY, GAME | P2 |
-| Economy dashboard | ECONOMY | P2 |
-| Live-ops events, promotions, limited horses | CONTENT, GAME | P2 |
-| Fraud queue, risk scores | FRAUD_ANALYST | P2 |
+| Search users (username, Telegram id, stable, id); inspect wallet, ledger, payments | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
+| Grant/revoke currency (ledger ADMIN_ADJUSTMENT, reason required) | ECONOMY | ✅ console |
+| Suspend (SUPPORT, FRAUD) / reinstate (SUPPORT) user | SUPPORT, FRAUD | ✅ console |
+| Audit log viewer | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
+| Economy dashboard (supply, mint/burn by reason, daily) | ECONOMY, FINANCE | ✅ console |
+| Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |
+| Refund payment | FINANCE | API only |
+| Create special race / cancel race | GAME, TOURNAMENT | API only |
+| Live-ops events, promotions, limited horses | CONTENT, GAME | planned |
+| Fraud queue, risk scores | FRAUD_ANALYST | planned |
+
+SUPER_ADMIN passes every check. The console (`/admin/`, linked from Profile for non-player
+roles) only decides which tabs to show; the API enforces every permission. Config overrides
+may only set existing settings with the default's type (`validateConfigOverride`); publishing
+`{}` returns to the defaults. Roles are granted in the database (no self-service).
 
 Every admin action writes `audit_logs` (actor, action, target, before/after, reason,
 ip) in the same DB transaction as the change. Audit rows are append-only (no UPDATE/DELETE

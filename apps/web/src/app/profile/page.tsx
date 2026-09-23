@@ -1,7 +1,7 @@
 "use client";
 import type { LedgerLineDto, UserDto, WalletDto } from "@thoroughline/contracts";
-import { Copy, LifeBuoy, Share2 } from "lucide-react";
-import { Button, Card, SectionTitle, Skeleton, useToast } from "@/components/ui";
+import { Copy, LifeBuoy, Share2, ShieldCheck } from "lucide-react";
+import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { fmt, titleCase } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { appLink, shareToTelegram } from "@/lib/telegram";
@@ -38,6 +38,13 @@ export default function ProfilePage() {
           <Skeleton className="col-span-2 h-24" />
         )}
       </div>
+
+      {me.data && me.data.role !== "PLAYER" && (
+        <LinkButton href="/admin/" variant="secondary" className="mt-3 w-full">
+          <ShieldCheck className="size-4" aria-hidden />
+          Admin console · {titleCase(me.data.role)}
+        </LinkButton>
+      )}
 
       <SectionTitle>Invite friends</SectionTitle>
       <Card>

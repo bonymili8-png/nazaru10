@@ -30,6 +30,7 @@ export class ApiRequestError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details?: unknown,
   ) {
     super(message);
   }
@@ -71,6 +72,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       res.status,
       err?.code ?? "HTTP_ERROR",
       err?.message ?? `Request failed (${res.status})`,
+      err?.details,
     );
   }
   return data as T;

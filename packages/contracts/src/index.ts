@@ -93,6 +93,22 @@ export type AdminAdjustRequest = z.infer<typeof AdminAdjustRequest>;
 export const AdminReasonRequest = z.object({ reason: z.string().trim().min(5).max(500) });
 export type AdminReasonRequest = z.infer<typeof AdminReasonRequest>;
 
+export const AdminUserSearchQuery = z.object({ q: z.string().trim().min(1).max(64) });
+export type AdminUserSearchQuery = z.infer<typeof AdminUserSearchQuery>;
+
+export const AdminAuditQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  targetId: z.string().max(64).optional(),
+});
+export type AdminAuditQuery = z.infer<typeof AdminAuditQuery>;
+
+/** A full override document (replaces the previous one) plus a mandatory change note. */
+export const AdminConfigRequest = z.object({
+  override: z.record(z.unknown()),
+  note: z.string().trim().min(5).max(500),
+});
+export type AdminConfigRequest = z.infer<typeof AdminConfigRequest>;
+
 export const AdminCreateRaceRequest = z.object({
   name: z.string().trim().min(3).max(80),
   class: z.enum(RACE_CLASSES),

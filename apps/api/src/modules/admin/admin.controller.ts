@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
-import { AdminAdjustRequest, AdminCreateRaceRequest, AdminReasonRequest } from "@thoroughline/contracts";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
+import {
+  AdminAdjustRequest,
+  AdminAuditQuery,
+  AdminConfigRequest,
+  AdminCreateRaceRequest,
+  AdminReasonRequest,
+  AdminUserSearchQuery,
+} from "@thoroughline/contracts";
+import { defaultConfig, validateConfigOverride } from "@thoroughline/engine";
 import { type AuthedRequest, type AuthUser, CurrentUser, Roles } from "../../common/auth.js";
 import { Db } from "../../common/db.js";
-import { conflict, notFound } from "../../common/errors.js";
+import { badRequest, conflict, notFound } from "../../common/errors.js";
 import { AuditService } from "../../common/events.js";
+import { GameConfigService } from "../../common/game-config.js";
 import { parse } from "../../common/http.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { PaymentsService } from "../payments/payments.service.js";
@@ -18,7 +27,85 @@ export class AdminController {
     private readonly audit: AuditService,
     private readonly payments: PaymentsService,
     private readonly runner: RaceRunnerService,
+    private readonly config: GameConfigService,
   ) {}
+
+  @Get("users")
+  @Roles("SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST")
+  searchUsers(@Query() query: unknown) {
+    const { q } = parse(AdminUserSearchQuery, query);
+    const uuid = /^[0-9a-f-]{36}$/i.test(q) ? q : null;
+    const tg = /^\d{1,15}$/.test(q) ? q : null;
+    return this.db.query(
+      `SELECT u.id, u.telegram_id, u.username, u.first_name, u.role, u.status, u.created_at, s.name AS stable_name
+         FROM users u LEFT JOIN stables s ON s.owner_id = u.id
+        WHERE u.role <> 'SYSTEM' AND (u.id::text = $1 OR u.telegram_id::text = $2
+           OR u.username ILIKE $3 OR u.first_name ILIKE $3 OR s.name ILIKE $3)
+        ORDER BY u.created_at DESC LIMIT 20`,
+      [uuid ?? "", tg ?? "", `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`],
+    );
+  }
+
+  @Get("audit")
+  @Roles("SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST")
+  auditLog(@Query() query: unknown) {
+    const q = parse(AdminAuditQuery, query);
+    return this.db.query(
+      `SELECT a.id, a.action, a.target_type, a.target_id, a.before, a.after, a.reason, a.created_at,
+              COALESCE(u.username, u.first_name) AS actor_name
+         FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_id
+        WHERE ($1::text IS NULL OR a.target_id = $1) ORDER BY a.id DESC LIMIT $2`,
+      [q.targetId ?? null, q.limit],
+    );
+  }
+
+  @Get("config")
+  @Roles("ECONOMY_ADMIN", "GAME_ADMIN")
+  async getConfig() {
+    const history = await this.db.query<{ version: number; config: unknown; note: string | null }>(
+      `SELECT g.version, g.config, g.note, g.created_at, COALESCE(u.username, u.first_name) AS author
+         FROM game_config g LEFT JOIN users u ON u.id = g.created_by ORDER BY g.version DESC LIMIT 20`,
+    );
+    return {
+      version: history[0]?.version ?? 0,
+      override: history[0]?.config ?? {},
+      defaults: defaultConfig,
+      effective: this.config.get(),
+      history: history.map(({ config: _config, ...h }) => h),
+    };
+  }
+
+  /** Publish a new config override version (validated against the defaults, audited, applied live). */
+  @Post("config")
+  @Roles("ECONOMY_ADMIN")
+  async setConfig(@CurrentUser() actor: AuthUser, @Body() body: unknown, @Req() req: AuthedRequest) {
+    const b = parse(AdminConfigRequest, body);
+    const problems = validateConfigOverride(defaultConfig, b.override);
+    if (problems.length)
+      throw badRequest("INVALID_CONFIG", "The override does not match the game settings", problems);
+    const version = await this.db.tx(async (c) => {
+      const prev = await c.query<{ version: number; config: unknown }>(
+        "SELECT version, config FROM game_config ORDER BY version DESC LIMIT 1 FOR UPDATE",
+      );
+      const r = await c.query<{ version: number }>(
+        "INSERT INTO game_config (config, created_by, note) VALUES ($1, $2, $3) RETURNING version",
+        [JSON.stringify(b.override), actor.id, b.note],
+      );
+      await this.audit.log(c, {
+        actorId: actor.id,
+        action: "CONFIG_PUBLISH",
+        targetType: "game_config",
+        targetId: String(r.rows[0]!.version),
+        before: prev.rows[0]?.config ?? {},
+        after: b.override,
+        reason: b.note,
+        ip: req.ip,
+      });
+      return r.rows[0]!.version;
+    });
+    await this.config.refresh();
+    return { version };
+  }
 
   @Get("users/:id")
   @Roles("SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST")

@@ -19,7 +19,9 @@ console.log(
 console.log(
   `winner speed ${r.meanWinnerSpeed.toFixed(2)} m/s | lead changes/race ${r.meanLeadChanges.toFixed(2)} | dead heats ${r.deadHeats}`,
 );
-console.log(`median margins: winner ${r.medianWinningMargin.toFixed(1)}L, last ${r.medianLastMargin.toFixed(1)}L`);
+console.log(
+  `median margins: winner ${r.medianWinningMargin.toFixed(1)}L, last ${r.medianLastMargin.toFixed(1)}L`,
+);
 
 // Fail (exit 1) when any GDD §I.4 target is missed, so CI blocks an unbalanced engine.
 const checks: [string, boolean][] = [

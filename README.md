@@ -3,13 +3,13 @@
 Telegram Mini App horse-racing management game (working title): build a stable, develop
 horses, race them in a server-authoritative simulation and grow a racing empire.
 
-| Path | What |
-|---|---|
-| [`docs/`](./docs) | Product, game design, economy, architecture, security, delivery plan, validation reports |
-| `packages/engine` | Pure deterministic game logic — RNG, horses, training, race simulation, breeding |
-| `packages/contracts` | Shared API contracts (zod request schemas + response types) |
-| `apps/api` | NestJS modular monolith (Fastify, PostgreSQL, plain-SQL migrations, job runner) |
-| `apps/web` | Next.js Mini App (static export, Tailwind, Telegram WebApp SDK) |
+| Path                 | What                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| [`docs/`](./docs)    | Product, game design, economy, architecture, security, delivery plan, validation reports |
+| `packages/engine`    | Pure deterministic game logic — RNG, horses, training, race simulation, breeding         |
+| `packages/contracts` | Shared API contracts (zod request schemas + response types)                              |
+| `apps/api`           | NestJS modular monolith (Fastify, PostgreSQL, plain-SQL migrations, job runner)          |
+| `apps/web`           | Next.js Mini App (static export, Tailwind, Telegram WebApp SDK)                          |
 
 ## Quick start
 

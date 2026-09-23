@@ -103,10 +103,11 @@ export class HouseService implements OnModuleInit {
   ): Promise<HorseRow[]> {
     if (count <= 0) return [];
     const cfg = this.config.get();
-    const maxBirth = new Date(
-      now.getTime() - cfg.lifecycle.minRacingAge * cfg.lifecycle.realDaysPerGameYear * 86_400_000,
-    );
-    const minBirth = new Date(now.getTime() - 8 * cfg.lifecycle.realDaysPerGameYear * 86_400_000);
+    // House horses stay within the class's age band (e.g. maidens are young horses).
+    const [ageLo, ageHi] = cfg.race.classes[cls].houseAge;
+    const year = cfg.lifecycle.realDaysPerGameYear * 86_400_000;
+    const maxBirth = new Date(now.getTime() - Math.max(ageLo, cfg.lifecycle.minRacingAge) * year);
+    const minBirth = new Date(now.getTime() - ageHi * year);
     const found = await rows<HorseRow>(
       c,
       `SELECT * FROM horses
@@ -121,7 +122,7 @@ export class HouseService implements OnModuleInit {
       found.push(
         await this.factory.generate(c, {
           quality: rng.float(qLo, qHi),
-          age: rng.float(2.5, 5.5),
+          age: rng.float(Math.max(ageLo, cfg.lifecycle.minRacingAge), ageHi),
           isHouse: true,
           houseClass: cls,
           seed: `${rng.seed}/house/${found.length}/${rng.nextUint32()}`,

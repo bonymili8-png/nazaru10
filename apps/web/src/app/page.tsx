@@ -1,5 +1,5 @@
 "use client";
-import type { HomeDto, QuestDto } from "@thoroughline/contracts";
+import type { HomeDto, QuestDto, WalletDto } from "@thoroughline/contracts";
 import { CheckCircle2, Circle, Flag, Gift, Store } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
@@ -49,6 +49,8 @@ export default function HomePage() {
           </LinkButton>
         </div>
       </Card>
+
+      <Allowance />
 
       <Quests quests={data.quests} />
 
@@ -150,5 +152,40 @@ function Quests({ quests }: { quests: QuestDto[] }) {
         ))}
       </Card>
     </>
+  );
+}
+
+function Allowance() {
+  const wallet = useApi<WalletDto>("/wallet");
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const a = wallet.data?.allowance;
+  if (!a?.eligible) return null;
+  return (
+    <Card className="mt-4 flex items-center justify-between gap-3 border-gold/40">
+      <p className="text-sm">
+        Running low? Claim today&apos;s <span className="num text-gold">{fmt(a.amount)} cr</span> stable
+        allowance.
+      </p>
+      <Button
+        className="min-h-10 shrink-0 px-3 text-sm"
+        loading={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await post("/wallet/allowance");
+            haptic.success();
+            toast("Allowance added to your wallet");
+            invalidate("/wallet", "/home");
+          } catch (e) {
+            toast((e as Error).message, "bad");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Claim
+      </Button>
+    </Card>
   );
 }

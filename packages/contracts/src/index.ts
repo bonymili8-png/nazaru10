@@ -165,6 +165,8 @@ export interface AuthResponse {
 
 export interface WalletDto {
   balances: Record<Currency, number>;
+  /** Daily safety-net allowance for owners who are nearly out of credits. */
+  allowance?: { amount: number; threshold: number; eligible: boolean };
 }
 
 export interface LedgerLineDto {

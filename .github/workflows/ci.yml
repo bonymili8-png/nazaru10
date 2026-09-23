@@ -40,3 +40,5 @@ jobs:
           NEXT_PUBLIC_API_URL: https://api.example.invalid
       - name: Race simulation validation (10k races)
         run: pnpm sim:races 10000 ci
+      - name: Economy cohort simulation (300 owners x 28 days)
+        run: pnpm sim:economy 300 28

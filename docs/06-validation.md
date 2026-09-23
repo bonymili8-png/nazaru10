@@ -38,3 +38,8 @@ Throughput: ~3 ms per 10-runner race including validation overhead, single core.
 | Mutation rate | 1 % ± 0.2 % | 0.84–1.13 % |
 | Population mean drift over generations | none | 63.8–64.6 |
 | Overall-quality σ | stable, not collapsing | 6.0–8.7 → stable ≈ 6.0 |
+
+## Economy — 300 owners × 28 days (`pnpm sim:economy 300 28`)
+
+See `docs/02-economy.md` §K.4 for the targets, results and the three balance problems the
+simulation found (race spam, rich purses, soft-lock) and how they were fixed.

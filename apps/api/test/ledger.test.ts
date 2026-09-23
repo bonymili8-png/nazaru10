@@ -121,5 +121,27 @@ describe("ledger", () => {
     expect(page.body.items[0]).toMatchObject({ amount: 5000, type: "STARTER_GRANT" });
   });
 
+  it("pays the daily allowance only to nearly-broke owners, once per day", async () => {
+    // userId was drained to 0 credits by the burst test.
+    const token = (await t.login(2001)).token;
+    const w = await t.get<{ allowance: { eligible: boolean; amount: number } }>("/wallet", token);
+    expect(w.body.allowance.eligible).toBe(true);
+    const claim = await t.post<{ balances: { CREDITS: number }; allowance: { eligible: boolean } }>(
+      "/wallet/allowance",
+      {},
+      token,
+    );
+    expect(claim.status).toBe(201);
+    expect(claim.body.balances.CREDITS).toBe(w.body.allowance.amount);
+    expect(claim.body.allowance.eligible).toBe(false);
+    const again = await t.post<{ error: { code: string } }>("/wallet/allowance", {}, token);
+    expect(again.body.error.code).toBe("ALREADY_CLAIMED");
+    const rich = await t.login(2003);
+    const no = await t.post<{ error: { code: string } }>("/wallet/allowance", {}, rich.token);
+    expect(no.body.error.code).toBe("NOT_ELIGIBLE");
+    t.clock.advance(24 * 3_600_000);
+    expect((await t.post("/wallet/allowance", {}, token)).status).toBe(201);
+  });
+
   it("keeps invariants", () => assertLedgerIntegrity(t.db));
 });

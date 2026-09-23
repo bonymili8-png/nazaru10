@@ -59,6 +59,8 @@ export interface RaceClassConfig {
   /** Quality (0–1) of house horses generated to fill the field. */
   houseQuality: [number, number];
   houseJockeySkill: [number, number];
+  /** Age range (game years) of house horses generated for this class. */
+  houseAge: [number, number];
 }
 
 export interface GameConfig {
@@ -148,6 +150,8 @@ export interface GameConfig {
     stableUpgradeCost: number[];
     vetCost: { MINOR: number; MODERATE: number };
     diagnosticsCostGems: number;
+    /** Safety net: once per day an owner below the threshold may claim the allowance. */
+    allowance: { threshold: number; amount: number };
   };
   seasons: {
     /** Season 1 starts here (UTC); seasons are consecutive and last one game year. */
@@ -240,11 +244,11 @@ export const defaultConfig: GameConfig = {
     },
   },
   condition: {
-    fatigueRecoveryPerHour: 4,
+    fatigueRecoveryPerHour: 1.6,
     healthRegenPerHour: 2,
     formDecayPerDay: 0.05,
     minHealthToRace: 60,
-    maxFatigueToRace: 70,
+    maxFatigueToRace: 50,
     maxFatigueToTrain: 85,
     minHealthToTrain: 60,
   },
@@ -343,63 +347,69 @@ export const defaultConfig: GameConfig = {
     classes: {
       MAIDEN: {
         entryFee: 100,
-        purse: 1500,
+        purse: 1200,
         minRating: null,
         maxRating: null,
         maidenOnly: true,
         reputation: [10, 5, 2],
         houseQuality: [0.15, 0.4],
         houseJockeySkill: [30, 55],
+        houseAge: [2.1, 3.2],
       },
       CLASS_5: {
         entryFee: 150,
-        purse: 2500,
+        purse: 1900,
         minRating: null,
         maxRating: 1099,
         maidenOnly: false,
         reputation: [15, 7, 3],
         houseQuality: [0.25, 0.45],
         houseJockeySkill: [35, 60],
+        houseAge: [2.5, 4.5],
       },
       CLASS_4: {
         entryFee: 250,
-        purse: 4000,
+        purse: 3100,
         minRating: 1050,
         maxRating: 1199,
         maidenOnly: false,
         reputation: [22, 10, 5],
         houseQuality: [0.35, 0.55],
         houseJockeySkill: [40, 65],
+        houseAge: [3, 5],
       },
       CLASS_3: {
         entryFee: 400,
-        purse: 7000,
+        purse: 5000,
         minRating: 1150,
         maxRating: 1299,
         maidenOnly: false,
         reputation: [32, 15, 7],
         houseQuality: [0.45, 0.65],
         houseJockeySkill: [50, 72],
+        houseAge: [3, 5.5],
       },
       CLASS_2: {
         entryFee: 650,
-        purse: 12000,
+        purse: 8200,
         minRating: 1250,
         maxRating: 1399,
         maidenOnly: false,
         reputation: [45, 22, 10],
         houseQuality: [0.55, 0.78],
         houseJockeySkill: [60, 82],
+        houseAge: [3, 5.5],
       },
       CLASS_1: {
         entryFee: 1000,
-        purse: 20000,
+        purse: 13000,
         minRating: 1350,
         maxRating: null,
         maidenOnly: false,
         reputation: [65, 30, 15],
         houseQuality: [0.7, 0.92],
         houseJockeySkill: [70, 92],
+        houseAge: [3.5, 5.5],
       },
     },
     schedule: {
@@ -410,17 +420,18 @@ export const defaultConfig: GameConfig = {
     },
     eloK: 32,
     initialRating: 1000,
-    postRaceFatigueBase: 22,
-    postRaceFatiguePerKm: 6,
+    postRaceFatigueBase: 30,
+    postRaceFatiguePerKm: 8,
     postRaceInjuryBase: 0.004,
     scratchPenalty: 0,
   },
   economy: {
     startingCredits: 5000,
     stableCapacity: [3, 5, 8, 12, 20],
-    stableUpgradeCost: [4000, 12000, 35000, 90000],
+    stableUpgradeCost: [3000, 12000, 35000, 90000],
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
+    allowance: { threshold: 400, amount: 250 },
   },
   seasons: {
     epoch: "2026-01-05T00:00:00.000Z",

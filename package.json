@@ -18,7 +18,8 @@
     "db:migrate": "pnpm --filter @thoroughline/api db:migrate",
     "dev:api": "pnpm --filter @thoroughline/api dev",
     "dev:web": "pnpm --filter @thoroughline/web dev",
-    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
+    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "sim:economy": "pnpm --filter @thoroughline/engine sim:economy"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

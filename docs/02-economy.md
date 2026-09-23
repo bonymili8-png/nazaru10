@@ -38,28 +38,44 @@ purely virtual and keeps the game from being pay-to-win. Revisit only after lega
 | Starting credits | 5 000 |
 | Starter horse | 1 (Common/Uncommon, balanced genome) |
 | Stable capacity L1 / L2 / L3 / L4 / L5 | 3 / 5 / 8 / 12 / 20 |
-| Stable upgrade cost | 4 000 / 12 000 / 35 000 / 90 000 |
+| Stable upgrade cost | 3 000 / 12 000 / 35 000 / 90 000 |
 | Training session (NORMAL) | 60–120 credits by type; LIGHT ×0.6, HARD ×1.5 |
 | Vet treatment (heal injury faster) | 300 (minor) / 900 (moderate) |
-| Race entry | class table in GDD |
+| Race entry / purse | class table in GDD (purse ≈ 12× entry fee) |
+| Daily allowance (safety net) | 250 credits once per UTC day while below 400 |
 | House horse purchase (primary market) | 1 500 – 25 000 by quality |
 
-### K.4 Faucet/sink balance targets
+### K.4 Faucet/sink balance targets (validated by `pnpm sim:economy`)
 
-For a median active owner (2 sessions/day, 3 horses):
-* Daily credit **income** ≈ 1 200–1 800 (races + missions).
-* Daily credit **spend** ≈ 1 000–1 600 (training, entries, vet).
-* Net drift ≤ +15 %/day of income → funds progression (upgrades, horses) without
-  runaway inflation. Monitored via `economy_daily` view: `Σ sources − Σ sinks`
-  per currency per day, average wallet, P50/P90 wallet.
-* Alert if 7-day net mint > 25 % of circulating supply, or any single user's
-  daily income > 10× P90.
+The first targets (income 1 200–1 800/day) were pre-simulation guesses. The cohort simulation
+(`packages/engine/scripts/sim-economy.ts`: 300 owners × 28 days with a planning owner policy,
+real training/race/aftermath rules, house fields per class, purchases, upgrades, quests)
+showed they did not match the price scale and exposed three problems, now fixed:
 
-Purse funding: race purses are **minted** by the system (source), entry fees are
-**burned** (sink). Purse ≈ 10–15 × entry fee so that the expected value of a race
-for an average entrant (≈1/N of purse × placings) is slightly above the entry fee
-(≈1.1–1.3×) — racing is worth doing, but training/vet costs keep net drift controlled.
-The `sim:economy` script simulates cohorts to validate these targets.
+1. **Race spam** — horses recovered from a race in ~7 h, so every horse raced twice a day and
+   nobody trained. Fatigue recovery is now 1.6/h, post-race fatigue 30 + 8/km, and entries
+   require ≤ 50 projected fatigue: a horse races about every other day and training competes
+   with racing for the same fatigue budget.
+2. **Purses too rich** (average entrant EV ≈ 1.9× the fee → inflation): purses are now ≈ 12×
+   the entry fee.
+3. **Soft-lock** (28 % of owners ended below the cheapest entry fee): house maidens are now
+   young horses (class age bands) and a small daily allowance exists for nearly-broke owners.
+
+Current targets and results (seeded, deterministic; CI gate):
+
+| Target | Result |
+|---|---|
+| Recurring income 400–1 200 per owner-day | ≈ 425 |
+| No inflation: median wallet grows ≤ 25 % over the last two weeks | 4 006 → 3 823 |
+| No runaway top: p90 grows ≤ 50 % over the last two weeks | 5 764 → 6 837 |
+| < 5 % of owners below the cheapest entry fee at season end | 0 % |
+| Average string ≥ 2 horses by season end | 2.56 |
+| ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 19.7 % |
+| In-class player win rate 10–25 % (training makes owners slightly better than house fields) | 24 % |
+| Allowance < 10 % of income | 0.7 % |
+
+Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any
+single user's daily income > 10× P90.
 
 ### K.5 Configuration
 

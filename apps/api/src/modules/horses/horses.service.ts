@@ -130,6 +130,7 @@ export class HorsesService {
     ownerName: string | null,
     activeTraining: TrainingSessionDto | null,
     listingId: string | null = null,
+    studFee: number | null = null,
   ): HorseDetailDto {
     const isOwner = viewerId !== null && h.owner_id === viewerId;
     return {
@@ -142,6 +143,7 @@ export class HorsesService {
             potentialStars: potentialStars(h.genome),
             marketValue: this.valuation(h, now),
             listingId,
+            studFee,
             condition: this.conditionDto(h, now),
             injuredUntil:
               this.effectiveStatus(h, now) === "INJURED" ? (h.injured_until?.toISOString() ?? null) : null,

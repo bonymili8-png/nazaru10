@@ -19,6 +19,7 @@ const STATUS_TONE: Record<string, "neutral" | "gold" | "good" | "warn" | "bad"> 
   RACING: "gold",
   INJURED: "bad",
   LISTED: "neutral",
+  BREEDING: "gold",
   RETIRED: "neutral",
 };
 

@@ -46,6 +46,12 @@ export class HorsesController {
           [h.id],
         )
       : null;
+    const stud = mine
+      ? await this.db.one<{ fee: number }>(
+          "SELECT fee FROM studs WHERE horse_id = $1 AND active AND owner_id = $2",
+          [h.id, user.id],
+        )
+      : null;
     return this.horses.detail(
       h,
       user.id,
@@ -53,6 +59,7 @@ export class HorsesController {
       await this.horses.ownerName(h.owner_id),
       active,
       listing?.id ?? null,
+      stud?.fee ?? null,
     );
   }
 

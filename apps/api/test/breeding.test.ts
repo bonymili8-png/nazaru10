@@ -25,32 +25,28 @@ describe("breeding", () => {
   const adult = async (u: User, sex: Sex, age = 4): Promise<string> => {
     const stable = await t.db.one<{ id: string }>("SELECT id FROM stables WHERE owner_id = $1", [u.userId]);
     const h = await t.db.tx((c) =>
-      t
-        .service(HorseFactory)
-        .generate(c, {
-          quality: 0.6,
-          age,
-          ownerId: u.userId,
-          stableId: stable!.id,
-          isHouse: false,
-          now: t.clock.now(),
-        }),
+      t.service(HorseFactory).generate(c, {
+        quality: 0.6,
+        age,
+        ownerId: u.userId,
+        stableId: stable!.id,
+        isHouse: false,
+        now: t.clock.now(),
+      }),
     );
     await t.db.query("UPDATE horses SET sex = $2 WHERE id = $1", [h.id, sex]);
     return h.id;
   };
   const fund = (u: User, amount: number) =>
     t.db.tx((c) =>
-      t
-        .service(LedgerService)
-        .credit(c, {
-          userId: u.userId,
-          currency: "CREDITS",
-          amount,
-          source: "ADMIN_ADJUSTMENT",
-          key: `fund:${u.userId}:${Math.random()}`,
-          type: "TEST",
-        }),
+      t.service(LedgerService).credit(c, {
+        userId: u.userId,
+        currency: "CREDITS",
+        amount,
+        source: "ADMIN_ADJUSTMENT",
+        key: `fund:${u.userId}:${Math.random()}`,
+        type: "TEST",
+      }),
     );
 
   beforeAll(async () => {

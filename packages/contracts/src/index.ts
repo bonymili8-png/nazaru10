@@ -234,6 +234,8 @@ export interface HorseDetailDto extends HorseSummaryDto {
     marketValue: number;
     /** Active market listing of this horse, if any. */
     listingId: string | null;
+    /** Stud fee when the stallion stands at stud, else null. */
+    studFee: number | null;
     condition: ConditionDto;
     injuredUntil: string | null;
     activeTraining: TrainingSessionDto | null;

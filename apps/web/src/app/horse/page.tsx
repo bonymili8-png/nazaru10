@@ -1,13 +1,14 @@
 "use client";
 import {
   type HorseDetailDto,
+  type PedigreeNodeDto,
   type TrainingSessionDto,
   TRAINING_TYPES,
   type TrainingIntensity,
   type TrainingType,
 } from "@thoroughline/contracts";
 import { defaultConfig, trainingCost, trainingDurationMinutes } from "@thoroughline/engine";
-import { Activity, HeartPulse, Microscope, Stethoscope, Tag, Timer } from "lucide-react";
+import { Activity, Dna, HeartHandshake, HeartPulse, Microscope, Stethoscope, Tag, Timer } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -23,7 +24,7 @@ import {
   Stars,
   useToast,
 } from "@/components/ui";
-import { post } from "@/lib/api";
+import { del, post } from "@/lib/api";
 import { ATTRIBUTE_LABELS, countdown, fmt, ordinal, titleCase, TRAINING_INFO } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
@@ -110,6 +111,7 @@ function HorsePage() {
       {(!mine || tab === "overview") && <Overview h={h} />}
       {mine && tab === "train" && <Train h={h} />}
       {(!mine || tab === "history") && <History id={h.id} />}
+      {(!mine || tab === "history") && <Pedigree id={h.id} />}
     </div>
   );
 }
@@ -201,6 +203,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
       </Card>
 
       <Sell h={h} />
+      <Breeding h={h} />
 
       <SectionTitle>Profile</SectionTitle>
       <Card className="space-y-2 text-sm">
@@ -325,6 +328,50 @@ function Train({ h }: { h: HorseDetailDto }) {
         <Button className="mt-3 w-full" onClick={start} loading={busy} disabled={h.status !== "IDLE"}>
           {h.status === "IDLE" ? "Start training" : `Unavailable — ${titleCase(h.status)}`}
         </Button>
+      </Card>
+    </>
+  );
+}
+
+function Pedigree({ id }: { id: string }) {
+  const { data } = useApi<PedigreeNodeDto>(`/breeding/pedigree/${id}`);
+  if (!data) return null;
+  if (!data.sire && !data.dam) {
+    return (
+      <>
+        <SectionTitle>Pedigree</SectionTitle>
+        <p className="text-sm text-muted">Foundation horse of the {data.bloodline} — no recorded ancestry.</p>
+      </>
+    );
+  }
+  const Node = ({ n, label }: { n: PedigreeNodeDto | null; label: string }) => (
+    <div className="min-w-0 rounded-lg bg-surface-2 px-2.5 py-1.5">
+      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      {n ? (
+        <a href={`/horse/?id=${n.id}`} className="block truncate text-sm font-medium hover:text-gold">
+          {n.name}
+        </a>
+      ) : (
+        <p className="text-sm text-muted">Foundation</p>
+      )}
+      {n && (
+        <p className="truncate text-[11px] text-muted">
+          {n.wins}/{n.starts} wins
+        </p>
+      )}
+    </div>
+  );
+  return (
+    <>
+      <SectionTitle>Pedigree</SectionTitle>
+      <Card className="grid grid-cols-2 gap-2 text-left">
+        <Node n={data.sire} label="Sire" />
+        <Node n={data.dam} label="Dam" />
+        <Node n={data.sire?.sire ?? null} label="Sire's sire" />
+        <Node n={data.dam?.sire ?? null} label="Dam's sire" />
+        <Node n={data.sire?.dam ?? null} label="Sire's dam" />
+        <Node n={data.dam?.dam ?? null} label="Dam's dam" />
+        <p className="col-span-2 text-xs text-muted">{data.bloodline}</p>
       </Card>
     </>
   );
@@ -492,6 +539,112 @@ function Sell({ h }: { h: HorseDetailDto }) {
           <Tag className="size-4" aria-hidden />
           List on the market
         </Button>
+      </Card>
+    </>
+  );
+}
+
+function Breeding({ h }: { h: HorseDetailDto }) {
+  const p = h.private!;
+  const [fee, setFee] = useState(String(p.studFee ?? 1000));
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const adult = h.age >= defaultConfig.breeding.minBreedingAge;
+  const sire = h.sex === "STALLION" || h.sex === "COLT";
+  const dam = h.sex === "MARE" || h.sex === "FILLY";
+  if (!adult || (!sire && !dam)) return null;
+
+  const run = async (fn: () => Promise<unknown>, ok: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      haptic.success();
+      toast(ok);
+      invalidate(`/horses/${h.id}`, "/breeding");
+    } catch (e) {
+      haptic.error();
+      toast((e as Error).message, "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <SectionTitle>Breeding</SectionTitle>
+      <Card>
+        {dam && (
+          <Link
+            href={`/breeding/?dam=${h.id}`}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-gold/50 text-[15px] font-medium text-gold"
+          >
+            <HeartHandshake className="size-4" aria-hidden />
+            Plan a mating
+          </Link>
+        )}
+        {sire && (
+          <>
+            <p className="text-sm text-muted">
+              {p.studFee !== null
+                ? `Standing at stud for ${fmt(p.studFee)} credits.`
+                : "Let other owners breed their mares to this stallion for a fee."}
+            </p>
+            <label htmlFor="studfee" className="mt-3 block text-sm text-muted">
+              Stud fee (credits)
+            </label>
+            <input
+              id="studfee"
+              inputMode="numeric"
+              value={fee}
+              onChange={(e) => setFee(e.target.value.replace(/\D/g, ""))}
+              className="num mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3"
+            />
+            <p className="mt-1 text-xs text-muted">
+              You receive{" "}
+              {fmt(
+                Math.max(
+                  0,
+                  Number(fee || 0) - Math.floor(Number(fee || 0) * defaultConfig.breeding.studFeeRate),
+                ),
+              )}{" "}
+              per cover after the platform cut. Up to {defaultConfig.breeding.sireCoversPerWeek} covers a
+              week.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button
+                variant="secondary"
+                className="text-sm"
+                loading={busy}
+                onClick={() =>
+                  run(
+                    () => post("/breeding/studs", { horseId: h.id, fee: Number(fee || 0) }),
+                    p.studFee !== null ? "Stud fee updated" : "Now standing at stud",
+                  )
+                }
+              >
+                <Dna className="size-4" aria-hidden />
+                {p.studFee !== null ? "Update fee" : "Stand at stud"}
+              </Button>
+              {p.studFee !== null ? (
+                <Button
+                  variant="ghost"
+                  className="text-sm"
+                  loading={busy}
+                  onClick={() => run(() => del(`/breeding/studs/${h.id}`), "Withdrawn from stud")}
+                >
+                  Withdraw
+                </Button>
+              ) : (
+                <Link
+                  href={`/breeding/?sire=${h.id}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl text-sm text-muted hover:text-ink"
+                >
+                  Breed my mare
+                </Link>
+              )}
+            </div>
+          </>
+        )}
       </Card>
     </>
   );

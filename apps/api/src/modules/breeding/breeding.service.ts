@@ -114,8 +114,9 @@ export class BreedingService {
     for (const h of [sire, dam]) {
       if (this.horses.age(h, now) < cfg.minBreedingAge)
         out.push(`${h.name} is too young (minimum age ${cfg.minBreedingAge})`);
-      if (this.horses.effectiveStatus(h, now) !== "IDLE")
-        out.push(`${h.name} is ${this.horses.effectiveStatus(h, now).toLowerCase()}`);
+      const status = this.horses.effectiveStatus(h, now);
+      if (status !== "IDLE")
+        out.push(`${h.name} is ${status === "BREEDING" ? "in foal" : status.toLowerCase()}`);
     }
     const lastFoal = await row<{ delivered_at: Date }>(
       c,

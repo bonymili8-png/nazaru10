@@ -93,7 +93,14 @@ export class HouseService implements OnModuleInit {
    * Lock `count` idle house horses of the class (generating new ones when the pool is short).
    * SKIP LOCKED lets concurrent race locks draw from the pool without blocking each other.
    */
-  async fillers(c: Queryable, cls: RaceClass, count: number, now: Date, rng: Rng): Promise<HorseRow[]> {
+  async fillers(
+    c: Queryable,
+    cls: RaceClass,
+    count: number,
+    distance: number,
+    now: Date,
+    rng: Rng,
+  ): Promise<HorseRow[]> {
     if (count <= 0) return [];
     const cfg = this.config.get();
     const maxBirth = new Date(
@@ -105,8 +112,9 @@ export class HouseService implements OnModuleInit {
       `SELECT * FROM horses
         WHERE is_house AND house_class = $1 AND status = 'IDLE' AND sale_price IS NULL
           AND birth_at BETWEEN $2 AND $3
-        ORDER BY condition_updated_at, id LIMIT $4 FOR UPDATE SKIP LOCKED`,
-      [cls, minBirth, maxBirth, count],
+        ORDER BY abs((genome->'aptitudes'->>'optimalDistance')::int - $5), condition_updated_at, id
+        LIMIT $4 FOR UPDATE SKIP LOCKED`,
+      [cls, minBirth, maxBirth, count, distance],
     );
     const [qLo, qHi] = cfg.race.classes[cls].houseQuality;
     while (found.length < count) {

@@ -81,9 +81,10 @@ foal.ceiling[a] = clamp( 0.85·mid(sire,dam)[a] + 0.15·POP_MEAN
   graded wins (P2).
 * Controlled randomness: the foal genome is drawn from a seed derived from
   `(breedingEventId, serverSecret)`, stored, reproducible.
-* Validation: 100 k simulated breedings — heritability of each attribute
-  should be 0.6–0.8 (regression slope), mutation frequency 1 % ± 0.1 %, no drift in
-  population mean across 10 generations of random mating.
+* Noise has a shared "overall quality" component (σ 4.5) plus a per-attribute one (σ 4.5),
+  so elite outliers stay possible and overall-quality variance does not collapse.
+* Validation: simulated breedings — heritability ≈ configured 0.85 (regression slope),
+  mutation frequency 1 % ± 0.1 %, stable population mean/σ across generations.
 
 ## H. Training System
 
@@ -113,12 +114,12 @@ seed)`. Tick-based (Δt = 0.5 s), physics-inspired.
 
 ### I.1 Pre-race effective profile per horse
 ```
-topSpeed  = (14 + speed·0.04) m/s × fatigueMod × healthMod × formMod × surfaceMod
-            × goingMod × weightMod × dayForm
+topSpeed  = (15.2 + speed·0.04) m/s × fatigueMod × healthMod × formMod × surfaceMod
+            × goingMod × weightMod × dayForm      (deviations compressed, §I.2b)
 accel     = 1.6 + acceleration·0.03 m/s²
 energy    = E₀ · (0.7 + stamina·0.006) · fatigueMod · distanceFit
 drainEff  = 1.25 − endurance·0.005
-dayForm   ~ N(1, σ),  σ = 0.010 + 0.018·(1 − consistency/100)
+dayForm   ~ N(1, σ),  σ = 0.008 + 0.014·(1 − consistency/100)
 ```
 * **surfaceMod** = 0.97 + 0.06·affinity/100 (±3 %).
 * **goingMod** (soft/heavy/muddy) = 1 − penalty·(1 − wetAffinity/100).
@@ -127,26 +128,40 @@ dayForm   ~ N(1, σ),  σ = 0.010 + 0.018·(1 − consistency/100)
 * **weightMod** (handicaps): −0.12 % per kg above 55 kg.
 * **Stress:** big-prestige races cost up to 1.5 % × (1 − stressResistance/100).
 * **Jockey:** skill reduces pace-judgement noise, improves the break and lane choice;
-  horse–jockey synergy is ±2 %.
+  horse–jockey synergy is ±1 %.
 
 ### I.2 Per tick
 1. Race phase from distance fraction: EARLY (<25 %), MIDDLE (<75 %), LATE, KICK
    (last `kickDistance = 250 + finalKick·2.5` m).
-2. Target effort from **strategy** (FRONT_RUNNER, PACE_SETTER, MID_PACK, CLOSER,
-   CONSERVATIVE, AGGRESSIVE) per phase; keen horses (low temperament) restrained
-   off the pace waste energy ("pulling").
-3. Energy drain ∝ `effort³ × drainEff`, plus pace-pressure when duelling for the
-   lead and wind resistance in the lead on windy days.
-4. Out of energy → speed falls toward `(0.78 + courage·0.0012)·topSpeed`.
+2. Target effort from the **strategy** pace plan (FRONT_RUNNER, PACE_SETTER, MID_PACK,
+   CLOSER, CONSERVATIVE, AGGRESSIVE), re-planned mid-race (§I.2b); keen horses
+   (low temperament) restrained off the pace waste energy ("pulling").
+3. Energy drain ∝ `effort⁴ × drainEff` per second, plus pace-pressure when duelling for
+   the lead, wind resistance for the leader, and a drafting saving behind another horse.
+4. Out of energy → speed falls toward `(0.85 + courage·0.0005)·topSpeed`.
 5. Traffic: a horse behind a slower horse in the same lane tries to switch out
    (success ∝ positioning + jockey), otherwise it is blocked (capped speed).
-6. Turns: lane *k* adds `k·2 %` ground loss; cornering attribute reduces speed loss.
+6. Turns: lane *k* adds `k·laneWidth/R` ground loss (≈1 %/lane); horses tuck toward the
+   rail when clear; cornering reduces speed loss.
 7. Start: reaction delay `0.2–0.8 s` from `start` attribute + jockey + noise.
 
 Output: finishing order, times, margins, per-second frames (for replay/live), and a
 typed event list (GOOD_BREAK, SLOW_START, LEAD_CHANGE, MOVE_UP, BLOCKED, KICK,
 TIRING, PHOTO_FINISH, FINISH) that feeds commentary. Commentary is generated
 **only** from these events.
+
+### I.2b Calibration mechanics (added after validation)
+* **Performance spread.** Every multiplicative speed modifier's deviation from the reference
+  horse is compressed by `race.performanceSpread` (0.3); energy/efficiency differences by
+  `race.energySpread` (0.15). The mapping is monotonic, so rankings are preserved while
+  finishing margins stay in lengths rather than furlongs.
+* **Energy-budgeted pace plan.** A strategy is a pace *shape*; the jockey scales it so the
+  planned energy use matches the horse's reserve, misjudging by ±1.5 % × (1.2 − skill).
+* **Mid-race re-planning.** In the MIDDLE/LATE phases the jockey blends the plan toward the
+  effort the remaining energy can sustain to the line (weight 0.3 + 0.5·skill).
+* **Fresh legs.** Energy beyond what the rest of the race needs at full effort becomes up to
+  +5 % kick speed. Exhausted horses hold ≥ 85 % of top speed (+ courage).
+* **Tactics wear.** Post-race fatigue/injury risk × 0.75 (CONSERVATIVE) … × 1.2 (AGGRESSIVE).
 
 ### I.3 Fairness
 Seed = `HMAC(serverSecret, raceId)`; `sha256(seed)` is published when the race
@@ -161,8 +176,10 @@ verifiable and cannot be re-rolled by the server silently.
 | Favourite finishes top 3 | 60–80 % |
 | Spearman(ability, finish) | 0.45–0.80 |
 | Win rate of the weakest horse | > 0 %, < 3 % |
-| Any strategy's share of wins (equal horses) | 10–30 % each |
+| Any strategy's share of wins (equal horses) | 8–30 % each |
 | Draw (gate) bias, best vs worst gate win share | < 1.6× |
+| Median winning margin | < 5 lengths |
+| Median margin winner → last | < 35 lengths |
 | Deterministic replay (same seed) | 100 % identical |
 
 ### I.5 Rewards

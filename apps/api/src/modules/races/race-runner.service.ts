@@ -225,6 +225,7 @@ export class RaceRunnerService {
         c,
         race.class,
         fieldSize - players.length,
+        race.distance,
         now,
         rng.fork("fillers"),
       );
@@ -469,6 +470,7 @@ export class RaceRunnerService {
             fieldSize: entries.length,
             endurance: s.attributes.endurance,
             susceptibility: s.injurySusceptibility,
+            strategy: e.strategy,
           },
           new Rng(`aftermath:${seed}:${e.horse_id}`),
           cfg,

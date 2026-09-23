@@ -118,6 +118,12 @@ export interface GameConfig {
     drainExponent: number;
     /** Max extra kick speed for a horse with surplus energy entering the final stage. */
     freshLegsBoost: number;
+    /** Compression (0–1) of every speed modifier's deviation from the reference horse. */
+    performanceSpread: number;
+    /** Compression (0–1) of energy/efficiency differences (stamina, distance fit). */
+    energySpread: number;
+    /** Share of top speed an exhausted horse can still hold (before courage). */
+    exhaustFloor: number;
     prizeSplit: number[];
     classes: Record<RaceClass, RaceClassConfig>;
     schedule: {
@@ -260,12 +266,12 @@ export const defaultConfig: GameConfig = {
       AGGRESSIVE: [1.05, 1.01, 0.99],
     },
     strategyReserve: {
-      FRONT_RUNNER: 0.02,
-      PACE_SETTER: 0.015,
-      MID_PACK: 0.02,
-      CLOSER: 0.03,
-      CONSERVATIVE: 0.04,
-      AGGRESSIVE: -0.03,
+      FRONT_RUNNER: 0.01,
+      PACE_SETTER: 0.01,
+      MID_PACK: 0.01,
+      CLOSER: 0.015,
+      CONSERVATIVE: 0.025,
+      AGGRESSIVE: 0,
     },
     strategyKickBonus: {
       FRONT_RUNNER: 0,
@@ -282,6 +288,9 @@ export const defaultConfig: GameConfig = {
     drainScale: 1,
     drainExponent: 4,
     freshLegsBoost: 0.05,
+    performanceSpread: 0.3,
+    energySpread: 0.15,
+    exhaustFloor: 0.85,
     prizeSplit: [0.5, 0.22, 0.13, 0.08, 0.05, 0.02],
     classes: {
       MAIDEN: {

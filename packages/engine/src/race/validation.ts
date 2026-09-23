@@ -3,6 +3,8 @@ import { generateGenome, initialAttributes } from "../horse/generate.js";
 import { fatigueModifier, healthModifier } from "../horse/condition.js";
 import { abilityRating } from "../horse/rating.js";
 import { mean, spearman } from "../math.js";
+
+const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
 import { Rng } from "../rng.js";
 import { simulateRace, type RaceEntrant } from "./simulate.js";
 import { rollWeather, rollWetness, TRACKS } from "./track.js";
@@ -20,6 +22,10 @@ export interface RaceValidationReport {
   meanWinnerSpeed: number;
   meanLeadChanges: number;
   deadHeats: number;
+  /** Median lengths between 1st and 2nd. */
+  medianWinningMargin: number;
+  /** Median lengths between the winner and the last finisher. */
+  medianLastMargin: number;
 }
 
 export function randomEntrant(
@@ -59,6 +65,8 @@ export function validateRaces(
   let leadChanges = 0;
   const rhos: number[] = [];
   const speeds: number[] = [];
+  const winMargins: number[] = [];
+  const lastMargins: number[] = [];
   const gateWins = new Array<number>(fieldSize).fill(0);
 
   for (let r = 0; r < races; r++) {
@@ -95,6 +103,8 @@ export function validateRaces(
       ),
     );
     speeds.push(distance / res.winningTime);
+    winMargins.push(res.results[1]!.lengthsBehind);
+    lastMargins.push(res.results[res.results.length - 1]!.lengthsBehind);
     gateWins[res.results[0]!.gate]!++;
     if (res.results.some((x) => x.deadHeat)) deadHeats++;
     leadChanges += res.events.filter((e) => e.type === "LEAD_CHANGE").length;
@@ -118,6 +128,8 @@ export function validateRaces(
     meanWinnerSpeed: mean(speeds),
     meanLeadChanges: leadChanges / races,
     deadHeats,
+    medianWinningMargin: median(winMargins),
+    medianLastMargin: median(lastMargins),
   };
 }
 

@@ -5,7 +5,9 @@
   "description": "Pure, deterministic game domain logic: RNG, horses, training, race simulation, breeding, economy config.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

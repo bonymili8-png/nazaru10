@@ -109,6 +109,9 @@ interface Runner {
   paceNoise: number[];
   /** Planned effort for EARLY, MIDDLE, LATE (KICK = 1). */
   plan: [number, number, number];
+  /** 0–1: how strongly the jockey re-plans pace from the energy actually left. */
+  adapt: number;
+  reserve: number;
   noiseSd: number;
   x: number;
   lane: number;
@@ -170,7 +173,12 @@ function prepareRunner(e: RaceEntrant, gate: number, setup: RaceSetup, rng: Rng,
   const stress = 1 - 0.015 * prestige * (1 - t.stressResistance / 100);
   const synergy = 1 + 0.01 * jockeySynergy(e.id, e.jockey.id) * (skill / 100);
 
-  const topSpeed =
+  // Real fields finish within a few lengths: every multiplicative deviation from the reference
+  // horse is compressed by `performanceSpread` (monotonic → rankings and odds are preserved).
+  const spread = cfg.race.performanceSpread;
+  const cmp = (m: number, k = spread) => 1 + (m - 1) * k;
+  const refSpeed = cfg.race.baseSpeed + 50 * cfg.race.speedPerPoint;
+  const rawSpeed =
     (cfg.race.baseSpeed + a.speed * cfg.race.speedPerPoint) *
     fm *
     hm *
@@ -182,12 +190,15 @@ function prepareRunner(e: RaceEntrant, gate: number, setup: RaceSetup, rng: Rng,
     dayForm *
     stress *
     synergy;
+  const topSpeed = refSpeed * cmp(rawSpeed / refSpeed);
   const accel = (1.6 + a.acceleration * 0.03) * (setup.weather === "COLD" ? 0.97 : 1);
-  const expectedEnergy =
+  const refEnergy = cfg.race.energyScale * (D / cfg.race.refSpeed);
+  const rawEnergy =
     cfg.race.energyScale * (effectiveOpt / cfg.race.refSpeed) * (0.7 + a.stamina * 0.006) * fm;
-  const energyMax = expectedEnergy * (1 + rng.normal(0, sigma));
+  const expectedEnergy = refEnergy * cmp(rawEnergy / refEnergy, cfg.race.energySpread);
+  const energyMax = expectedEnergy * (1 + rng.normal(0, sigma * cfg.race.energySpread));
   // Jockeys know the horse and the going, but misjudge the plan by an amount that shrinks with skill.
-  const judgement = 1 + rng.normal(0, 0.03 * (1.2 - skill / 100));
+  const judgement = 1 + rng.normal(0, 0.015 * (1.2 - skill / 100));
 
   const kickDistance = clamp(250 + a.finalKick * 2.5 + cfg.race.strategyKickBonus[e.strategy], 150, D * 0.35);
 
@@ -197,7 +208,7 @@ function prepareRunner(e: RaceEntrant, gate: number, setup: RaceSetup, rng: Rng,
   );
   if (slowStart) reaction += rng.float(0.4, 1.1);
 
-  const drainEff = 1.25 - a.endurance * 0.005;
+  const drainEff = cmp(1.25 - a.endurance * 0.005, cfg.race.energySpread);
   const plan = pacePlan(
     e.strategy,
     D,
@@ -210,7 +221,7 @@ function prepareRunner(e: RaceEntrant, gate: number, setup: RaceSetup, rng: Rng,
 
   const positioning = (0.4 * skill + 0.3 * e.raceIntelligence + 0.3 * a.agility) / 100;
   const segments = 10;
-  const paceSd = 0.012 * (1.2 - skill / 100);
+  const paceSd = 0.012 * (1.2 - skill / 100) * spread;
   const paceNoise = Array.from({ length: segments }, () => rng.normal(0, paceSd));
 
   return {
@@ -222,19 +233,22 @@ function prepareRunner(e: RaceEntrant, gate: number, setup: RaceSetup, rng: Rng,
     energy: energyMax,
     drainEff,
     kickDistance,
-    kickBoost: 1 + a.finalKick * 0.0003,
-    cornerCap: 0.965 + 0.035 * ((0.7 * a.cornering + 0.3 * a.agility) / 100),
+    kickBoost: cmp(1 + a.finalKick * 0.0003),
+    cornerCap: cmp(0.965 + 0.035 * ((0.7 * a.cornering + 0.3 * a.agility) / 100)) / cmp(0.9825),
     reaction: Math.max(0.05, reaction),
     slowStart,
-    exhaustFloor: 0.8 + t.courage * 0.001,
+    exhaustFloor: cfg.race.exhaustFloor + t.courage * 0.0005,
     pulling: (1 - t.temperament / 100) * (1.2 - (a.focus / 100) * 0.6) * 0.12,
     movePChance: (0.25 + 0.6 * positioning) * (setup.weather === "FOG" ? 0.85 : 1),
     paceNoise,
     plan,
-    noiseSd: 0.004 * (1.2 - a.focus / 100),
+    adapt: 0.3 + 0.5 * (skill / 100),
+    reserve: cfg.race.strategyReserve[e.strategy],
+    noiseSd: 0.004 * (1.2 - a.focus / 100) * spread,
     x: 0,
-    lane: gate,
-    targetLane: gate,
+    // Starting stalls are narrower than a running lane.
+    lane: gate * 0.6,
+    targetLane: gate * 0.6,
     v: 0,
     finishTime: null,
     blockedTicks: 0,
@@ -373,6 +387,16 @@ export function simulateRace(
       const phase = phaseOf(r, D);
       const seg = Math.min(9, Math.floor((r.x / D) * 10));
       let effort = phase === "KICK" ? 1 : r.plan[PHASE_INDEX[phase]]! + r.paceNoise[seg]!;
+      if (phase === "MIDDLE" || phase === "LATE") {
+        // Mid-race re-plan: the effort the remaining energy can sustain to the line (kick at full effort).
+        const g = rc.drainExponent - 1;
+        const perMetre = (r.drainEff * envDrain) / r.topSpeed;
+        const kickLeft = Math.min(r.kickDistance, D - s.x);
+        const cruiseLeft = Math.max(1, D - s.x - kickLeft);
+        const budget = r.energy - r.reserve * r.energyMax - kickLeft * perMetre;
+        const sustainable = budget > 0 ? (budget / (cruiseLeft * perMetre)) ** (1 / g) : 0.8;
+        effort += r.adapt * (clamp(sustainable, 0.8, 1) - effort);
+      }
       const rank = rankOf.get(i) ?? 0;
       const isLeader = rank === 0;
 
@@ -437,11 +461,11 @@ export function simulateRace(
           blocked = true;
           desired = Math.min(desired, snap[ahead]!.v + 0.1);
         }
-      } else if (r.targetLane === r.lane && r.lane > 0.01 && tickRng.chance(r.movePChance * 0.5)) {
+      } else if (r.targetLane === r.lane && r.lane > 0.01 && tickRng.chance(r.movePChance)) {
         // Drift toward the rail to save ground when the inside is clear.
         const inner = Math.max(0, Math.round(r.lane) - 1);
         const clear = snap.every(
-          (o, j) => j === i || o.done || Math.abs(o.lane - inner) >= 0.9 || Math.abs(o.x - s.x) >= L * 1.5,
+          (o, j) => j === i || o.done || Math.abs(o.lane - inner) >= 0.9 || Math.abs(o.x - s.x) >= L * 1.05,
         );
         if (clear) r.targetLane = inner;
       }

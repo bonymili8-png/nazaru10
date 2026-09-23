@@ -142,6 +142,11 @@ describe("statistical validation (CI subset, see pnpm sim:races for full runs)",
     expect(report.weakestWinRate).toBeGreaterThan(0);
     expect(report.weakestWinRate).toBeLessThan(0.04);
   });
+  it("finishing margins look like real racing (lengths, not furlongs)", () => {
+    expect(report.medianWinningMargin).toBeGreaterThan(0.5);
+    expect(report.medianWinningMargin).toBeLessThan(6);
+    expect(report.medianLastMargin).toBeLessThan(40);
+  });
   it("no dominant strategy and limited draw bias", () => {
     for (const share of Object.values(report.strategyWinShare)) {
       expect(share).toBeGreaterThan(0.06);
@@ -214,5 +219,31 @@ describe("ratings, purses, aftermath", () => {
     expect(good.condition.fatigue).toBeGreaterThan(10);
     expect(good.condition.form).toBeGreaterThan(0);
     expect(bad.condition.form).toBeLessThan(0);
+  });
+});
+
+describe("tactics wear", () => {
+  it("conservative rides leave the horse fresher than aggressive ones", () => {
+    const base = {
+      distance: 2000,
+      position: 3,
+      expectedPosition: 3,
+      fieldSize: 8,
+      endurance: 50,
+      susceptibility: 1,
+    };
+    const cons = raceAftermath(
+      { fatigue: 0, health: 100, form: 0 },
+      { ...base, strategy: "CONSERVATIVE" },
+      new Rng("w"),
+      cfg,
+    );
+    const aggr = raceAftermath(
+      { fatigue: 0, health: 100, form: 0 },
+      { ...base, strategy: "AGGRESSIVE" },
+      new Rng("w"),
+      cfg,
+    );
+    expect(cons.condition.fatigue).toBeLessThan(aggr.condition.fatigue);
   });
 });

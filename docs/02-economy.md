@@ -75,6 +75,7 @@ Current targets and results (seeded, deterministic; CI gate):
 | Allowance < 10 % of income | 0.7 % |
 | 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 76 % |
 | Trainer salaries 3–25 % of recurring income | ≈ 8 % |
+| 5–40 % of owners build a facility within a season | ≈ 13 % |
 
 Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any
 single user's daily income > 10× P90.

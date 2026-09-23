@@ -1,5 +1,6 @@
 "use client";
-import type { HorseSummaryDto, StableDto } from "@thoroughline/contracts";
+import type { FacilityDto, HorseSummaryDto, StableDto } from "@thoroughline/contracts";
+import { Dumbbell, Stethoscope } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import {
   Button,
@@ -66,6 +67,7 @@ export default function HorsesPage() {
           )}
         </Card>
       )}
+      {stable.data && <Facilities stable={stable.data} />}
       <SectionTitle>String</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}
@@ -82,5 +84,69 @@ export default function HorsesPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+const FACILITY_INFO: Record<FacilityDto["type"], { label: string; icon: typeof Dumbbell; effect: string }> = {
+  TRAINING_TRACK: { label: "Training track", icon: Dumbbell, effect: "+4% training gains per level" },
+  VET_CLINIC: { label: "Vet clinic", icon: Stethoscope, effect: "−10% training injury risk per level" },
+};
+
+function Facilities({ stable }: { stable: StableDto }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const build = async (f: FacilityDto) => {
+    setBusy(f.type);
+    try {
+      await post(`/stable/facilities/${f.type}`);
+      haptic.success();
+      toast(`${FACILITY_INFO[f.type].label} level ${f.level + 1} built`);
+      invalidate("/stable", "/wallet", "/home");
+    } catch (e) {
+      haptic.error();
+      toast((e as Error).message, "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <>
+      <SectionTitle>Facilities</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        {stable.facilities.map((f) => {
+          const info = FACILITY_INFO[f.type];
+          const Icon = info.icon;
+          const locked = f.requiresStableLevel !== null && stable.level < f.requiresStableLevel;
+          return (
+            <Card key={f.type} className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <Icon className="size-4 text-gold" aria-hidden />
+                <p className="text-sm font-semibold">{info.label}</p>
+              </div>
+              <p className="num mt-1 text-xs text-muted">
+                Level {f.level}/{f.maxLevel}
+                {f.level > 0 &&
+                  ` · ${f.gainPct ? `+${f.gainPct}% gains` : `−${f.injuryReductionPct}% injuries`}`}
+              </p>
+              <p className="mt-1 flex-1 text-xs text-muted">{info.effect}</p>
+              {f.nextCost === null ? (
+                <p className="mt-2 text-xs font-medium text-good">Fully built</p>
+              ) : locked ? (
+                <p className="mt-2 text-xs text-muted">Needs stable level {f.requiresStableLevel}</p>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="mt-2 min-h-10 text-xs"
+                  loading={busy === f.type}
+                  onClick={() => build(f)}
+                >
+                  Build · {fmt(f.nextCost)} cr
+                </Button>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </>
   );
 }

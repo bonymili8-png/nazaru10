@@ -121,6 +121,17 @@ risk factors that produced it (explainable, logged, bounded).
   leaves (bot notification); dismissal is immediate and the current week isn't refunded.
   After a long outage renewal restarts from now instead of back-charging.
 
+### H.2 Stable facilities (Phase 2)
+
+| Facility | Effect per level | Level costs (1 / 2 / 3) | Level k needs stable level |
+|---|---|---|---|
+| Training track | +4 % training gains | 4 000 / 12 000 / 30 000 | k + 1 |
+| Vet clinic | −10 % training injury chance | 3 000 / 9 000 / 24 000 | k + 1 |
+
+One-off purchases (sink `FACILITIES`), stacking multiplicatively with the trainer; the
+effect is snapshotted when a session starts. Facilities only touch training so condition
+projection (fatigue/health) stays a pure function of the horse.
+
 ## I. Race Simulation
 
 Engine: `packages/engine/src/race`. Pure, deterministic given `(entrants, conditions,

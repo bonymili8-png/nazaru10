@@ -136,6 +136,8 @@ export const TournamentRegisterRequest = z.object({
 });
 export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest>;
 
+export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
+
 export const HireTrainerRequest = z.object({ trainerId: z.string().uuid() });
 export type HireTrainerRequest = z.infer<typeof HireTrainerRequest>;
 
@@ -196,6 +198,22 @@ export interface StableDto {
   horseCount: number;
   reputation: number;
   nextUpgradeCost: number | null;
+  facilities: FacilityDto[];
+}
+
+export type FacilityType = "TRAINING_TRACK" | "VET_CLINIC";
+
+export interface FacilityDto {
+  type: FacilityType;
+  level: number;
+  maxLevel: number;
+  /** Cost of the next level (null at max level). */
+  nextCost: number | null;
+  /** Stable level needed for the next level. */
+  requiresStableLevel: number | null;
+  /** Current effect on training: gain bonus % and injury-risk reduction %. */
+  gainPct: number;
+  injuryReductionPct: number;
 }
 
 export interface ConditionDto {

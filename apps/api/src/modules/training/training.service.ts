@@ -26,6 +26,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 import { getHorse, type HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
+import { StableService } from "../stable/stable.service.js";
 
 interface SessionRow {
   id: string;
@@ -41,6 +42,7 @@ interface SessionRow {
     sessionsLast24h: number;
     /** Supervising trainer at start (absent for sessions started before staff existed). */
     trainer?: { id: string; name: string; gainMultiplier: number; injuryMultiplier: number } | null;
+    facilities?: { gainMultiplier: number; injuryMultiplier: number };
   };
   started_at: Date;
   completes_at: Date;
@@ -64,6 +66,7 @@ export class TrainingService {
     private readonly horses: HorsesService,
     private readonly events: EventsService,
     private readonly quests: QuestsService,
+    private readonly stables: StableService,
     private readonly clock: Clock,
     @Inject(ENV) private readonly env: Env,
   ) {}
@@ -140,6 +143,7 @@ export class TrainingService {
         [horseId, new Date(now.getTime() - 86_400_000)],
       );
       const trainer = await this.trainerFor(c, userId, type, now);
+      const facilities = await this.stables.trainingEffect(c, userId);
       const cost = trainingCost(type, intensity, cfg);
       const completesAt = new Date(now.getTime() + trainingDurationMinutes(type, intensity, cfg) * 60_000);
       const session = await row<SessionRow>(
@@ -152,7 +156,7 @@ export class TrainingService {
           type,
           intensity,
           cost,
-          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer }),
+          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer, facilities }),
           now,
           completesAt,
         ],
@@ -202,6 +206,8 @@ export class TrainingService {
           sessionsLast24h: s.start_state.sessionsLast24h,
           trainerMultiplier: s.start_state.trainer?.gainMultiplier,
           trainerInjuryMultiplier: s.start_state.trainer?.injuryMultiplier,
+          facilityMultiplier: s.start_state.facilities?.gainMultiplier,
+          facilityInjuryMultiplier: s.start_state.facilities?.injuryMultiplier,
         },
         new Rng(seed),
         cfg,

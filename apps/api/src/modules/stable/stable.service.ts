@@ -1,5 +1,14 @@
 import { Injectable } from "@nestjs/common";
-import type { StableDto } from "@thoroughline/contracts";
+import type { FacilityDto, StableDto } from "@thoroughline/contracts";
+import {
+  FACILITY_TYPES,
+  facilityEffect,
+  facilityMaxLevel,
+  facilityRequiredStableLevel,
+  facilityUpgradeCost,
+  type FacilityLevels,
+  type FacilityType,
+} from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
 import { Db, type Queryable, row } from "../../common/db.js";
 import { conflict, notFound } from "../../common/errors.js";
@@ -13,7 +22,14 @@ interface StableRow {
   owner_id: string;
   name: string;
   level: number;
+  training_track: number;
+  vet_clinic: number;
 }
+
+const COLUMN: Record<FacilityType, "training_track" | "vet_clinic"> = {
+  TRAINING_TRACK: "training_track",
+  VET_CLINIC: "vet_clinic",
+};
 
 @Injectable()
 export class StableService {
@@ -29,7 +45,7 @@ export class StableService {
   async byOwner(c: Queryable, ownerId: string, lock = false): Promise<StableRow> {
     const s = await row<StableRow>(
       c,
-      `SELECT id, owner_id, name, level FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
+      `SELECT id, owner_id, name, level, training_track, vet_clinic FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
       [ownerId],
     );
     if (!s) throw notFound("Stable");
@@ -74,7 +90,71 @@ export class StableService {
       horseCount: n!.n,
       reputation: rep?.balance ?? 0,
       nextUpgradeCost: costs[s.level - 1] ?? null,
+      facilities: this.facilityDtos(s),
     };
+  }
+
+  levels(s: StableRow): FacilityLevels {
+    return { TRAINING_TRACK: s.training_track, VET_CLINIC: s.vet_clinic };
+  }
+
+  private facilityDtos(s: StableRow): FacilityDto[] {
+    const cfg = this.config.get();
+    return FACILITY_TYPES.map((type) => {
+      const level = this.levels(s)[type];
+      const nextCost = facilityUpgradeCost(type, level, cfg);
+      const f = cfg.facilities[type];
+      return {
+        type,
+        level,
+        maxLevel: facilityMaxLevel(type, cfg),
+        nextCost,
+        requiresStableLevel: nextCost === null ? null : facilityRequiredStableLevel(level + 1, cfg),
+        gainPct: Math.round(f.gainPerLevel * level * 1000) / 10,
+        injuryReductionPct: Math.round(f.injuryReductionPerLevel * level * 1000) / 10,
+      };
+    });
+  }
+
+  /** Combined facility effect on training for an owner's stable. */
+  async trainingEffect(c: Queryable, ownerId: string) {
+    return facilityEffect(this.levels(await this.byOwner(c, ownerId)), this.config.get());
+  }
+
+  async build(ownerId: string, type: FacilityType): Promise<StableDto> {
+    const now = this.clock.now();
+    const cfg = this.config.get();
+    await this.db.tx(async (c) => {
+      const s = await this.byOwner(c, ownerId, true);
+      const current = this.levels(s)[type];
+      const cost = facilityUpgradeCost(type, current, cfg);
+      if (cost === null) throw conflict("MAX_LEVEL", "This facility is already at maximum level");
+      const needs = facilityRequiredStableLevel(current + 1, cfg);
+      if (s.level < needs)
+        throw conflict("STABLE_LEVEL_TOO_LOW", `Upgrade your stable to level ${needs} first`);
+      await this.ledger.debit(c, {
+        userId: ownerId,
+        currency: "CREDITS",
+        amount: cost,
+        sink: "FACILITIES",
+        key: `stable:${s.id}:facility:${type}:${current + 1}`,
+        type: "FACILITY_BUILD",
+        reason: `${type === "TRAINING_TRACK" ? "Training track" : "Vet clinic"} level ${current + 1}`,
+      });
+      await c.query(`UPDATE stables SET ${COLUMN[type]} = $2, updated_at = $3 WHERE id = $1`, [
+        s.id,
+        current + 1,
+        now,
+      ]);
+      await this.events.emit(c, {
+        type: "facility_built",
+        aggregateType: "stable",
+        aggregateId: s.id,
+        actorId: ownerId,
+        payload: { type, level: current + 1, cost },
+      });
+    });
+    return this.view(ownerId);
   }
 
   async upgrade(ownerId: string): Promise<StableDto> {

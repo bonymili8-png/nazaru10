@@ -19,3 +19,4 @@ export * from "./breeding/index.js";
 export * from "./race/validation.js";
 export * from "./season.js";
 export * from "./staff/index.js";
+export * from "./facilities/index.js";

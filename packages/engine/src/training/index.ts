@@ -26,6 +26,8 @@ export interface TrainingInput {
   /** Trainer's injury-chance multiplier (≤ 1). */
   trainerInjuryMultiplier?: number;
   facilityMultiplier?: number;
+  /** Facilities' injury-chance multiplier (≤ 1). */
+  facilityInjuryMultiplier?: number;
 }
 
 export interface TrainingOutcome {
@@ -131,7 +133,8 @@ export function resolveTraining(input: TrainingInput, rng: Rng, cfg: GameConfig)
         int.injury *
         (1 + 4 * f * f) *
         susceptibility *
-        (input.trainerInjuryMultiplier ?? 1),
+        (input.trainerInjuryMultiplier ?? 1) *
+        (input.facilityInjuryMultiplier ?? 1),
     );
     if (rng.chance(chance)) {
       const severity: InjurySeverity = rng.chance(t.moderateInjuryShare) ? "MODERATE" : "MINOR";

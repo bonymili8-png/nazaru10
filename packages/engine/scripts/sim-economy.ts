@@ -11,6 +11,10 @@
  */
 import {
   defaultConfig as cfg,
+  facilityEffect,
+  facilityRequiredStableLevel,
+  facilityUpgradeCost,
+  type FacilityLevels,
   generateGenome,
   generateTrainer,
   maxTrainers,
@@ -65,6 +69,7 @@ interface Player {
   level: number;
   quests: Set<string>;
   trainer: (TrainerProfile & { salary: number; paidUntil: number }) | null;
+  facilities: FacilityLevels;
 }
 
 const ledger = { sources: new Map<string, number>(), sinks: new Map<string, number>() };
@@ -213,6 +218,7 @@ const stats = {
   purchases: 0,
   upgrades: 0,
   hires: 0,
+  facilities: 0,
   vet: 0,
   positions: [] as number[],
 };
@@ -246,6 +252,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
     if (block || h.trainedToday > 0 || cond.fatigue > 40 || p.credits < cost + 300) continue;
     spend(p, "TRAINING", cost);
     const effect = p.trainer ? trainerEffect(p.trainer, type, cfg) : null;
+    const fac = facilityEffect(p.facilities, cfg);
     const out = resolveTraining(
       {
         type,
@@ -257,6 +264,8 @@ function session(rng: Rng, p: Player, nowH: number): void {
         sessionsLast24h: h.trainedToday,
         trainerMultiplier: effect?.gainMultiplier,
         trainerInjuryMultiplier: effect?.injuryMultiplier,
+        facilityMultiplier: fac.gainMultiplier,
+        facilityInjuryMultiplier: fac.injuryMultiplier,
       },
       rng,
       cfg,
@@ -294,6 +303,16 @@ function session(rng: Rng, p: Player, nowH: number): void {
       stats.hires++;
     }
   }
+  // Facilities: build the next level when well funded (after the upgrade savings).
+  for (const type of ["TRAINING_TRACK", "VET_CLINIC"] as const) {
+    const next = p.facilities[type] + 1;
+    const cost = facilityUpgradeCost(type, p.facilities[type], cfg);
+    if (cost === null || p.level < facilityRequiredStableLevel(next, cfg)) continue;
+    if (p.credits >= cost + 3000 + saving && spend(p, "FACILITIES", cost)) {
+      p.facilities[type] = next;
+      stats.facilities++;
+    }
+  }
   // Growth decisions at the end of the session.
   const capacity = cfg.economy.stableCapacity[p.level - 1]!;
   const reserve = 1500 + p.horses.reduce((sum, h) => sum + 3 * cfg.race.classes[raceClassFor(h)].entryFee, 0);
@@ -318,7 +337,14 @@ function session(rng: Rng, p: Player, nowH: number): void {
 
 const rng = new Rng("economy-sim");
 const players: Player[] = Array.from({ length: PLAYERS }, () => {
-  const p: Player = { credits: 0, horses: [], level: 1, quests: new Set(), trainer: null };
+  const p: Player = {
+    credits: 0,
+    horses: [],
+    level: 1,
+    quests: new Set(),
+    trainer: null,
+    facilities: { TRAINING_TRACK: 0, VET_CLINIC: 0 },
+  };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
   p.horses.push(newHorse(rng, 0.42, 2.3, 0, "UNCOMMON"));
   quest(p, "CREATE_STABLE");
@@ -356,7 +382,7 @@ const perPlayerDay = (m: Map<string, number>, excludeOneOff: boolean) => {
 };
 const fmt = (n: number) => Math.round(n).toLocaleString("en");
 console.log(
-  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} injuries=${stats.injuries} vet=${stats.vet}`,
+  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
 );
 console.log(
   "sources per player-day:",
@@ -392,6 +418,9 @@ const last = snapshots[snapshots.length - 1]!;
 const twoWeeksAgo = snapshots.find((x) => x.day >= last.day - 14) ?? snapshots[0]!;
 const upgraded = players.filter((p) => p.level > 1).length / PLAYERS;
 const allowanceShare = (ledger.sources.get("DAILY_ALLOWANCE") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
+const building =
+  players.filter((p) => p.facilities.TRAINING_TRACK + p.facilities.VET_CLINIC > 0).length / PLAYERS;
+console.log(`owners with a facility at season end ${(building * 100).toFixed(1)}%`);
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
 const salaryShare = (ledger.sinks.get("STAFF_SALARY") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
@@ -414,6 +443,8 @@ const checks: [string, boolean][] = [
   // a month of salary) but not universal, and never the main cost.
   ["20–85% of owners employ a trainer at season end", employing >= 0.2 && employing <= 0.85],
   ["salaries are 3–25% of recurring income", salaryShare >= 0.03 && salaryShare <= 0.25],
+  // Facilities are a mid-game goal: gated by stable level, so a minority builds in season one.
+  ["5–40% of owners build a facility within a season", building >= 0.05 && building <= 0.4],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

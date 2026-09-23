@@ -33,6 +33,9 @@ export const STRATEGIES = [
 ] as const;
 export type Strategy = (typeof STRATEGIES)[number];
 
+export const FACILITY_TYPES = ["TRAINING_TRACK", "VET_CLINIC"] as const;
+export type FacilityType = (typeof FACILITY_TYPES)[number];
+
 export const TOURNAMENT_TIERS = ["LOCAL", "REGIONAL", "NATIONAL", "ELITE"] as const;
 export type TournamentTier = (typeof TOURNAMENT_TIERS)[number];
 
@@ -175,6 +178,20 @@ export interface GameConfig {
     diagnosticsCostGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
+  };
+  facilities: Record<
+    FacilityType,
+    {
+      /** Build cost of levels 1..n (the array length is the max level). */
+      costs: number[];
+      /** Training gain bonus per level (training track). */
+      gainPerLevel: number;
+      /** Training injury-chance reduction per level (vet clinic). */
+      injuryReductionPerLevel: number;
+    }
+  > & {
+    /** Facility level k needs stable level ≥ k + this. */
+    stableLevelOffset: number;
   };
   staff: {
     /** Trainer skill range in the hiring pool; skill = minSkill means no effect. */
@@ -486,6 +503,11 @@ export const defaultConfig: GameConfig = {
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
     allowance: { threshold: 400, amount: 250 },
+  },
+  facilities: {
+    TRAINING_TRACK: { costs: [4000, 12000, 30000], gainPerLevel: 0.04, injuryReductionPerLevel: 0 },
+    VET_CLINIC: { costs: [3000, 9000, 24000], gainPerLevel: 0, injuryReductionPerLevel: 0.1 },
+    stableLevelOffset: 1,
   },
   staff: {
     minSkill: 40,

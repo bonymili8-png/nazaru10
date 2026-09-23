@@ -58,7 +58,8 @@
     "10.1.1",
     "10.1.2",
     "13.1.1",
-    "17.1.1-e2e"
+    "17.1.1-e2e",
+    "13.2.1-facilities"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -69,8 +70,8 @@
   ],
   "failed_tasks": [],
   "test_status": {
-    "engine": "52/52",
-    "api": "89/89 (real Postgres)",
+    "engine": "55/55",
+    "api": "93/93 (real Postgres)",
     "web": "Playwright E2E: 6 journeys (onboarding, training, race entry/withdraw, tournament, staff) — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
@@ -84,5 +85,5 @@
     "Tournaments are not yet part of the economy cohort simulation",
     "Economy sim margins are thin: in-class win rate ~24.5% (cap 25%), stable upgrades ~15-17% (floor 15%)"
   ],
-  "next_action": "Phase 2 remainder: facilities, jockeys as staff; admin web console; owner: bot token + hosting"
+  "next_action": "Phase 2 remainder: jockeys as hireable staff; admin web console; owner: bot token + hosting"
 }

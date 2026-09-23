@@ -38,6 +38,8 @@ const EnvSchema = z
      * X-Forwarded-For entries are used for client IPs (rate limiting, audit).
      */
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+    /** Multiplies every rate-limit bucket (1 in production; raised for E2E runs from one IP). */
+    RATE_LIMIT_SCALE: z.coerce.number().min(1).max(100).default(1),
     JOB_RUNNER: bool,
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   })

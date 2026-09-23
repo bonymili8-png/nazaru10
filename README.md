@@ -29,6 +29,16 @@ pnpm dev:web                             # Mini App on :3001 ("Enter as develope
 pnpm verify            # lint + format + typecheck + all tests (API tests need DATABASE_URL to a test DB)
 pnpm sim:races 100000  # statistical validation of the race engine (see docs/06-validation.md)
 pnpm sim:breeding      # genetics population simulation
+pnpm sim:economy 300 28 # economy cohort simulation (CI gate)
+```
+
+Browser end-to-end journeys (Playwright, real API + exported Mini App + Postgres). The API
+migrates the database named by `E2E_DATABASE_URL` (default `thoroughline_e2e` on localhost):
+
+```bash
+pnpm build && pnpm --filter @thoroughline/e2e build:web
+pnpm --filter @thoroughline/e2e exec playwright install chromium   # once
+pnpm --filter @thoroughline/e2e e2e
 ```
 
 ## Telegram setup (production)

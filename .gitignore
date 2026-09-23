@@ -7,3 +7,5 @@ coverage
 .env
 .env.*
 !.env.example
+apps/e2e/test-results/
+apps/e2e/playwright-report/

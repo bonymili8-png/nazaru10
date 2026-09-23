@@ -1,6 +1,7 @@
-import { type CanActivate, type ExecutionContext, Injectable, SetMetadata } from "@nestjs/common";
+import { type CanActivate, type ExecutionContext, Inject, Injectable, SetMetadata } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { AuthedRequest } from "./auth.js";
+import { ENV, type Env } from "../config/env.js";
 import { tooMany } from "./errors.js";
 
 const SKIP = "skipRateLimit";
@@ -24,7 +25,10 @@ export class RateLimitGuard implements CanActivate {
   private readonly buckets = new Map<string, { tokens: number; at: number }>();
   private lastSweep = Date.now();
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Inject(ENV) private readonly env: Env,
+  ) {}
 
   canActivate(ctx: ExecutionContext): boolean {
     const targets = [ctx.getHandler(), ctx.getClass()];
@@ -34,7 +38,10 @@ export class RateLimitGuard implements CanActivate {
       this.reflector.getAllAndOverride<RateBucket>(BUCKET, targets) ??
       (req.method === "GET" ? "read" : "mutation");
     const key = `${bucket}:${req.user?.id ?? `ip:${req.ip}`}`;
-    if (!this.take(key, LIMITS[bucket])) throw tooMany();
+    const base = LIMITS[bucket];
+    const scale = this.env.RATE_LIMIT_SCALE;
+    const limit = scale === 1 ? base : { capacity: base.capacity * scale, perMinute: base.perMinute * scale };
+    if (!this.take(key, limit)) throw tooMany();
     return true;
   }
 

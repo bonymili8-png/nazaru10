@@ -66,8 +66,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           phase={phase}
           error={error}
           onDevLogin={async (id, name) => {
-            await loginDev(id, name);
-            setPhase("ready");
+            try {
+              await loginDev(id, name);
+              setPhase("ready");
+            } catch (e) {
+              setError((e as Error).message);
+              setPhase("error");
+            }
           }}
           onRetry={boot}
         />

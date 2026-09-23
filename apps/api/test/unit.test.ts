@@ -76,7 +76,7 @@ describe("environment validation", () => {
 
 describe("rate limiter", () => {
   it("allows the burst capacity then refills over time", () => {
-    const g = new RateLimitGuard(new Reflector());
+    const g = new RateLimitGuard(new Reflector(), loadEnv());
     const limit = { capacity: 3, perMinute: 60 };
     const t0 = 1_000_000;
     expect([1, 2, 3, 4].map(() => g.take("k", limit, t0))).toEqual([true, true, true, false]);

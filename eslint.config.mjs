@@ -33,6 +33,12 @@ export default tseslint.config(
     languageOptions: { parserOptions: { emitDecoratorMetadata: true, experimentalDecorators: true } },
   },
   {
+    // Plain Node scripts (no TypeScript types to provide the globals).
+    files: ["apps/e2e/**/*.mjs"],
+    languageOptions: { globals: { process: "readonly", URL: "readonly", console: "readonly" } },
+    rules: { "no-console": "off" },
+  },
+  {
     files: ["**/scripts/**", "**/*.config.*", "**/migrate*.ts", "**/migrate/**"],
     rules: { "no-console": "off" },
   },

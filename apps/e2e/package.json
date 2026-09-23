@@ -1,0 +1,15 @@
+{
+  "name": "@thoroughline/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "NEXT_PUBLIC_DEV_AUTH=true NEXT_PUBLIC_API_URL=http://localhost:3410 pnpm --filter @thoroughline/web build",
+    "e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.10.0"
+  }
+}

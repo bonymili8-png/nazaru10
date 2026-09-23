@@ -1,0 +1,17 @@
+{
+  "name": "@thoroughline/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure, deterministic game domain logic: RNG, horses, training, race simulation, breeding, economy config.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "sim:races": "tsx scripts/sim-races.ts",
+    "sim:breeding": "tsx scripts/sim-breeding.ts",
+    "sim:economy": "tsx scripts/sim-economy.ts"
+  }
+}

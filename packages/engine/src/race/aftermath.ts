@@ -1,0 +1,53 @@
+import type { GameConfig } from "../config/index.js";
+import type { Condition } from "../horse/types.js";
+import { clamp, round } from "../math.js";
+import type { Rng } from "../rng.js";
+
+export interface RaceAftermath {
+  condition: Condition;
+  injury: { severity: "MINOR" | "MODERATE"; hours: number; chance: number } | null;
+}
+
+/**
+ * Condition change for a horse after running. Form moves toward how the horse did relative
+ * to the field (expected rank from pre-race ability order). Injury risk is small and bounded.
+ */
+export function raceAftermath(
+  before: Condition,
+  input: {
+    distance: number;
+    position: number;
+    expectedPosition: number;
+    fieldSize: number;
+    endurance: number;
+    susceptibility: number;
+  },
+  rng: Rng,
+  cfg: GameConfig,
+): RaceAftermath {
+  const rc = cfg.race;
+  const fatigue = clamp(
+    before.fatigue +
+      (rc.postRaceFatigueBase + (input.distance / 1000) * rc.postRaceFatiguePerKm) *
+        (1 - input.endurance / 400),
+    0,
+    100,
+  );
+  const surprise = (input.expectedPosition - input.position) / Math.max(1, input.fieldSize - 1);
+  const form = clamp(before.form * 0.6 + surprise * 0.8, -1, 1);
+  const chance = Math.min(
+    0.03,
+    rc.postRaceInjuryBase * (1 + 3 * (before.fatigue / 100) ** 2) * input.susceptibility,
+  );
+  let health = before.health;
+  let injury: RaceAftermath["injury"] = null;
+  if (rng.chance(chance)) {
+    const severity = rng.chance(cfg.training.moderateInjuryShare) ? "MODERATE" : "MINOR";
+    injury = { severity, hours: cfg.training.injuryHours[severity], chance: round(chance, 5) };
+    health = clamp(health - (severity === "MODERATE" ? 30 : 12), 0, 100);
+  }
+  return {
+    condition: { fatigue: round(fatigue, 2), health: round(health, 2), form: round(form, 3) },
+    injury,
+  };
+}

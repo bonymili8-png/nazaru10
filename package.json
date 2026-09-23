@@ -1,0 +1,30 @@
+{
+  "name": "thoroughline",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/** build && pnpm -r --filter ./apps/** build",
+    "build:packages": "pnpm -r --filter ./packages/** build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm build:packages && pnpm -r test",
+    "sim:races": "pnpm --filter @thoroughline/engine sim:races",
+    "sim:breeding": "pnpm --filter @thoroughline/engine sim:breeding",
+    "db:migrate": "pnpm --filter @thoroughline/api db:migrate",
+    "dev:api": "pnpm --filter @thoroughline/api dev",
+    "dev:web": "pnpm --filter @thoroughline/web dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.20.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.9.0",
+    "tsx": "^4.23.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^3.2.7"
+  }
+}

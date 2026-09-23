@@ -1,0 +1,6 @@
+.claude
+pnpm-lock.yaml
+**/dist
+**/.next
+**/out
+docs

@@ -52,14 +52,19 @@ export interface NewHorse {
   abilityRating: number;
   raceRating: number;
   now: Date;
+  sireId?: string | null;
+  damId?: string | null;
+  generation?: number;
+  breederId?: string | null;
 }
 
 export async function insertHorse(c: Queryable, h: NewHorse): Promise<HorseRow> {
   const r = await row<HorseRow>(
     c,
     `INSERT INTO horses (name, sex, birth_at, owner_id, stable_id, is_house, house_class, sale_price, genome, attributes,
-                         rarity, bloodline, coat, ability_rating, race_rating, condition_updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+                         rarity, bloodline, coat, ability_rating, race_rating, condition_updated_at,
+                         sire_id, dam_id, generation, breeder_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
     [
       h.name,
       h.sex,
@@ -77,6 +82,10 @@ export async function insertHorse(c: Queryable, h: NewHorse): Promise<HorseRow> 
       h.abilityRating,
       h.raceRating,
       h.now,
+      h.sireId ?? null,
+      h.damId ?? null,
+      h.generation ?? 0,
+      h.breederId ?? null,
     ],
   );
   return r!;
@@ -125,5 +134,10 @@ export async function transferHorse(
     [h.id, to.userId, to.stableId, now],
   );
   await recordOwnership(c, h.id, h.owner_id, to.userId, reason, price);
+  // Stud offers belong to the previous owner.
+  await c.query("UPDATE studs SET active = false, updated_at = $2 WHERE horse_id = $1 AND active", [
+    h.id,
+    now,
+  ]);
   return res.rows[0]!;
 }

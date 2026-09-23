@@ -89,6 +89,7 @@ export const HORSE_STATUSES = [
   "RACING",
   "INJURED",
   "LISTED",
+  "BREEDING",
   "RETIRED",
 ] as const;
 export type HorseStatus = (typeof HORSE_STATUSES)[number];

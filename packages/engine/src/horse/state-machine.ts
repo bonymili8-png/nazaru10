@@ -1,12 +1,14 @@
 import type { HorseStatus } from "./types.js";
 
 const TRANSITIONS: Record<HorseStatus, readonly HorseStatus[]> = {
-  IDLE: ["TRAINING", "ENTERED", "INJURED", "LISTED", "RETIRED"],
+  IDLE: ["TRAINING", "ENTERED", "INJURED", "LISTED", "BREEDING", "RETIRED"],
   TRAINING: ["IDLE", "INJURED"],
   ENTERED: ["IDLE", "RACING"],
   RACING: ["IDLE", "INJURED"],
   INJURED: ["IDLE", "RETIRED"],
   LISTED: ["IDLE"],
+  /** Mare carrying a foal (gestation). */
+  BREEDING: ["IDLE"],
   RETIRED: [],
 };
 

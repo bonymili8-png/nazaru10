@@ -55,6 +55,11 @@ export class NotificationsService {
           userId: String(p.userId),
           text: `🤝 <b>${escape(p.horseName)}</b> sold for ${Number(p.price).toLocaleString("en")} credits (fee ${Number(p.fee).toLocaleString("en")}).`,
         };
+      case "foal_delivered":
+        return {
+          userId: String(p.userId),
+          text: `🐴 A ${p.mutation ? "remarkable " : ""}foal has arrived: <b>${escape(p.foalName)}</b> (${escape(p.sireName)} × ${escape(p.damName)}).`,
+        };
       case "market_outbid":
         return {
           userId: String(p.userId),

@@ -182,6 +182,24 @@ export interface GameConfig {
     mutationMax: number;
     inbreedingGenerations: number;
     inbreedingCeilingPenalty: number;
+    /** Minimum age (game years) for sires and dams. */
+    minBreedingAge: number;
+    /** Real hours from covering to the foal arriving at the stable. */
+    gestationHours: number;
+    /**
+     * Age at which the foal is delivered to the owner (it is raised at the stud farm until
+     * then). A pacing choice: 1.0 means racing age is reached one season after delivery.
+     */
+    foalAgeAtDelivery: number;
+    /** Days a mare rests after delivering before she can be covered again. */
+    mareCooldownDays: number;
+    /** Max covers per sire in a rolling 7 days. */
+    sireCoversPerWeek: number;
+    /** Flat breeding cost (credit sink) paid by the mare owner. */
+    breedingFee: number;
+    /** Platform cut of stud fees (credit sink). */
+    studFeeRate: number;
+    maxStudFee: number;
   };
 }
 
@@ -414,6 +432,14 @@ export const defaultConfig: GameConfig = {
     mutationMax: 18,
     inbreedingGenerations: 4,
     inbreedingCeilingPenalty: 50,
+    minBreedingAge: 3,
+    gestationHours: 24,
+    foalAgeAtDelivery: 1,
+    mareCooldownDays: 7,
+    sireCoversPerWeek: 3,
+    breedingFee: 500,
+    studFeeRate: 0.06,
+    maxStudFee: 1_000_000,
   },
 };
 

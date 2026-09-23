@@ -19,6 +19,8 @@ import { HorsesController } from "./modules/horses/horses.controller.js";
 import { HorsesService } from "./modules/horses/horses.service.js";
 import { JobRunnerService } from "./modules/jobs/job-runner.service.js";
 import { LeaderboardController } from "./modules/leaderboard/leaderboard.controller.js";
+import { BreedingController } from "./modules/breeding/breeding.controller.js";
+import { BreedingService } from "./modules/breeding/breeding.service.js";
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";
 import { NotificationsService } from "./modules/notifications/notifications.service.js";
@@ -77,6 +79,7 @@ export class AppModule {
         RacesController,
         ShopController,
         MarketController,
+        BreedingController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -100,6 +103,7 @@ export class AppModule {
         RacesService,
         ShopService,
         MarketService,
+        BreedingService,
         OnboardingService,
         AuthService,
         TelegramStarsProvider,

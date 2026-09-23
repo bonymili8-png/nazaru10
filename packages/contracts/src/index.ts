@@ -124,6 +124,15 @@ export const MarketQuery = z.object({
 });
 export type MarketQuery = z.infer<typeof MarketQuery>;
 
+export const BreedRequest = z.object({ sireId: z.string().uuid(), damId: z.string().uuid() });
+export type BreedRequest = z.infer<typeof BreedRequest>;
+
+export const StudOfferRequest = z.object({
+  horseId: z.string().uuid(),
+  fee: z.number().int().min(0).max(1_000_000),
+});
+export type StudOfferRequest = z.infer<typeof StudOfferRequest>;
+
 /* ─────────────────────────── Responses ─────────────────────────── */
 
 export type Currency = "CREDITS" | "GEMS" | "REPUTATION" | "PRESTIGE";
@@ -349,6 +358,52 @@ export interface MarketListingDetailDto extends MarketListingDto {
 export interface MarketMineDto {
   listings: MarketListingDto[];
   bids: MarketListingDto[];
+}
+
+export interface StudDto {
+  horse: ShopHorseDto;
+  fee: number;
+  ownerName: string | null;
+  mine: boolean;
+  coversThisWeek: number;
+  coversPerWeek: number;
+}
+
+export interface BreedingPreviewDto {
+  eligible: boolean;
+  reasons: string[];
+  /** Wright inbreeding coefficient of the prospective foal (0–1). */
+  inbreeding: number;
+  /** Expected potential grade of the foal from the parents' genetics (1–5). */
+  expectedStars: number;
+  cost: { breedingFee: number; studFee: number; total: number };
+  gestationHours: number;
+}
+
+export interface BreedingEventDto {
+  id: string;
+  sire: { id: string; name: string };
+  dam: { id: string; name: string };
+  status: "PENDING" | "DELIVERED";
+  coveredAt: string;
+  dueAt: string;
+  deliveredAt: string | null;
+  foal: { id: string; name: string } | null;
+  studFee: number;
+  breedingFee: number;
+  inbreeding: number;
+}
+
+export interface PedigreeNodeDto {
+  id: string;
+  name: string;
+  sex: Sex;
+  rarity: Rarity;
+  bloodline: string;
+  starts: number;
+  wins: number;
+  sire: PedigreeNodeDto | null;
+  dam: PedigreeNodeDto | null;
 }
 
 export interface ProductDto {

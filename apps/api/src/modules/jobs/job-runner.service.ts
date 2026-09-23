@@ -1,6 +1,7 @@
 import { Inject, Injectable, type OnApplicationBootstrap, type OnApplicationShutdown } from "@nestjs/common";
 import { LOGGER, type Logger } from "../../common/logger.js";
 import { ENV, type Env } from "../../config/env.js";
+import { BreedingService } from "../breeding/breeding.service.js";
 import { MarketService } from "../market/market.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
@@ -22,6 +23,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly training: TrainingService,
     private readonly shop: ShopService,
     private readonly market: MarketService,
+    private readonly breeding: BreedingService,
     private readonly notifications: NotificationsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
@@ -52,6 +54,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
       await this.step("settle", () => this.races.settleDue());
       await this.step("training", () => this.training.settleAllDue());
       await this.step("market", () => this.market.settleDue());
+      await this.step("foals", () => this.breeding.deliverDue());
       await this.step("notify", () => this.notifications.processOutbox());
     } finally {
       this.running = false;

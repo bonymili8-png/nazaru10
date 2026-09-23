@@ -84,3 +84,30 @@ describe("rate limiter", () => {
     expect(g.take("other", limit, t0)).toBe(true);
   });
 });
+
+describe("client IP trust", () => {
+  it("ignores X-Forwarded-For unless proxy hops are configured", async () => {
+    await (await import("./db.js")).resetDatabase();
+    const { buildApp } = await import("../src/app.js");
+    const { createLogger } = await import("../src/common/logger.js");
+    const { FakeBotApi } = await import("../src/modules/telegram/bot-api.js");
+    const { Db } = await import("../src/common/db.js");
+    const env = loadEnv({ ...process.env, TRUST_PROXY_HOPS: "0" });
+    const db = new Db(env.DATABASE_URL, 2);
+    const app = await buildApp({ env, logger: createLogger("silent"), db, bot: new FakeBotApi() });
+    const statuses: number[] = [];
+    for (let i = 0; i < 12; i++) {
+      const r = await app.inject({
+        method: "POST",
+        url: "/auth/telegram",
+        payload: { initData: "x".repeat(20) },
+        headers: { "x-forwarded-for": `1.2.3.${i}` },
+      });
+      statuses.push(r.statusCode);
+    }
+    await app.close();
+    await db.close();
+    // Spoofed addresses share one bucket: the auth limit (10/min) kicks in.
+    expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
+  });
+});

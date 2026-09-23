@@ -7,7 +7,10 @@ import { AllExceptionsFilter } from "./common/http.js";
 import { NestPinoLogger } from "./common/logger.js";
 
 export async function buildApp(deps: AppDeps): Promise<NestFastifyApplication> {
-  const adapter = new FastifyAdapter({ bodyLimit: 64 * 1024, trustProxy: true });
+  const adapter = new FastifyAdapter({
+    bodyLimit: 64 * 1024,
+    trustProxy: deps.env.TRUST_PROXY_HOPS > 0 ? deps.env.TRUST_PROXY_HOPS : false,
+  });
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(deps), adapter, {
     logger: new NestPinoLogger(deps.logger),
     bufferLogs: false,

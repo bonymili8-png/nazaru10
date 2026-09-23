@@ -33,6 +33,11 @@ const EnvSchema = z
       .default(86400),
     ALLOW_DEV_AUTH: bool,
     CORS_ORIGINS: z.string().default(""),
+    /**
+     * Number of trusted reverse-proxy hops in front of the API (0 = none). Only trusted hops'
+     * X-Forwarded-For entries are used for client IPs (rate limiting, audit).
+     */
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     JOB_RUNNER: bool,
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   })

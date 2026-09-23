@@ -9,3 +9,4 @@ process.env.TELEGRAM_WEBHOOK_SECRET ??= "test-webhook-secret-0123456789";
 process.env.ALLOW_DEV_AUTH ??= "true";
 process.env.JOB_RUNNER = "false";
 process.env.LOG_LEVEL = "silent";
+process.env.TRUST_PROXY_HOPS = "1";

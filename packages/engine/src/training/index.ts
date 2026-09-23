@@ -23,6 +23,8 @@ export interface TrainingInput {
   age: number;
   sessionsLast24h: number;
   trainerMultiplier?: number;
+  /** Trainer's injury-chance multiplier (≤ 1). */
+  trainerInjuryMultiplier?: number;
   facilityMultiplier?: number;
 }
 
@@ -125,7 +127,11 @@ export function resolveTraining(input: TrainingInput, rng: Rng, cfg: GameConfig)
     const f = clamp(input.condition.fatigue, 0, 100) / 100;
     const chance = Math.min(
       t.maxInjuryChance,
-      t.baseInjuryChance * int.injury * (1 + 4 * f * f) * susceptibility,
+      t.baseInjuryChance *
+        int.injury *
+        (1 + 4 * f * f) *
+        susceptibility *
+        (input.trainerInjuryMultiplier ?? 1),
     );
     if (rng.chance(chance)) {
       const severity: InjurySeverity = rng.chance(t.moderateInjuryShare) ? "MODERATE" : "MINOR";

@@ -42,9 +42,14 @@ export default function HorsesPage() {
     <div>
       <div className="flex items-end justify-between">
         <h1 className="font-display text-3xl font-bold">Your horses</h1>
-        <LinkButton href="/breeding/" variant="secondary" className="min-h-10 text-sm">
-          Breeding
-        </LinkButton>
+        <div className="flex gap-2">
+          <LinkButton href="/staff/" variant="secondary" className="min-h-10 text-sm">
+            Staff
+          </LinkButton>
+          <LinkButton href="/breeding/" variant="secondary" className="min-h-10 text-sm">
+            Breeding
+          </LinkButton>
+        </div>
       </div>
       {stable.data && (
         <Card className="mt-3 flex items-center justify-between gap-3">

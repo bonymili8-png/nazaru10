@@ -73,6 +73,8 @@ Current targets and results (seeded, deterministic; CI gate):
 | ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 19.7 % |
 | In-class player win rate 10–25 % (training makes owners slightly better than house fields) | 24 % |
 | Allowance < 10 % of income | 0.7 % |
+| 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 76 % |
+| Trainer salaries 3–25 % of recurring income | ≈ 8 % |
 
 Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any
 single user's daily income > 10× P90.
@@ -147,3 +149,15 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   per source/sink. Refunds go through `TOURNAMENT_REFUND` so the fee sink stays honest.
 * Heats pay no purse: a tournament horse spends one committed day for a chance at a purse
   worth ≈ 30× the entry fee, which keeps tournaments aspirational without inflating income.
+
+## Staff (Phase 2)
+
+* Sink: weekly trainer salaries (`STAFF_SALARY`), ≈ 8 % of recurring income in the cohort
+  simulation. The simulated owner hires the best of three candidates it can carry for a month
+  (keeping 2 500 in reserve and saving first for a stable upgrade when full) and lets the
+  trainer go when a week can't be paid comfortably.
+* Tuning notes: the first pass (+0.3 %/skill, +8 % speciality) pushed the player in-class win
+  rate to the 25 % cap and cut stable upgrades to the 15 % floor, so the effect was reduced
+  to +0.25 %/skill and +5 % speciality. Win rate (≈ 24.5 %) and upgrades (≈ 15–17 %) now sit
+  close to their limits; re-run `pnpm sim:economy` after any staff, training or house-field
+  change.

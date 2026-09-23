@@ -136,6 +136,9 @@ export const TournamentRegisterRequest = z.object({
 });
 export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest>;
 
+export const HireTrainerRequest = z.object({ trainerId: z.string().uuid() });
+export type HireTrainerRequest = z.infer<typeof HireTrainerRequest>;
+
 export const BreedRequest = z.object({ sireId: z.string().uuid(), damId: z.string().uuid() });
 export type BreedRequest = z.infer<typeof BreedRequest>;
 
@@ -216,6 +219,34 @@ export interface TrainingSessionDto {
     gains: Partial<Record<keyof Attributes, number>>;
     injury: { severity: string; hours: number } | null;
   } | null;
+  /** Trainer who supervised the session (snapshot at start). */
+  trainer: { name: string; gainMultiplier: number; injuryMultiplier: number } | null;
+}
+
+export interface TrainerDto {
+  id: string;
+  name: string;
+  skill: number;
+  specialty: TrainingType | null;
+  /** Weekly salary in credits (charged in advance). */
+  salary: number;
+  /** Training gain bonus in %, general and in the specialty; injury-risk reduction in %. */
+  effect: { gainPct: number; specialtyGainPct: number; injuryReductionPct: number };
+}
+
+export interface StaffContractDto {
+  id: string;
+  trainer: TrainerDto;
+  salary: number;
+  periods: number;
+  startedAt: string;
+  paidUntil: string;
+}
+
+export interface StaffDto {
+  contracts: StaffContractDto[];
+  maxTrainers: number;
+  weeklyCost: number;
 }
 
 export interface HorseSummaryDto {

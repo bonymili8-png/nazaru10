@@ -176,6 +176,25 @@ export interface GameConfig {
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
   };
+  staff: {
+    /** Trainer skill range in the hiring pool; skill = minSkill means no effect. */
+    minSkill: number;
+    maxSkill: number;
+    /** Training gain multiplier per skill point above minSkill. */
+    gainPerSkill: number;
+    /** Extra gain when the session type matches the trainer's speciality. */
+    specialtyBonus: number;
+    /** Injury-chance reduction per skill point above minSkill. */
+    injuryReductionPerSkill: number;
+    /** Weekly salary = base + perSkill2 × (skill − minSkill)². */
+    salaryBase: number;
+    salaryPerSkill2: number;
+    /** Trainers an owner may employ, by stable level. */
+    maxTrainers: number[];
+    /** Unemployed trainers kept available in the pool. */
+    poolSize: number;
+    contractDays: number;
+  };
   tournaments: {
     tiers: Record<TournamentTier, TournamentTierConfig>;
     /** Registration opens this long before the heats. */
@@ -467,6 +486,18 @@ export const defaultConfig: GameConfig = {
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
     allowance: { threshold: 400, amount: 250 },
+  },
+  staff: {
+    minSkill: 40,
+    maxSkill: 95,
+    gainPerSkill: 0.0025,
+    specialtyBonus: 0.05,
+    injuryReductionPerSkill: 0.005,
+    salaryBase: 100,
+    salaryPerSkill2: 0.35,
+    maxTrainers: [1, 1, 2, 2, 3],
+    poolSize: 12,
+    contractDays: 7,
   },
   tournaments: {
     tiers: {

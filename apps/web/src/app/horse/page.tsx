@@ -2,12 +2,13 @@
 import {
   type HorseDetailDto,
   type PedigreeNodeDto,
+  type StaffDto,
   type TrainingSessionDto,
   TRAINING_TYPES,
   type TrainingIntensity,
   type TrainingType,
 } from "@thoroughline/contracts";
-import { defaultConfig, trainingCost, trainingDurationMinutes } from "@thoroughline/engine";
+import { bestTrainerFor, defaultConfig, trainingCost, trainingDurationMinutes } from "@thoroughline/engine";
 import { Activity, Dna, HeartHandshake, HeartPulse, Microscope, Stethoscope, Tag, Timer } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -246,6 +247,14 @@ function Train({ h }: { h: HorseDetailDto }) {
   const active = h.private?.activeTraining ?? null;
   const cost = trainingCost(type, intensity, defaultConfig);
   const minutes = trainingDurationMinutes(type, intensity, defaultConfig);
+  const staff = useApi<StaffDto>("/staff");
+  const coach = staff.data
+    ? bestTrainerFor(
+        staff.data.contracts.map((k) => k.trainer),
+        type,
+        defaultConfig,
+      )
+    : null;
 
   const start = async () => {
     setBusy(true);
@@ -316,6 +325,21 @@ function Train({ h }: { h: HorseDetailDto }) {
             <Timer className="size-3.5" aria-hidden />
             {minutes} min
           </span>
+        </div>
+        <div className="mt-1 flex justify-between gap-2 text-sm">
+          <span className="text-muted">Trainer</span>
+          {coach ? (
+            <span className="truncate text-right">
+              {coach.trainer.name}{" "}
+              <span className="num text-good">
+                +{Math.round((coach.effect.gainMultiplier - 1) * 1000) / 10}% gains
+              </span>
+            </span>
+          ) : (
+            <a href="/staff/" className="text-gold hover:underline">
+              None — hire one
+            </a>
+          )}
         </div>
         <p className="mt-2 text-xs text-muted">
           {intensity === "HARD"

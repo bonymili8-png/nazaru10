@@ -3,6 +3,7 @@ import type { TrainingSessionDto } from "@thoroughline/contracts";
 import {
   abilityRating,
   assertTransition,
+  bestTrainerFor,
   resolveTraining,
   Rng,
   trainingBlockReason,
@@ -34,7 +35,13 @@ interface SessionRow {
   intensity: TrainingIntensity;
   cost: number;
   status: "ACTIVE" | "COMPLETED" | "CANCELLED";
-  start_state: { condition: Condition; age: number; sessionsLast24h: number };
+  start_state: {
+    condition: Condition;
+    age: number;
+    sessionsLast24h: number;
+    /** Supervising trainer at start (absent for sessions started before staff existed). */
+    trainer?: { id: string; name: string; gainMultiplier: number; injuryMultiplier: number } | null;
+  };
   started_at: Date;
   completes_at: Date;
   completed_at: Date | null;
@@ -79,7 +86,33 @@ export class TrainingService {
               : null,
           }
         : null,
+      trainer: s.start_state.trainer
+        ? {
+            name: s.start_state.trainer.name,
+            gainMultiplier: s.start_state.trainer.gainMultiplier,
+            injuryMultiplier: s.start_state.trainer.injuryMultiplier,
+          }
+        : null,
     };
+  }
+
+  /** The owner's employed trainer who helps most with this session type. */
+  private async trainerFor(c: Queryable, userId: string, type: TrainingType, now: Date) {
+    const staff = await rows<{ id: string; name: string; skill: number; specialty: TrainingType | null }>(
+      c,
+      `SELECT t.id, t.name, t.skill, t.specialty FROM staff_contracts k JOIN trainers t ON t.id = k.trainer_id
+        WHERE k.owner_id = $1 AND k.ended_at IS NULL AND k.paid_until > $2 ORDER BY t.id`,
+      [userId, now],
+    );
+    const best = bestTrainerFor(staff, type, this.config.get());
+    return best
+      ? {
+          id: best.trainer.id,
+          name: best.trainer.name,
+          gainMultiplier: best.effect.gainMultiplier,
+          injuryMultiplier: best.effect.injuryMultiplier,
+        }
+      : null;
   }
 
   async start(
@@ -106,6 +139,7 @@ export class TrainingService {
         "SELECT count(*)::int AS n FROM training_sessions WHERE horse_id = $1 AND started_at > $2 AND status <> 'CANCELLED'",
         [horseId, new Date(now.getTime() - 86_400_000)],
       );
+      const trainer = await this.trainerFor(c, userId, type, now);
       const cost = trainingCost(type, intensity, cfg);
       const completesAt = new Date(now.getTime() + trainingDurationMinutes(type, intensity, cfg) * 60_000);
       const session = await row<SessionRow>(
@@ -118,7 +152,7 @@ export class TrainingService {
           type,
           intensity,
           cost,
-          JSON.stringify({ condition, age, sessionsLast24h: recent!.n }),
+          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer }),
           now,
           completesAt,
         ],
@@ -166,6 +200,8 @@ export class TrainingService {
           condition: s.start_state.condition,
           age: s.start_state.age,
           sessionsLast24h: s.start_state.sessionsLast24h,
+          trainerMultiplier: s.start_state.trainer?.gainMultiplier,
+          trainerInjuryMultiplier: s.start_state.trainer?.injuryMultiplier,
         },
         new Rng(seed),
         cfg,

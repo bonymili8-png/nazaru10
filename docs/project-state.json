@@ -1,7 +1,7 @@
 {
   "project_status": "IN_PROGRESS",
   "current_phase": "M6_PHASE_2",
-  "last_checkpoint": "PHASE_2_TOURNAMENTS",
+  "last_checkpoint": "PHASE_2_STAFF",
   "completed_tasks": [
     "0.1.1",
     "0.2.1",
@@ -56,11 +56,10 @@
     "12.1.1",
     "12.1.2",
     "10.1.1",
-    "10.1.2"
-  ],
-  "active_tasks": [
+    "10.1.2",
     "13.1.1"
   ],
+  "active_tasks": [],
   "blocked_tasks": [
     {
       "id": "15.x",
@@ -69,8 +68,8 @@
   ],
   "failed_tasks": [],
   "test_status": {
-    "engine": "48/48",
-    "api": "82/82 (real Postgres)",
+    "engine": "52/52",
+    "api": "89/89 (real Postgres)",
     "web": "build + Playwright walkthroughs (manual)",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
@@ -82,7 +81,8 @@
     "Docker image written but not executed in this environment",
     "Admin UI is API-only (no web console yet)",
     "No automated browser E2E suite yet (Playwright walkthroughs are manual)",
-    "Tournaments are not yet part of the economy cohort simulation"
+    "Tournaments are not yet part of the economy cohort simulation",
+    "Economy sim margins are thin: in-class win rate ~24.5% (cap 25%), stable upgrades ~15-17% (floor 15%)"
   ],
-  "next_action": "13.1.1 staff/trainers; owner: bot token + hosting to validate in real Telegram clients"
+  "next_action": "Phase 2 remainder: jockeys as hireable staff, facilities; admin web console; automated Playwright E2E; owner: bot token + hosting"
 }

@@ -3,6 +3,7 @@ import { LOGGER, type Logger } from "../../common/logger.js";
 import { ENV, type Env } from "../../config/env.js";
 import { BreedingService } from "../breeding/breeding.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
+import { StaffService } from "../staff/staff.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
@@ -28,6 +29,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly breeding: BreedingService,
     private readonly seasons: SeasonsService,
     private readonly tournaments: TournamentsService,
+    private readonly staff: StaffService,
     private readonly notifications: NotificationsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
@@ -54,6 +56,8 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("shop", () => this.shop.restock());
         await this.step("seasons", () => this.seasons.closeDue());
         await this.step("tournament-schedule", () => this.tournaments.scheduleAhead());
+        await this.step("staff-pool", () => this.staff.restock());
+        await this.step("staff-salaries", () => this.staff.renewDue());
       }
       await this.step("lock", () => this.races.lockDue());
       await this.step("run", () => this.races.runDue());

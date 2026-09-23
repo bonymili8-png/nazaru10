@@ -75,6 +75,11 @@ export class NotificationsService {
           userId: String(p.userId),
           text: `🏆 <b>${escape(p.horseName)}</b> won the ${escape(p.tournamentName)}! Champion honours are in your wallet.`,
         };
+      case "trainer_left":
+        return {
+          userId: String(p.userId),
+          text: `📋 <b>${escape(p.trainerName)}</b> has left your stable — the weekly salary of ${Number(p.salary).toLocaleString("en")} credits could not be paid.`,
+        };
       case "payment_completed":
         return {
           userId: String(p.userId),

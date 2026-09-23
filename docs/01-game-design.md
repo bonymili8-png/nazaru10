@@ -107,6 +107,20 @@ Anti-spam: training needs status IDLE, fatigue < 85 and health ≥ 60. Injuries 
 training are only MINOR (12 h) or MODERATE (48 h); every injury record stores the
 risk factors that produced it (explainable, logged, bounded).
 
+### H.1 Staff — trainers (Phase 2)
+
+* A shared pool (kept at 12 free trainers) of trainers with skill 40–95 (most are journeymen,
+  ~12 % are 85+) and an optional speciality (any training type except Recovery).
+* Effect on every session in the stable, from the employed trainer who helps most for that
+  session type: gains × (1 + 0.25 % per skill point above 40, + 5 % in the speciality),
+  injury chance × (1 − 0.5 % per skill point above 40). A master (95) specialist gives
+  +18.75 % gains and −27.5 % injury risk. The trainer is snapshotted when the session starts.
+* A trainer works for one stable at a time. Stable level caps the team: 1 / 1 / 2 / 2 / 3.
+* Salary = 100 + 0.35 × (skill − 40)², rounded to 10 (skill 60 → 240, 80 → 660,
+  95 → 1 160 per week), charged a week in advance. If a renewal can't be paid the trainer
+  leaves (bot notification); dismissal is immediate and the current week isn't refunded.
+  After a long outage renewal restarts from now instead of back-charging.
+
 ## I. Race Simulation
 
 Engine: `packages/engine/src/race`. Pure, deterministic given `(entrants, conditions,

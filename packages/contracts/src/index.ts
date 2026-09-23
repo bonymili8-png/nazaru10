@@ -130,6 +130,12 @@ export const SeasonBoardQuery = z.object({
 });
 export type SeasonBoardQuery = z.infer<typeof SeasonBoardQuery>;
 
+export const TournamentRegisterRequest = z.object({
+  horseId: z.string().uuid(),
+  strategy: z.enum(STRATEGIES),
+});
+export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest>;
+
 export const BreedRequest = z.object({ sireId: z.string().uuid(), damId: z.string().uuid() });
 export type BreedRequest = z.infer<typeof BreedRequest>;
 
@@ -293,6 +299,7 @@ export interface RaceSummaryDto {
   entries: number;
   maxField: number;
   seedHash: string;
+  tournamentId: string | null;
 }
 
 export interface RaceDetailDto extends RaceSummaryDto {
@@ -459,6 +466,48 @@ export interface HallOfFameDto {
   horseId: string | null;
   horseName: string | null;
   value: number;
+}
+
+export type TournamentTier = "LOCAL" | "REGIONAL" | "NATIONAL" | "ELITE";
+export type TournamentStatus = "REGISTRATION" | "HEATS" | "FINAL" | "COMPLETED" | "CANCELLED";
+
+export interface TournamentEntryDto {
+  horseId: string;
+  horseName: string;
+  ownerName: string | null;
+  status: "REGISTERED" | "WITHDRAWN" | "IN_HEAT" | "FINALIST" | "ELIMINATED" | "SCRATCHED";
+  heatRaceId: string | null;
+  heatPosition: number | null;
+  finalPosition: number | null;
+  mine: boolean;
+}
+
+export interface TournamentDto {
+  id: string;
+  name: string;
+  tier: TournamentTier;
+  status: TournamentStatus;
+  raceClass: RaceClass;
+  trackCode: string;
+  trackName: string;
+  distance: number;
+  entryFee: number;
+  purse: number;
+  qualification: { minSeasonPoints: number | null; minRating: number | null };
+  opensAt: string;
+  registrationClosesAt: string;
+  heatsAt: string;
+  finalAt: string;
+  entrants: number;
+  maxEntrants: number;
+  heatRaceIds: string[];
+  finalRaceId: string | null;
+  winner: { horseId: string; horseName: string; ownerName: string | null } | null;
+  myEntries: TournamentEntryDto[];
+}
+
+export interface TournamentDetailDto extends TournamentDto {
+  entries: TournamentEntryDto[];
 }
 
 export interface ProductDto {

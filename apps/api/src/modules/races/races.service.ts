@@ -47,6 +47,8 @@ export class RacesService {
       // Lock order: race, then horse (same order everywhere → no deadlocks).
       const race = await row<RaceRow>(c, "SELECT * FROM races WHERE id = $1 FOR UPDATE", [raceId]);
       if (!race) throw notFound("Race");
+      if (race.tournament_id)
+        throw conflict("TOURNAMENT_RACE", "Tournament races are entered through tournament registration");
       if (race.status !== "OPEN" || race.locks_at <= now)
         throw conflict("ENTRIES_CLOSED", "Entries for this race are closed");
       let h = await this.horses.lockOwned(c, horseId, userId);
@@ -109,6 +111,11 @@ export class RacesService {
       if (!race) throw notFound("Race");
       if (race.status !== "OPEN" || race.locks_at <= now)
         throw conflict("ENTRIES_CLOSED", "Too late to withdraw — the field is locked");
+      if (race.tournament_id)
+        throw conflict(
+          "TOURNAMENT_RACE",
+          "Tournament runners cannot be withdrawn from a drawn heat or final",
+        );
       const entry = await row<EntryRow>(
         c,
         "SELECT * FROM race_entries WHERE race_id = $1 AND horse_id = $2 AND owner_id = $3 AND status = 'ENTERED' FOR UPDATE",
@@ -168,6 +175,7 @@ export class RacesService {
       entries,
       maxField: r.max_field,
       seedHash: r.seed_hash,
+      tournamentId: r.tournament_id,
     };
   }
 
@@ -175,7 +183,7 @@ export class RacesService {
     const now = this.clock.now();
     const where =
       q.status === "upcoming"
-        ? "r.status = 'OPEN' AND r.locks_at > $1"
+        ? "r.status = 'OPEN' AND r.locks_at > $1 AND r.tournament_id IS NULL"
         : q.status === "live"
           ? "(r.status IN ('LOCKED','RUNNING') OR (r.status = 'OPEN' AND r.locks_at <= $1))"
           : "r.status = 'COMPLETED'";

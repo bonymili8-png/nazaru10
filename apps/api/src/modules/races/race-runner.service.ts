@@ -136,7 +136,8 @@ export class RaceRunnerService {
     return id!;
   }
 
-  private async insertRace(a: {
+  /** Insert a race row (idempotent per class+start for the regular card). `c` joins a caller's transaction. */
+  async insertRace(a: {
     cls: RaceClass;
     trackCode: string;
     distance: number;
@@ -147,6 +148,8 @@ export class RaceRunnerService {
     purse?: number;
     entryFee?: number;
     createdBy?: string;
+    tournament?: { id: string; stage: "HEAT" | "FINAL" };
+    c?: Queryable;
   }): Promise<string | null> {
     const cfg = this.config.get();
     const cc = cfg.race.classes[a.cls];
@@ -154,11 +157,12 @@ export class RaceRunnerService {
     const weather = rollWeather(track, a.rng);
     const wetness = rollWetness(track, weather, a.rng);
     const id = randomUUID();
-    const r = await this.db.one<{ id: string }>(
+    const r = await row<{ id: string }>(
+      a.c ?? this.db.pool,
       `INSERT INTO races (id, name, class, track_code, surface, distance, weather, wetness, going, entry_fee, purse,
                           min_rating, max_rating, maiden_only, min_field, max_field, locks_at, starts_at, seed_hash,
-                          is_special, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+                          is_special, created_by, tournament_id, stage)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
        ON CONFLICT DO NOTHING RETURNING id`,
       [
         id,
@@ -182,6 +186,8 @@ export class RaceRunnerService {
         seedHash(this.raceSeed(id)),
         a.special,
         a.createdBy ?? null,
+        a.tournament?.id ?? null,
+        a.tournament?.stage ?? null,
       ],
     );
     return r?.id ?? null;

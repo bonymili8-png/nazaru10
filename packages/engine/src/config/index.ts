@@ -33,6 +33,29 @@ export const STRATEGIES = [
 ] as const;
 export type Strategy = (typeof STRATEGIES)[number];
 
+export const TOURNAMENT_TIERS = ["LOCAL", "REGIONAL", "NATIONAL", "ELITE"] as const;
+export type TournamentTier = (typeof TOURNAMENT_TIERS)[number];
+
+export interface TournamentTierConfig {
+  entryFee: number;
+  /** Final purse (minted), split like any race purse. */
+  purse: number;
+  /** Extra champion reward. */
+  championPrestige: number;
+  championReputation: number;
+  /** Qualification: season points OR race rating (null = open). */
+  minSeasonPoints: number | null;
+  minRating: number | null;
+  /** Class used for house fillers and season points of heats/final. */
+  raceClass: RaceClass;
+  everyHours: number;
+  /** UTC hour-of-cycle offset for the heats start. */
+  offsetHours: number;
+  maxEntrants: number;
+  playersPerHeat: number;
+  qualifiersPerHeat: number;
+}
+
 export const RACE_CLASSES = ["MAIDEN", "CLASS_5", "CLASS_4", "CLASS_3", "CLASS_2", "CLASS_1"] as const;
 export type RaceClass = (typeof RACE_CLASSES)[number];
 
@@ -152,6 +175,18 @@ export interface GameConfig {
     diagnosticsCostGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
+  };
+  tournaments: {
+    tiers: Record<TournamentTier, TournamentTierConfig>;
+    /** Registration opens this long before the heats. */
+    registrationOpenHours: number;
+    /** Registration closes (and heats are drawn) this long before the heats. */
+    registrationCloseMinutes: number;
+    /** Gap between heats and the final. */
+    finalAfterMinutes: number;
+    /** Minutes between consecutive heats (so each heat can be watched live). */
+    heatSpacingMinutes: number;
+    maxHorsesPerOwner: number;
   };
   seasons: {
     /** Season 1 starts here (UTC); seasons are consecutive and last one game year. */
@@ -432,6 +467,71 @@ export const defaultConfig: GameConfig = {
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
     allowance: { threshold: 400, amount: 250 },
+  },
+  tournaments: {
+    tiers: {
+      LOCAL: {
+        entryFee: 200,
+        purse: 6000,
+        championPrestige: 0,
+        championReputation: 30,
+        minSeasonPoints: null,
+        minRating: null,
+        raceClass: "CLASS_5",
+        everyHours: 24,
+        offsetHours: 18,
+        maxEntrants: 36,
+        playersPerHeat: 6,
+        qualifiersPerHeat: 2,
+      },
+      REGIONAL: {
+        entryFee: 500,
+        purse: 15000,
+        championPrestige: 1,
+        championReputation: 60,
+        minSeasonPoints: 20,
+        minRating: 1100,
+        raceClass: "CLASS_4",
+        everyHours: 72,
+        offsetHours: 19,
+        maxEntrants: 36,
+        playersPerHeat: 6,
+        qualifiersPerHeat: 2,
+      },
+      NATIONAL: {
+        entryFee: 1200,
+        purse: 40000,
+        championPrestige: 2,
+        championReputation: 120,
+        minSeasonPoints: 60,
+        minRating: 1200,
+        raceClass: "CLASS_3",
+        everyHours: 168,
+        offsetHours: 20,
+        maxEntrants: 36,
+        playersPerHeat: 6,
+        qualifiersPerHeat: 2,
+      },
+      ELITE: {
+        entryFee: 3000,
+        purse: 100000,
+        championPrestige: 5,
+        championReputation: 250,
+        minSeasonPoints: 150,
+        minRating: 1300,
+        raceClass: "CLASS_2",
+        everyHours: 336,
+        offsetHours: 20,
+        maxEntrants: 24,
+        playersPerHeat: 6,
+        qualifiersPerHeat: 2,
+      },
+    },
+    registrationOpenHours: 24,
+    registrationCloseMinutes: 10,
+    finalAfterMinutes: 30,
+    heatSpacingMinutes: 3,
+    maxHorsesPerOwner: 2,
   },
   seasons: {
     epoch: "2026-01-05T00:00:00.000Z",

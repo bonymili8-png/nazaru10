@@ -23,6 +23,8 @@ import { BreedingController } from "./modules/breeding/breeding.controller.js";
 import { BreedingService } from "./modules/breeding/breeding.service.js";
 import { SeasonsController } from "./modules/seasons/seasons.controller.js";
 import { SeasonsService } from "./modules/seasons/seasons.service.js";
+import { TournamentsController } from "./modules/tournaments/tournaments.controller.js";
+import { TournamentsService } from "./modules/tournaments/tournaments.service.js";
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";
 import { NotificationsService } from "./modules/notifications/notifications.service.js";
@@ -83,6 +85,7 @@ export class AppModule {
         MarketController,
         BreedingController,
         SeasonsController,
+        TournamentsController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -108,6 +111,7 @@ export class AppModule {
         MarketService,
         BreedingService,
         SeasonsService,
+        TournamentsService,
         OnboardingService,
         AuthService,
         TelegramStarsProvider,

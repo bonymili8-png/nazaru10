@@ -24,7 +24,10 @@ export type SystemAccount =
   | "STUD_FEES"
   | "BREEDING"
   | "SEASON_REWARDS"
-  | "DAILY_ALLOWANCE";
+  | "DAILY_ALLOWANCE"
+  | "TOURNAMENT_FEES"
+  | "TOURNAMENT_REFUND"
+  | "TOURNAMENT_PRIZE";
 
 /** Non-negative holding accounts (money in flight, e.g. auction bids). */
 export type EscrowAccount = "MARKET";

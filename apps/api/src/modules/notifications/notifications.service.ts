@@ -70,6 +70,11 @@ export class NotificationsService {
           userId: String(p.userId),
           text: `🔔 You were outbid on <b>${escape(p.horseName)}</b> (${Number(p.amount).toLocaleString("en")} credits). Your escrow has been returned.`,
         };
+      case "tournament_champion":
+        return {
+          userId: String(p.userId),
+          text: `🏆 <b>${escape(p.horseName)}</b> won the ${escape(p.tournamentName)}! Champion honours are in your wallet.`,
+        };
       case "payment_completed":
         return {
           userId: String(p.userId),

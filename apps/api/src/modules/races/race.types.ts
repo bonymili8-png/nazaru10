@@ -38,6 +38,8 @@ export interface RaceRow {
   seed_hash: string;
   seed: string | null;
   is_special: boolean;
+  tournament_id: string | null;
+  stage: "HEAT" | "FINAL" | null;
   created_at: Date;
 }
 

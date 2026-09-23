@@ -149,6 +149,19 @@ export interface GameConfig {
     vetCost: { MINOR: number; MODERATE: number };
     diagnosticsCostGems: number;
   };
+  market: {
+    /** Platform fee on completed player-to-player sales (credit sink). */
+    saleFeeRate: number;
+    /** Asking/start price must lie within [min, max] × reference valuation (anti-manipulation). */
+    minPriceFactor: number;
+    maxPriceFactor: number;
+    auctionHours: number[];
+    fixedListingDays: number;
+    /** A bid in the last N minutes extends the auction to N minutes from now. */
+    antiSnipeMinutes: number;
+    minIncrementRate: number;
+    minIncrement: number;
+  };
   generation: {
     rarityWeights: Record<Rarity, number>;
     raritySpread: Record<Rarity, number>;
@@ -373,6 +386,16 @@ export const defaultConfig: GameConfig = {
     stableUpgradeCost: [4000, 12000, 35000, 90000],
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
+  },
+  market: {
+    saleFeeRate: 0.06,
+    minPriceFactor: 0.2,
+    maxPriceFactor: 20,
+    auctionHours: [24, 48, 72],
+    fixedListingDays: 7,
+    antiSnipeMinutes: 5,
+    minIncrementRate: 0.05,
+    minIncrement: 50,
   },
   generation: {
     rarityWeights: { COMMON: 60, UNCOMMON: 25, RARE: 10, EPIC: 4, LEGENDARY: 1 },

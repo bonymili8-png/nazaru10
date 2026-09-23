@@ -104,6 +104,26 @@ export const AdminCreateRaceRequest = z.object({
 });
 export type AdminCreateRaceRequest = z.infer<typeof AdminCreateRaceRequest>;
 
+export const CreateListingRequest = z.object({
+  horseId: z.string().uuid(),
+  type: z.enum(["FIXED", "AUCTION"]),
+  /** Asking price (FIXED) or starting price (AUCTION), credits. */
+  price: z.number().int().positive().max(100_000_000),
+  /** Auction length; must be one of the configured options. Ignored for FIXED. */
+  durationHours: z.number().int().positive().max(168).optional(),
+});
+export type CreateListingRequest = z.infer<typeof CreateListingRequest>;
+
+export const BidRequest = z.object({ amount: z.number().int().positive().max(100_000_000) });
+export type BidRequest = z.infer<typeof BidRequest>;
+
+export const MarketQuery = z.object({
+  type: z.enum(["FIXED", "AUCTION"]).optional(),
+  sort: z.enum(["ending", "price_asc", "price_desc", "newest", "rating"]).default("ending"),
+  limit: z.coerce.number().int().min(1).max(50).default(30),
+});
+export type MarketQuery = z.infer<typeof MarketQuery>;
+
 /* ─────────────────────────── Responses ─────────────────────────── */
 
 export type Currency = "CREDITS" | "GEMS" | "REPUTATION" | "PRESTIGE";
@@ -297,6 +317,34 @@ export interface ShopHorseDto extends HorseSummaryDto {
   potentialStars: number;
   optimalDistance: number;
   favouriteSurface: Surface;
+}
+
+export interface MarketListingDto {
+  id: string;
+  type: "FIXED" | "AUCTION";
+  status: "ACTIVE" | "SOLD" | "CANCELLED" | "EXPIRED";
+  price: number;
+  referenceValue: number;
+  endsAt: string;
+  highestBid: number | null;
+  bidCount: number;
+  /** Minimum acceptable next bid (auctions) or the price to pay (fixed). */
+  minNextBid: number;
+  salePrice: number | null;
+  sellerName: string | null;
+  mine: boolean;
+  iAmLeading: boolean;
+  horse: ShopHorseDto;
+}
+
+export interface MarketListingDetailDto extends MarketListingDto {
+  bids: { amount: number; bidderName: string | null; createdAt: string; mine: boolean }[];
+  feeRate: number;
+}
+
+export interface MarketMineDto {
+  listings: MarketListingDto[];
+  bids: MarketListingDto[];
 }
 
 export interface ProductDto {

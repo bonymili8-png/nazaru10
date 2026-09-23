@@ -183,3 +183,20 @@ DB integrity constraints · docs updated · no known critical bug.
 28 real days. 4. Races every 10 min per active class in MVP (config). 5. House (NPC) horses
 fill fields to min 6, max 12. 6. JWT sessions 12 h; client re-auths from initData.
 7. Postgres-backed job queue in MVP (Redis/BullMQ later if needed).
+
+## Phase 2 decomposition (started after M4 checkpoint)
+
+Order follows dependencies: ownership transfer (market) → breeding (stud services reuse market
+escrow/fees) → tournaments/seasons (need stable race lifecycle only) → staff & jockeys.
+
+| ID | Title | Pri | Risk | Cx | Dep | DoD |
+|---|---|---|---|---|---|---|
+| 11.1.1 | Market config + migration 0005 (listings, bids, escrow account type) | P1 | HIGH | 2 | 4.1.1 | constraints tested |
+| 11.1.2 | Fixed-price listings: list, cancel, buy (fee sink, sanity band, self-trade block) | P1 | CRIT | 3 | 11.1.1 | concurrent-buy test |
+| 11.1.3 | Timed auctions: bid escrow, outbid refund, anti-sniping, settlement job | P1 | CRIT | 4 | 11.1.2 | concurrent-bid + settle-once tests |
+| 11.1.4 | Market UI (browse, list from horse page, bid/buy) | P1 | MED | 3 | 11.1.3 | build + walkthrough |
+| 12.1.1 | Breeding: eligibility, cooldowns, stud fees, gestation, foal birth job | P1 | HIGH | 4 | 11.1.2, engine breed() | inheritance + idempotency tests |
+| 12.1.2 | Pedigree API + UI (3 generations), breeding UI | P2 | LOW | 2 | 12.1.1 | walkthrough |
+| 10.1.1 | Seasons + season points from race results, season leaderboard | P1 | MED | 3 | 9.3.2 | tests |
+| 10.1.2 | Tournaments (heats → final) on the race engine, qualification by points/rating | P2 | HIGH | 4 | 10.1.1 | tests |
+| 13.1.1 | Staff: trainer hire/contract/salary sink, training multiplier | P2 | MED | 3 | 7.2.1 | tests |

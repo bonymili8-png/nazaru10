@@ -3,6 +3,7 @@ import type {
   ConditionDto,
   HorseDetailDto,
   HorseSummaryDto,
+  ShopHorseDto,
   TrainingSessionDto,
 } from "@thoroughline/contracts";
 import {
@@ -11,8 +12,10 @@ import {
   type HorseStatus,
   hoursUntilFatigue,
   lifeStage,
+  horseValuation,
   potentialStars,
   projectCondition,
+  SURFACES,
 } from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
 import { Db, type Queryable, rows } from "../../common/db.js";
@@ -101,6 +104,23 @@ export class HorsesService {
       ownerName,
       isHouse: h.is_house,
     };
+  }
+
+  /** Buyer-facing card: public summary plus the scouting info a buyer can see before paying. */
+  marketCard(h: HorseRow, now: Date, price: number, ownerName: string | null = null): ShopHorseDto {
+    const surfaces = h.genome.aptitudes.surface;
+    return {
+      ...this.summary(h, now, ownerName),
+      price,
+      potentialStars: potentialStars(h.genome),
+      optimalDistance: h.genome.aptitudes.optimalDistance,
+      favouriteSurface: [...SURFACES].sort((a, b) => surfaces[b] - surfaces[a])[0]!,
+    };
+  }
+
+  /** Reference market value (valuation model) used for price sanity bands. */
+  valuation(h: HorseRow, now: Date): number {
+    return horseValuation(h.genome, h.attributes, this.age(h, now));
   }
 
   detail(

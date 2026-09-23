@@ -19,9 +19,17 @@ export type SystemAccount =
   | "HORSE_SALES"
   | "DIAGNOSTICS"
   | "PAYMENTS"
-  | "ADMIN_ADJUSTMENT";
+  | "ADMIN_ADJUSTMENT"
+  | "MARKET_FEES"
+  | "STUD_FEES";
 
-export type AccountRef = { user: string; currency: Currency } | { system: SystemAccount; currency: Currency };
+/** Non-negative holding accounts (money in flight, e.g. auction bids). */
+export type EscrowAccount = "MARKET";
+
+export type AccountRef =
+  | { user: string; currency: Currency }
+  | { system: SystemAccount; currency: Currency }
+  | { escrow: EscrowAccount; currency: Currency };
 
 export interface Posting {
   idempotencyKey: string;
@@ -37,7 +45,12 @@ export interface PostResult {
   replayed: boolean;
 }
 
-const refKey = (r: AccountRef) => ("user" in r ? `U:${r.user}:${r.currency}` : `S:${r.system}:${r.currency}`);
+const refKey = (r: AccountRef) =>
+  "user" in r
+    ? `U:${r.user}:${r.currency}`
+    : "system" in r
+      ? `S:${r.system}:${r.currency}`
+      : `E:${r.escrow}:${r.currency}`;
 
 /**
  * The only writer of balances. Every change is a balanced double-entry transaction with a
@@ -210,14 +223,16 @@ export class LedgerService {
       );
       return r.rows[0]!.id;
     }
+    const [kind, code] =
+      "system" in ref ? (["SYSTEM", ref.system] as const) : (["ESCROW", ref.escrow] as const);
     await c.query(
-      `INSERT INTO accounts (owner_type, code, currency) VALUES ('SYSTEM', $1, $2)
+      `INSERT INTO accounts (owner_type, code, currency) VALUES ($1, $2, $3)
        ON CONFLICT (owner_type, code, currency) WHERE owner_type <> 'USER' DO NOTHING`,
-      [ref.system, ref.currency],
+      [kind, code, ref.currency],
     );
     const r = await c.query<{ id: number }>(
-      "SELECT id FROM accounts WHERE owner_type = 'SYSTEM' AND code = $1 AND currency = $2",
-      [ref.system, ref.currency],
+      "SELECT id FROM accounts WHERE owner_type = $1 AND code = $2 AND currency = $3",
+      [kind, code, ref.currency],
     );
     return r.rows[0]!.id;
   }

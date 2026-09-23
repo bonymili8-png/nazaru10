@@ -106,3 +106,24 @@ export async function recordOwnership(
     [horseId, from, to, reason, price],
   );
 }
+
+/**
+ * Move a horse to a new owner (caller holds the horse row lock). Clears house/sale flags,
+ * resets status to IDLE and appends the ownership history.
+ */
+export async function transferHorse(
+  c: Queryable,
+  h: Pick<HorseRow, "id" | "owner_id">,
+  to: { userId: string; stableId: string },
+  reason: string,
+  price: number | null,
+  now: Date,
+): Promise<HorseRow> {
+  const res = await c.query<HorseRow>(
+    `UPDATE horses SET owner_id = $2, stable_id = $3, is_house = false, house_class = NULL, sale_price = NULL,
+            status = 'IDLE', updated_at = $4 WHERE id = $1 RETURNING *`,
+    [h.id, to.userId, to.stableId, now],
+  );
+  await recordOwnership(c, h.id, h.owner_id, to.userId, reason, price);
+  return res.rows[0]!;
+}

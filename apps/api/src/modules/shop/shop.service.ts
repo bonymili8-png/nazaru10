@@ -1,16 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import type { ShopHorseDto } from "@thoroughline/contracts";
-import { ageInYears, horseValuation, potentialStars, SURFACES } from "@thoroughline/engine";
-import { Rng } from "@thoroughline/engine";
+import { horseValuation, Rng } from "@thoroughline/engine";
 import { randomUUID } from "node:crypto";
 import { Clock } from "../../common/clock.js";
 import { Db, row } from "../../common/db.js";
-import { conflict, notFound } from "../../common/errors.js";
+import { notFound } from "../../common/errors.js";
 import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
-import { type HorseRow, recordOwnership } from "../horses/horse.repo.js";
+import { type HorseRow, transferHorse } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { StableService } from "../stable/stable.service.js";
@@ -67,21 +66,10 @@ export class ShopService {
 
   async catalog(): Promise<ShopHorseDto[]> {
     const now = this.clock.now();
-    const cfg = this.config.get();
     const list = await this.db.query<HorseRow>(
       "SELECT * FROM horses WHERE is_house AND sale_price IS NOT NULL ORDER BY sale_price",
     );
-    return list.map((h) => {
-      const surfaces = h.genome.aptitudes.surface;
-      return {
-        ...this.horses.summary(h, now),
-        price: h.sale_price!,
-        potentialStars: potentialStars(h.genome),
-        optimalDistance: h.genome.aptitudes.optimalDistance,
-        favouriteSurface: [...SURFACES].sort((a, b) => surfaces[b] - surfaces[a])[0]!,
-        age: Math.round(ageInYears(h.birth_at, now, cfg) * 10) / 10,
-      };
-    });
+    return list.map((h) => this.horses.marketCard(h, now, h.sale_price!));
   }
 
   async buy(userId: string, horseId: string): Promise<HorseRow> {
@@ -101,12 +89,14 @@ export class ShopService {
         reason: `Bought ${h.name}`,
         metadata: { horseId },
       });
-      const res = await c.query<HorseRow>(
-        `UPDATE horses SET owner_id = $2, stable_id = $3, is_house = false, house_class = NULL, sale_price = NULL,
-                status = 'IDLE', updated_at = $4 WHERE id = $1 RETURNING *`,
-        [horseId, userId, stable.id, now],
+      const bought = await transferHorse(
+        c,
+        h,
+        { userId, stableId: stable.id },
+        "PRIMARY_SALE",
+        h.sale_price,
+        now,
       );
-      await recordOwnership(c, horseId, null, userId, "PRIMARY_SALE", h.sale_price);
       await this.quests.complete(c, userId, "BUY_HORSE", now);
       await this.events.emit(c, {
         type: "horse_acquired",
@@ -115,8 +105,7 @@ export class ShopService {
         actorId: userId,
         payload: { price: h.sale_price },
       });
-      if (!res.rows[0]) throw conflict("PURCHASE_FAILED", "Purchase failed");
-      return res.rows[0];
+      return bought;
     });
   }
 }

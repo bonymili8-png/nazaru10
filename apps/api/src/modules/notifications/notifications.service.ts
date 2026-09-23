@@ -50,6 +50,16 @@ export class NotificationsService {
             ? `🩺 <b>${escape(p.horseName)}</b> finished training but picked up a ${String(p.injury).toLowerCase()} injury.`
             : `💪 <b>${escape(p.horseName)}</b> finished training and is back in the barn.`,
         };
+      case "market_sale_completed":
+        return {
+          userId: String(p.userId),
+          text: `🤝 <b>${escape(p.horseName)}</b> sold for ${Number(p.price).toLocaleString("en")} credits (fee ${Number(p.fee).toLocaleString("en")}).`,
+        };
+      case "market_outbid":
+        return {
+          userId: String(p.userId),
+          text: `🔔 You were outbid on <b>${escape(p.horseName)}</b> (${Number(p.amount).toLocaleString("en")} credits). Your escrow has been returned.`,
+        };
       case "payment_completed":
         return {
           userId: String(p.userId),

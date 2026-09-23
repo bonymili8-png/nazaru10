@@ -1,0 +1,18 @@
+{
+  "name": "@thoroughline/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API contracts (zod request schemas + response types) shared by API and Mini App.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@thoroughline/engine": "workspace:*",
+    "zod": "^3.25.76"
+  }
+}

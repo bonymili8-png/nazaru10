@@ -120,6 +120,15 @@ export interface GameConfig {
     freshLegsBoost: number;
     prizeSplit: number[];
     classes: Record<RaceClass, RaceClassConfig>;
+    schedule: {
+      /** Races are created this far ahead so owners can enter. */
+      openMinutesAhead: number;
+      /** Entries close (and the field is filled/gated) this long before the start. */
+      lockMinutesBefore: number;
+      /** House horses fill the field up to this size when players entered. */
+      targetField: number;
+      everyMinutes: Record<RaceClass, number>;
+    };
     eloK: number;
     initialRating: number;
     postRaceFatigueBase: number;
@@ -335,6 +344,12 @@ export const defaultConfig: GameConfig = {
         houseQuality: [0.7, 0.92],
         houseJockeySkill: [70, 92],
       },
+    },
+    schedule: {
+      openMinutesAhead: 60,
+      lockMinutesBefore: 2,
+      targetField: 8,
+      everyMinutes: { MAIDEN: 10, CLASS_5: 15, CLASS_4: 20, CLASS_3: 30, CLASS_2: 45, CLASS_1: 60 },
     },
     eloK: 32,
     initialRating: 1000,

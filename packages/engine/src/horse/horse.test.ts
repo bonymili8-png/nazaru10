@@ -104,3 +104,17 @@ describe("state machine", () => {
     expect(() => assertTransition("ENTERED", "RACING")).not.toThrow();
   });
 });
+
+describe("valuation", () => {
+  it("values better and younger horses higher and stays positive", async () => {
+    const { horseValuation, potentialStars } = await import("./valuation.js");
+    const rng = new Rng("val");
+    const weak = generateGenome(rng, { quality: 0.1, rarity: "COMMON" }, cfg);
+    const strong = generateGenome(rng, { quality: 0.9, rarity: "COMMON" }, cfg);
+    const wv = horseValuation(weak, initialAttributes(weak, 3, rng), 3);
+    const sv = horseValuation(strong, initialAttributes(strong, 3, rng), 3);
+    expect(sv).toBeGreaterThan(wv);
+    expect(wv).toBeGreaterThanOrEqual(500);
+    expect(potentialStars(strong)).toBeGreaterThan(potentialStars(weak));
+  });
+});

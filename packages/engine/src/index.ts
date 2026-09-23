@@ -5,6 +5,7 @@ export * from "./horse/types.js";
 export * from "./horse/names.js";
 export * from "./horse/generate.js";
 export * from "./horse/rating.js";
+export * from "./horse/valuation.js";
 export * from "./horse/lifecycle.js";
 export * from "./horse/condition.js";
 export * from "./horse/state-machine.js";

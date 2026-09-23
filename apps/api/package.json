@@ -1,0 +1,35 @@
+{
+  "name": "@thoroughline/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "db:migrate": "tsx src/migrate/cli.ts up",
+    "db:rollback": "tsx src/migrate/cli.ts down"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@nestjs/common": "^11.2.6",
+    "@nestjs/core": "^11.2.6",
+    "@nestjs/platform-fastify": "^11.2.6",
+    "@thoroughline/contracts": "workspace:*",
+    "@thoroughline/engine": "workspace:*",
+    "fastify": "5.11.3",
+    "jose": "^6.2.12",
+    "pg": "^8.23.0",
+    "pino": "^9.14.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.2.6",
+    "@swc/core": "^1.16.2",
+    "@types/pg": "^8.23.1",
+    "unplugin-swc": "^1.6.0"
+  }
+}

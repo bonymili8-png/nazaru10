@@ -1,0 +1,10 @@
+DROP TABLE domain_events;
+DROP TABLE game_config;
+DROP TABLE audit_logs;
+DROP TABLE ledger_entries;
+DROP TABLE ledger_transactions;
+DROP FUNCTION ledger_check_balanced();
+DROP FUNCTION forbid_mutation();
+DROP TABLE accounts;
+DROP TABLE stables;
+DROP TABLE users;

@@ -17,7 +17,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/scripts/**", "**/*.config.*", "**/migrate*.ts"],
+    // Nest DI reads constructor parameter types at runtime (emitDecoratorMetadata).
+    files: ["apps/api/**/*.ts"],
+    languageOptions: { parserOptions: { emitDecoratorMetadata: true, experimentalDecorators: true } },
+  },
+  {
+    files: ["**/scripts/**", "**/*.config.*", "**/migrate*.ts", "**/migrate/**"],
     rules: { "no-console": "off" },
   },
 );

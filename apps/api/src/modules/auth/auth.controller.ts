@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, Req } from "@nestjs/common";
+import type { FastifyRequest } from "fastify";
 import { type AuthResponse, DevAuthRequest, TelegramAuthRequest } from "@thoroughline/contracts";
 import { Public } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
@@ -13,13 +14,13 @@ export class AuthController {
 
   @Post("telegram")
   @HttpCode(200)
-  telegram(@Body() body: unknown): Promise<AuthResponse> {
-    return this.auth.telegram(parse(TelegramAuthRequest, body).initData);
+  telegram(@Body() body: unknown, @Req() req: FastifyRequest): Promise<AuthResponse> {
+    return this.auth.telegram(parse(TelegramAuthRequest, body).initData, req.ip);
   }
 
   @Post("dev")
   @HttpCode(200)
-  dev(@Body() body: unknown): Promise<AuthResponse> {
-    return this.auth.dev(parse(DevAuthRequest, body));
+  dev(@Body() body: unknown, @Req() req: FastifyRequest): Promise<AuthResponse> {
+    return this.auth.dev(parse(DevAuthRequest, body), req.ip);
   }
 }

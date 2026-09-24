@@ -6,7 +6,11 @@ import { Db } from "../../common/db.js";
 import { AppError, forbidden, unauthorized } from "../../common/errors.js";
 import { ENV, type Env } from "../../config/env.js";
 import { OnboardingService, type TelegramProfile, type UserRow } from "../users/onboarding.service.js";
+import { createHmac } from "node:crypto";
 import { InitDataError, verifyInitData } from "./telegram-init-data.js";
+
+export const ipHash = (ip: string, secret: string) =>
+  createHmac("sha256", secret).update(`ip:${ip}`).digest("hex").slice(0, 32);
 
 export const toUserDto = (u: UserRow): UserDto => ({
   id: u.id,
@@ -27,7 +31,7 @@ export class AuthService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  async telegram(initData: string): Promise<AuthResponse> {
+  async telegram(initData: string, ip: string | null = null): Promise<AuthResponse> {
     const now = this.clock.now();
     let verified;
     try {
@@ -53,11 +57,12 @@ export class AuthService {
         photoUrl: u.photo_url ?? null,
       },
       verified.startParam,
+      ip,
     );
   }
 
   /** Local development only: guarded by config, and config refuses it in production. */
-  async dev(req: DevAuthRequest): Promise<AuthResponse> {
+  async dev(req: DevAuthRequest, ip: string | null = null): Promise<AuthResponse> {
     if (!this.env.ALLOW_DEV_AUTH || this.env.NODE_ENV === "production")
       throw new AppError(404, "NOT_FOUND", "Not found");
     return this.login(
@@ -71,12 +76,27 @@ export class AuthService {
         photoUrl: null,
       },
       req.startParam ?? null,
+      ip,
     );
   }
 
-  private async login(profile: TelegramProfile, startParam: string | null): Promise<AuthResponse> {
+  private async login(
+    profile: TelegramProfile,
+    startParam: string | null,
+    ip: string | null,
+  ): Promise<AuthResponse> {
     const now = this.clock.now();
-    const { user, isNew } = await this.db.tx((c) => this.onboarding.upsert(c, profile, startParam, now));
+    const { user, isNew } = await this.db.tx(async (c) => {
+      const r = await this.onboarding.upsert(c, profile, startParam, now);
+      // Anti-fraud clustering: a keyed hash of the client IP, never the address itself.
+      if (ip)
+        await c.query(
+          `INSERT INTO login_ips (user_id, ip_hash, first_seen, last_seen) VALUES ($1, $2, $3, $3)
+           ON CONFLICT (user_id, ip_hash) DO UPDATE SET last_seen = EXCLUDED.last_seen`,
+          [r.user.id, ipHash(ip, this.env.JWT_SECRET), now],
+        );
+      return r;
+    });
     if (user.status === "SUSPENDED") throw forbidden("Account suspended");
     if (user.status === "DELETED") throw unauthorized();
     const { token, expiresAt } = await this.tokens.issue({ id: user.id, role: user.role as Role }, now);

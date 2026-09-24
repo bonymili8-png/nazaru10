@@ -21,10 +21,11 @@ import { invalidate, useApi } from "@/lib/hooks";
  * Operator console. The API enforces every permission; the role lists here only decide which
  * tabs are shown.
  */
-type Tab = "economy" | "users" | "payments" | "races" | "audit" | "config";
+type Tab = "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   users: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
+  fraud: ["FRAUD_ANALYST"],
   payments: ["FINANCE_ADMIN"],
   races: ["GAME_ADMIN", "TOURNAMENT_ADMIN"],
   audit: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
@@ -38,7 +39,7 @@ export default function AdminPage() {
   if (me.error) return <ErrorState error={me.error} retry={me.reload} />;
   if (!me.data) return <Skeleton className="h-40" />;
   const role = me.data.role;
-  const tabs = (["economy", "users", "payments", "races", "audit", "config"] as Tab[]).filter((t) =>
+  const tabs = (["economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]).filter((t) =>
     can(role, t),
   );
   if (tabs.length === 0)
@@ -63,6 +64,7 @@ export default function AdminPage() {
       </div>
       {active === "economy" && <Economy />}
       {active === "users" && <Users role={role} />}
+      {active === "fraud" && <Fraud />}
       {active === "payments" && <Payments />}
       {active === "races" && <Races />}
       {active === "audit" && <Audit />}
@@ -961,5 +963,138 @@ function CreateRace({ onDone }: { onDone: () => void }) {
         </Button>
       </Card>
     </>
+  );
+}
+
+/* ───────────────────────────── fraud ───────────────────────────── */
+
+interface FlagRow {
+  id: number;
+  user_id: string;
+  user_name: string | null;
+  user_status: string;
+  trust_score: number;
+  kind: string;
+  severity: 1 | 2 | 3;
+  details: Record<string, unknown>;
+  status: string;
+  created_at: string;
+  review_note: string | null;
+  reviewer: string | null;
+}
+
+const FLAG_INFO: Record<string, string> = {
+  SHARED_IP: "Several accounts signed in from one address this week",
+  CIRCULAR_TRADE: "A horse was sold to another account and back within two weeks",
+  TRADE_FUNNEL: "Three or more sales to the same buyer in a week",
+  REFERRAL_CLUSTER: "Invitees sign in from the referrer's address",
+  INCOME_SPIKE: "Yesterday's income above 10× the 90th percentile",
+};
+
+function Fraud() {
+  const [status, setStatus] = useState<"OPEN" | "CONFIRMED" | "DISMISSED">("OPEN");
+  const { data, error, reload } = useApi<FlagRow[]>(`/admin/fraud/flags?status=${status}`, {
+    refreshMs: 60_000,
+  });
+  return (
+    <>
+      <p className="mt-3 text-xs text-muted">
+        Signals never act on their own: review each flag, then suspend from the Users tab if needed. Open and
+        confirmed flags lower the account&apos;s trust score, which gates referral rewards.
+      </p>
+      <div className="mt-2 flex gap-2">
+        {(["OPEN", "CONFIRMED", "DISMISSED"] as const).map((s) => (
+          <button
+            key={s}
+            aria-pressed={status === s}
+            onClick={() => setStatus(s)}
+            className={`min-h-9 cursor-pointer rounded-full border px-3 text-xs ${status === s ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+          >
+            {titleCase(s)}
+          </button>
+        ))}
+      </div>
+      {error && <ErrorState error={error} retry={reload} />}
+      {!data && !error && <Skeleton className="mt-3 h-40" />}
+      {data?.length === 0 && <p className="mt-3 text-sm text-muted">No {status.toLowerCase()} flags.</p>}
+      <div className="mt-3 space-y-2">
+        {data?.map((f) => (
+          <Card key={f.id} className="text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium">{titleCase(f.kind)}</p>
+                <p className="text-xs text-muted">{FLAG_INFO[f.kind] ?? ""}</p>
+              </div>
+              <Badge tone={f.severity === 3 ? "bad" : f.severity === 2 ? "warn" : "neutral"}>
+                {["", "Low", "Medium", "High"][f.severity]}
+              </Badge>
+            </div>
+            <p className="num mt-2 text-xs text-muted">
+              {f.user_name ?? "—"} · trust {f.trust_score} · {titleCase(f.user_status)} ·{" "}
+              {new Date(f.created_at).toLocaleString()}
+            </p>
+            <p className="num break-all text-xs text-muted">user {f.user_id}</p>
+            <pre className="num mt-1 max-h-24 overflow-auto rounded-lg bg-surface-2 p-2 text-[11px] text-muted">
+              {JSON.stringify(f.details, null, 1)}
+            </pre>
+            {f.review_note && (
+              <p className="mt-1 text-xs">
+                {f.reviewer ?? "—"}: “{f.review_note}”
+              </p>
+            )}
+            {f.status === "OPEN" && <ReviewFlag id={f.id} onDone={reload} />}
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ReviewFlag({ id, onDone }: { id: number; onDone: () => void }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const toast = useToast();
+  const decide = async (decision: "DISMISSED" | "CONFIRMED") => {
+    setBusy(decision);
+    try {
+      await post(`/admin/fraud/flags/${id}/review`, { decision, note });
+      toast(decision === "CONFIRMED" ? "Flag confirmed" : "Flag dismissed");
+      onDone();
+    } catch (e) {
+      toast((e as Error).message, "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const ok = note.trim().length >= 5;
+  return (
+    <div className="mt-2 space-y-2">
+      <label className="block text-xs text-muted">
+        Review note (required, audited)
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="secondary"
+          disabled={!ok}
+          loading={busy === "DISMISSED"}
+          onClick={() => decide("DISMISSED")}
+        >
+          Dismiss
+        </Button>
+        <Button
+          variant="danger"
+          disabled={!ok}
+          loading={busy === "CONFIRMED"}
+          onClick={() => decide("CONFIRMED")}
+        >
+          Confirm
+        </Button>
+      </div>
+    </div>
   );
 }

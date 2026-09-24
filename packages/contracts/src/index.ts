@@ -113,6 +113,18 @@ export const AdminRacesQuery = z.object({
 });
 export type AdminRacesQuery = z.infer<typeof AdminRacesQuery>;
 
+export const FraudFlagsQuery = z.object({
+  status: z.enum(["OPEN", "DISMISSED", "CONFIRMED"]).default("OPEN"),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
+export type FraudFlagsQuery = z.infer<typeof FraudFlagsQuery>;
+
+export const FraudReviewRequest = z.object({
+  decision: z.enum(["DISMISSED", "CONFIRMED"]),
+  note: z.string().trim().min(5).max(500),
+});
+export type FraudReviewRequest = z.infer<typeof FraudReviewRequest>;
+
 /** A full override document (replaces the previous one) plus a mandatory change note. */
 export const AdminConfigRequest = z.object({
   override: z.record(z.unknown()),

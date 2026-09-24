@@ -62,7 +62,9 @@
     "13.2.1-facilities",
     "18.1.1-admin-console",
     "13.1.2-jockeys",
-    "18.1.2-admin-payments-races"
+    "18.1.2-admin-payments-races",
+    "19.2.1-fraud-signals",
+    "0.4.1-session-start-hook"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -74,11 +76,11 @@
   "failed_tasks": [],
   "test_status": {
     "engine": "57/57",
-    "api": "102/102 (real Postgres)",
-    "web": "Playwright E2E: 10 journeys — CI job",
+    "api": "109/109 (real Postgres)",
+    "web": "Playwright E2E: 11 journeys — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
-  "security_status": "MVP audit done (docs/07); 1 finding fixed (XFF trust)",
+  "security_status": "MVP audit done (docs/07); XFF trust fixed; referral hardening; fraud signals + review queue",
   "performance_status": "1150 req/s single node, p95 89ms (docs/07)",
   "known_bugs": [],
   "technical_debt": [

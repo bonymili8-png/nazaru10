@@ -28,6 +28,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 import type { HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
+import { FraudService } from "../fraud/fraud.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
 import { HouseService } from "./house.service.js";
 import {
@@ -40,6 +41,9 @@ import {
 
 const REFERRAL_REWARD = 500;
 const REFERRAL_DAILY_CAP = 10;
+const REFERRAL_MIN_AGE_MS = 24 * 3_600_000;
+/** Referrers below this trust score do not earn referral rewards (the invitee still does). */
+const REFERRAL_MIN_TRUST = 30;
 
 /**
  * Server-authoritative race lifecycle: schedule → lock (fill field, gates, jockeys, snapshot)
@@ -57,6 +61,7 @@ export class RaceRunnerService {
     private readonly house: HouseService,
     private readonly quests: QuestsService,
     private readonly seasons: SeasonsService,
+    private readonly fraud: FraudService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
     private readonly clock: Clock,
@@ -644,6 +649,10 @@ export class RaceRunnerService {
       [userId],
     );
     if (!u?.referred_by) return;
+    // Anti-abuse: the invitee must be at least a day old (checked again on later races), and
+    // accounts that sign in from the referrer's address never earn the reward.
+    if (now.getTime() - u.created_at.getTime() < REFERRAL_MIN_AGE_MS) return;
+    if (await this.fraud.sharesIp(c, userId, u.referred_by)) return;
     const already = await row<{ id: number }>(
       c,
       "SELECT id FROM ledger_transactions WHERE idempotency_key = $1",
@@ -666,7 +675,10 @@ export class RaceRunnerService {
       reason: "Invited by a friend",
       metadata: meta,
     });
-    if (recent!.n < REFERRAL_DAILY_CAP) {
+    const trust = await row<{ trust_score: number }>(c, "SELECT trust_score FROM users WHERE id = $1", [
+      u.referred_by,
+    ]);
+    if (recent!.n < REFERRAL_DAILY_CAP && (trust?.trust_score ?? 0) >= REFERRAL_MIN_TRUST) {
       await this.ledger.credit(c, {
         userId: u.referred_by,
         currency: "CREDITS",

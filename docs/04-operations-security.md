@@ -17,7 +17,7 @@ FRAUD_ANALYST.
 | Payments list; refund (Telegram Stars refund + gem clawback, atomic, reason required) | FINANCE | ✅ console |
 | Races list (upcoming/live/recent); create special race (distance validated per track); cancel with refunds | GAME, TOURNAMENT | ✅ console |
 | Live-ops events, promotions, limited horses | CONTENT, GAME | planned |
-| Fraud queue, risk scores | FRAUD_ANALYST | planned |
+| Fraud queue: review flags (dismiss/confirm with audited note); trust scores | FRAUD_ANALYST | ✅ console |
 
 SUPER_ADMIN passes every check. The console (`/admin/`, linked from Profile for non-player
 roles) only decides which tabs to show; the API enforces every permission. Config overrides
@@ -41,7 +41,16 @@ grants for the app role in production; trigger blocks mutation).
   chargeback/refund history. Actions: throttle → hold rewards → manual review →
   suspend. Never auto-ban on a single signal.
 * **Referral abuse:** reward only after the referred user reaches first race + 24 h
-  account age; daily cap per referrer; clustered accounts excluded.
+  account age; daily cap per referrer; clustered accounts excluded. *Implemented:* the check
+  re-runs on each settled race until the invitee is a day old; invitees that signed in from the
+  referrer's address never earn it; referrers with trust < 30 get no referrer reward.
+* **Implemented signals (every 10 min, idempotent flags, never auto-punish):** sign-in
+  address clusters (≥ 3 accounts in 7 days; stored as a keyed HMAC of the IP, never the raw
+  address), circular trades (A → B → A within 14 days), trade funnels (≥ 3 sales to one buyer in
+  7 days), referral clusters (invitees on the referrer's address), income spikes (> 10× P90 of
+  daily income). Trust score = 50 + up to 20 for account age − 5/15/30 per open or confirmed
+  flag by severity. Analysts dismiss or confirm in the console (audited); suspension stays a
+  separate, audited action.
 * **Marketplace:** price sanity bands, self-trade block, circular trade detection.
 
 ## V. Security Model

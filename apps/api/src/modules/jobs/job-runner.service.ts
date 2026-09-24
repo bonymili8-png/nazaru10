@@ -3,6 +3,7 @@ import { LOGGER, type Logger } from "../../common/logger.js";
 import { ENV, type Env } from "../../config/env.js";
 import { BreedingService } from "../breeding/breeding.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
+import { FraudService } from "../fraud/fraud.service.js";
 import { StaffService } from "../staff/staff.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
@@ -20,6 +21,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
   private timer: NodeJS.Timeout | null = null;
   private running = false;
   private lastSlow = 0;
+  private lastFraud = 0;
 
   constructor(
     private readonly races: RaceRunnerService,
@@ -30,6 +32,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly seasons: SeasonsService,
     private readonly tournaments: TournamentsService,
     private readonly staff: StaffService,
+    private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
@@ -59,6 +62,10 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("staff-pool", () => this.staff.restock());
         await this.step("jockey-pool", () => this.staff.restockJockeys());
         await this.step("staff-salaries", () => this.staff.renewDue());
+      }
+      if (now - this.lastFraud > 10 * 60_000) {
+        this.lastFraud = now;
+        await this.step("fraud", () => this.fraud.detect());
       }
       await this.step("lock", () => this.races.lockDue());
       await this.step("run", () => this.races.runDue());

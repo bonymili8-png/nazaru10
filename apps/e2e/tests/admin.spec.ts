@@ -4,6 +4,16 @@ import { expect, headerCredits, newOwner, test } from "./fixtures.js";
 const DATABASE_URL =
   process.env.E2E_DATABASE_URL ?? "postgres://thoroughline:thoroughline@localhost:5432/thoroughline_e2e";
 
+async function sql(text: string, params: unknown[]): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(text, params);
+  } finally {
+    await client.end();
+  }
+}
+
 async function setRole(telegramId: number, role: string): Promise<void> {
   const client = new pg.Client({ connectionString: DATABASE_URL });
   await client.connect();
@@ -80,4 +90,25 @@ test("a game admin schedules and cancels a special race; finance sees payments",
 
   await page.getByRole("tab", { name: "payments" }).click();
   await expect(page.getByRole("button", { name: "Completed" })).toBeVisible();
+});
+
+test("a fraud analyst reviews a flag with an audited note", async ({ page }) => {
+  const devId = await newOwner(page);
+  await setRole(devId, "FRAUD_ANALYST");
+  // A flag on some other player, tagged so this test finds its own card among parallel runs.
+  await sql(
+    `INSERT INTO fraud_flags (user_id, kind, severity, dedupe_key, details)
+     SELECT id, 'TRADE_FUNNEL', 2, 'e2e:' || $1::text, jsonb_build_object('e2e', $1::bigint)
+       FROM users WHERE role = 'PLAYER' AND telegram_id <> $1::bigint ORDER BY created_at LIMIT 1`,
+    [devId],
+  );
+  await page.goto("/admin/");
+  await page.getByRole("tab", { name: "fraud" }).click();
+  const card = page.locator(`xpath=//pre[contains(., "${devId}")]/..`);
+  await expect(card).toBeVisible();
+  await card.getByLabel("Review note (required, audited)").fill("E2E: legitimate trading partners");
+  await card.getByRole("button", { name: "Dismiss" }).click();
+  await expect(page.getByText("Flag dismissed")).toBeVisible();
+  await page.getByRole("button", { name: "Dismissed" }).click();
+  await expect(page.getByText("“E2E: legitimate trading partners”").first()).toBeVisible();
 });

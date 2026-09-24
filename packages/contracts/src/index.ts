@@ -102,6 +102,17 @@ export const AdminAuditQuery = z.object({
 });
 export type AdminAuditQuery = z.infer<typeof AdminAuditQuery>;
 
+export const AdminPaymentsQuery = z.object({
+  status: z.enum(["CREATED", "PENDING", "COMPLETED", "FAILED", "REFUNDED", "EXPIRED"]).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+export type AdminPaymentsQuery = z.infer<typeof AdminPaymentsQuery>;
+
+export const AdminRacesQuery = z.object({
+  scope: z.enum(["upcoming", "live", "recent"]).default("upcoming"),
+});
+export type AdminRacesQuery = z.infer<typeof AdminRacesQuery>;
+
 /** A full override document (replaces the previous one) plus a mandatory change note. */
 export const AdminConfigRequest = z.object({
   override: z.record(z.unknown()),

@@ -14,8 +14,8 @@ FRAUD_ANALYST.
 | Audit log viewer | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
 | Economy dashboard (supply, mint/burn by reason, daily) | ECONOMY, FINANCE | ✅ console |
 | Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |
-| Refund payment | FINANCE | API only |
-| Create special race / cancel race | GAME, TOURNAMENT | API only |
+| Payments list; refund (Telegram Stars refund + gem clawback, atomic, reason required) | FINANCE | ✅ console |
+| Races list (upcoming/live/recent); create special race (distance validated per track); cancel with refunds | GAME, TOURNAMENT | ✅ console |
 | Live-ops events, promotions, limited horses | CONTENT, GAME | planned |
 | Fraud queue, risk scores | FRAUD_ANALYST | planned |
 

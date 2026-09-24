@@ -4,6 +4,8 @@ import {
   AdminAuditQuery,
   AdminConfigRequest,
   AdminCreateRaceRequest,
+  AdminPaymentsQuery,
+  AdminRacesQuery,
   AdminReasonRequest,
   AdminUserSearchQuery,
 } from "@thoroughline/contracts";
@@ -209,6 +211,38 @@ export class AdminController {
       });
     });
     return { id, status };
+  }
+
+  @Get("payments")
+  @Roles("FINANCE_ADMIN")
+  listPayments(@Query() query: unknown) {
+    const q = parse(AdminPaymentsQuery, query);
+    return this.db.query(
+      `SELECT p.id, p.user_id, COALESCE(u.username, u.first_name) AS user_name, p.provider, p.product_id,
+              p.amount, p.currency, p.status, p.created_at, p.completed_at, p.refunded_at
+         FROM payments p JOIN users u ON u.id = p.user_id
+        WHERE ($1::text IS NULL OR p.status = $1) ORDER BY p.created_at DESC LIMIT $2`,
+      [q.status ?? null, q.limit],
+    );
+  }
+
+  @Get("races")
+  @Roles("GAME_ADMIN", "TOURNAMENT_ADMIN")
+  listRaces(@Query() query: unknown) {
+    const { scope } = parse(AdminRacesQuery, query);
+    const where =
+      scope === "upcoming"
+        ? "r.status = 'OPEN'"
+        : scope === "live"
+          ? "r.status IN ('LOCKED','RUNNING')"
+          : "r.status IN ('COMPLETED','CANCELLED')";
+    return this.db.query(
+      `SELECT r.id, r.name, r.class, r.track_code, r.distance, r.status, r.entry_fee, r.purse, r.starts_at,
+              r.is_special, r.tournament_id, r.stage,
+              (SELECT count(*)::int FROM race_entries e WHERE e.race_id = r.id AND e.status IN ('ENTERED','RAN') AND NOT e.is_house) AS players
+         FROM races r WHERE ${where}
+        ORDER BY r.starts_at ${scope === "recent" ? "DESC" : "ASC"} LIMIT 60`,
+    );
   }
 
   @Post("payments/:id/refund")

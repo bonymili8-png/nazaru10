@@ -1,5 +1,6 @@
 "use client";
-import type { Currency, UserDto } from "@thoroughline/contracts";
+import { type Currency, RACE_CLASSES, type UserDto } from "@thoroughline/contracts";
+import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
 import { useState } from "react";
 import {
@@ -13,17 +14,19 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiRequestError, post } from "@/lib/api";
-import { fmt, titleCase } from "@/lib/format";
+import { CLASS_NAMES, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 
 /**
  * Operator console. The API enforces every permission; the role lists here only decide which
  * tabs are shown.
  */
-type Tab = "economy" | "users" | "audit" | "config";
+type Tab = "economy" | "users" | "payments" | "races" | "audit" | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   users: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
+  payments: ["FINANCE_ADMIN"],
+  races: ["GAME_ADMIN", "TOURNAMENT_ADMIN"],
   audit: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
   config: ["ECONOMY_ADMIN", "GAME_ADMIN"],
 };
@@ -35,7 +38,9 @@ export default function AdminPage() {
   if (me.error) return <ErrorState error={me.error} retry={me.reload} />;
   if (!me.data) return <Skeleton className="h-40" />;
   const role = me.data.role;
-  const tabs = (["economy", "users", "audit", "config"] as Tab[]).filter((t) => can(role, t));
+  const tabs = (["economy", "users", "payments", "races", "audit", "config"] as Tab[]).filter((t) =>
+    can(role, t),
+  );
   if (tabs.length === 0)
     return <EmptyState title="No console access" body="This area is for the operations team." />;
   const active = tab && tabs.includes(tab) ? tab : tabs[0]!;
@@ -43,18 +48,14 @@ export default function AdminPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Admin console</h1>
       <p className="text-sm text-muted">Signed in as {titleCase(role)} · every action is audited</p>
-      <div
-        className="mt-3 grid gap-1 rounded-xl bg-surface p-1"
-        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-        role="tablist"
-      >
+      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist">
         {tabs.map((t) => (
           <button
             key={t}
             role="tab"
             aria-selected={active === t}
             onClick={() => setTab(t)}
-            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium capitalize ${active === t ? "bg-gold text-bg" : "text-muted"}`}
+            className={`min-h-10 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-medium capitalize ${active === t ? "border-gold bg-gold text-bg" : "border-line/60 text-muted"}`}
           >
             {t}
           </button>
@@ -62,6 +63,8 @@ export default function AdminPage() {
       </div>
       {active === "economy" && <Economy />}
       {active === "users" && <Users role={role} />}
+      {active === "payments" && <Payments />}
+      {active === "races" && <Races />}
       {active === "audit" && <Audit />}
       {active === "config" && <Config canEdit={role === "SUPER_ADMIN" || role === "ECONOMY_ADMIN"} />}
     </div>
@@ -608,6 +611,354 @@ function Config({ canEdit }: { canEdit: boolean }) {
             </p>
           </div>
         ))}
+      </Card>
+    </>
+  );
+}
+
+/* ───────────────────────────── payments ───────────────────────────── */
+
+interface PaymentRow {
+  id: string;
+  user_name: string | null;
+  product_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+}
+
+function Payments() {
+  const [status, setStatus] = useState<"COMPLETED" | "REFUNDED" | "FAILED" | "ALL">("COMPLETED");
+  const path = `/admin/payments?limit=100${status === "ALL" ? "" : `&status=${status}`}`;
+  const { data, error, reload } = useApi<PaymentRow[]>(path);
+  return (
+    <>
+      <div className="mt-3 flex gap-2">
+        {(["COMPLETED", "REFUNDED", "FAILED", "ALL"] as const).map((s) => (
+          <button
+            key={s}
+            aria-pressed={status === s}
+            onClick={() => setStatus(s)}
+            className={`min-h-9 cursor-pointer rounded-full border px-3 text-xs ${status === s ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+          >
+            {titleCase(s)}
+          </button>
+        ))}
+      </div>
+      {error && <ErrorState error={error} retry={reload} />}
+      {!data && !error && <Skeleton className="mt-3 h-40" />}
+      {data?.length === 0 && <p className="mt-3 text-sm text-muted">No payments.</p>}
+      <div className="mt-3 space-y-2">
+        {data?.map((p) => (
+          <Card key={p.id} className="text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{p.product_id}</p>
+                <p className="num truncate text-xs text-muted">
+                  {p.user_name ?? "—"} · {new Date(p.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="num font-semibold">
+                  {p.amount} {p.currency}
+                </p>
+                <Badge
+                  tone={p.status === "COMPLETED" ? "good" : p.status === "REFUNDED" ? "warn" : "neutral"}
+                >
+                  {titleCase(p.status)}
+                </Badge>
+              </div>
+            </div>
+            {p.status === "COMPLETED" && <Refund id={p.id} onDone={reload} />}
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Refund({ id, onDone }: { id: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  if (!open)
+    return (
+      <Button variant="ghost" className="mt-2 min-h-9 px-0 text-xs" onClick={() => setOpen(true)}>
+        Refund…
+      </Button>
+    );
+  return (
+    <div className="mt-2 space-y-2">
+      <label className="block text-xs text-muted">
+        Refund reason (required, audited)
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+        />
+      </label>
+      <p className="text-xs text-muted">
+        Stars go back to the buyer through Telegram and the granted gems are removed. If the buyer has already
+        spent the gems, the refund is refused.
+      </p>
+      <Button
+        variant="danger"
+        className="w-full"
+        disabled={reason.trim().length < 5}
+        loading={busy}
+        onClick={async () => {
+          if (!window.confirm("Refund this payment through Telegram?")) return;
+          setBusy(true);
+          try {
+            await post(`/admin/payments/${id}/refund`, { reason });
+            toast("Payment refunded");
+            onDone();
+          } catch (e) {
+            toast((e as Error).message, "bad");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Refund payment
+      </Button>
+    </div>
+  );
+}
+
+/* ───────────────────────────── races ───────────────────────────── */
+
+interface AdminRaceRow {
+  id: string;
+  name: string;
+  class: string;
+  distance: number;
+  status: string;
+  entry_fee: number;
+  purse: number;
+  starts_at: string;
+  is_special: boolean;
+  stage: string | null;
+  players: number;
+}
+
+function Races() {
+  const [scope, setScope] = useState<"upcoming" | "live" | "recent">("upcoming");
+  const { data, error, reload } = useApi<AdminRaceRow[]>(`/admin/races?scope=${scope}`, {
+    refreshMs: 20_000,
+  });
+  return (
+    <>
+      <CreateRace onDone={reload} />
+      <SectionTitle>Races</SectionTitle>
+      <div className="flex gap-2">
+        {(["upcoming", "live", "recent"] as const).map((s) => (
+          <button
+            key={s}
+            aria-pressed={scope === s}
+            onClick={() => setScope(s)}
+            className={`min-h-9 cursor-pointer rounded-full border px-3 text-xs capitalize ${scope === s ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      {error && <ErrorState error={error} retry={reload} />}
+      {!data && !error && <Skeleton className="mt-3 h-40" />}
+      <div className="mt-3 space-y-2">
+        {data?.map((r) => (
+          <div key={r.id} data-race-id={r.id}>
+            <Card className="text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <a href={`/race/?id=${r.id}`} className="block truncate font-medium hover:text-gold">
+                    {r.name}
+                  </a>
+                  <p className="num text-xs text-muted">
+                    {CLASS_NAMES[r.class]} · {r.distance}m · {new Date(r.starts_at).toLocaleString()}
+                  </p>
+                  <p className="num text-xs text-muted">
+                    {r.players} players · purse {fmt(r.purse)} · fee {fmt(r.entry_fee)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge>{titleCase(r.status)}</Badge>
+                  {r.is_special && <Badge tone="gold">{r.stage ? titleCase(r.stage) : "Special"}</Badge>}
+                </div>
+              </div>
+              {(r.status === "OPEN" || r.status === "LOCKED") && <CancelRace id={r.id} onDone={reload} />}
+            </Card>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function CancelRace({ id, onDone }: { id: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  if (!open)
+    return (
+      <Button variant="ghost" className="mt-2 min-h-9 px-0 text-xs" onClick={() => setOpen(true)}>
+        Cancel race…
+      </Button>
+    );
+  return (
+    <div className="mt-2 space-y-2">
+      <label className="block text-xs text-muted">
+        Cancellation reason (required, audited)
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+        />
+      </label>
+      <Button
+        variant="danger"
+        className="w-full"
+        disabled={reason.trim().length < 5}
+        loading={busy}
+        onClick={async () => {
+          if (!window.confirm("Cancel this race? Entry fees are refunded and horses released.")) return;
+          setBusy(true);
+          try {
+            await post(`/admin/races/${id}/cancel`, { reason });
+            toast("Race cancelled");
+            onDone();
+          } catch (e) {
+            toast((e as Error).message, "bad");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Cancel race
+      </Button>
+    </div>
+  );
+}
+
+function CreateRace({ onDone }: { onDone: () => void }) {
+  const [name, setName] = useState("");
+  const [cls, setCls] = useState<string>("MAIDEN");
+  const [trackCode, setTrackCode] = useState(TRACKS[0]!.code);
+  const track = TRACKS.find((t) => t.code === trackCode)!;
+  const [distance, setDistance] = useState<number>(track.distances[0]!);
+  const [startsAt, setStartsAt] = useState("");
+  const [purse, setPurse] = useState("");
+  const [entryFee, setEntryFee] = useState("");
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const input = "mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
+  const valid = name.trim().length >= 3 && startsAt !== "" && track.distances.includes(distance);
+  return (
+    <>
+      <SectionTitle>Create a special race</SectionTitle>
+      <Card className="space-y-2 text-xs text-muted">
+        <label className="block">
+          Name
+          <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label>
+            Class
+            <select value={cls} onChange={(e) => setCls(e.target.value)} className={input}>
+              {RACE_CLASSES.map((c) => (
+                <option key={c} value={c}>
+                  {CLASS_NAMES[c]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Track
+            <select
+              value={trackCode}
+              onChange={(e) => {
+                const t = TRACKS.find((x) => x.code === e.target.value)!;
+                setTrackCode(t.code);
+                setDistance(t.distances[0]!);
+              }}
+              className={input}
+            >
+              {TRACKS.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Distance
+            <select value={distance} onChange={(e) => setDistance(Number(e.target.value))} className={input}>
+              {track.distances.map((d) => (
+                <option key={d} value={d}>
+                  {d} m
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Starts (local time)
+            <input
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              className={input}
+            />
+          </label>
+          <label>
+            Purse (default by class)
+            <input
+              inputMode="numeric"
+              value={purse}
+              onChange={(e) => setPurse(e.target.value)}
+              className={`num ${input}`}
+            />
+          </label>
+          <label>
+            Entry fee (default by class)
+            <input
+              inputMode="numeric"
+              value={entryFee}
+              onChange={(e) => setEntryFee(e.target.value)}
+              className={`num ${input}`}
+            />
+          </label>
+        </div>
+        <Button
+          className="w-full"
+          disabled={!valid}
+          loading={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await post("/admin/races", {
+                name: name.trim(),
+                class: cls,
+                trackCode,
+                distance,
+                startsAt: new Date(startsAt).toISOString(),
+                ...(purse ? { purse: Number(purse) } : {}),
+                ...(entryFee ? { entryFee: Number(entryFee) } : {}),
+              });
+              toast("Special race scheduled");
+              setName("");
+              onDone();
+            } catch (e) {
+              toast((e as Error).message, "bad");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Schedule race
+        </Button>
       </Card>
     </>
   );

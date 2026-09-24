@@ -108,6 +108,8 @@ export class RaceRunnerService {
     const cfg = this.config.get();
     const track = TRACKS.find((t) => t.code === input.trackCode);
     if (!track) throw badRequest("UNKNOWN_TRACK", "Unknown track");
+    if (!track.distances.includes(input.distance))
+      throw badRequest("BAD_DISTANCE", `${track.name} runs ${track.distances.join(", ")} m`);
     if (
       input.startsAt.getTime() <
       this.clock.now().getTime() + (cfg.race.schedule.lockMinutesBefore + 5) * 60_000

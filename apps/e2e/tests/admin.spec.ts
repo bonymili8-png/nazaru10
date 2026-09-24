@@ -57,3 +57,27 @@ test("an economy admin reads the dashboard, adjusts a balance and cannot publish
   await page.getByRole("tab", { name: "audit" }).click();
   await expect(page.getByText("“E2E goodwill credit”").first()).toBeVisible();
 });
+
+test("a game admin schedules and cancels a special race; finance sees payments", async ({ page }) => {
+  const devId = await newOwner(page);
+  await setRole(devId, "SUPER_ADMIN");
+  await page.goto("/admin/");
+  await page.getByRole("tab", { name: "races" }).click();
+  const name = `E2E Cup ${devId}`;
+  await page.getByLabel("Name").fill(name);
+  const start = new Date(Date.now() + 3 * 3_600_000);
+  const local = new Date(start.getTime() - start.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  await page.getByLabel("Starts (local time)").fill(local);
+  await page.getByRole("button", { name: "Schedule race" }).click();
+  await expect(page.getByText("Special race scheduled")).toBeVisible();
+  const href = await page.getByRole("link", { name }).getAttribute("href");
+  const card = page.locator(`[data-race-id="${href!.split("id=")[1]}"]`);
+  await card.getByRole("button", { name: "Cancel race…" }).click();
+  await card.getByLabel("Cancellation reason (required, audited)").fill("E2E cleanup of a test race");
+  page.once("dialog", (d) => void d.accept());
+  await card.getByRole("button", { name: "Cancel race" }).click();
+  await expect(page.getByText("Race cancelled")).toBeVisible();
+
+  await page.getByRole("tab", { name: "payments" }).click();
+  await expect(page.getByRole("button", { name: "Completed" })).toBeVisible();
+});

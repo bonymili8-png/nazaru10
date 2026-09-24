@@ -61,7 +61,8 @@
     "17.1.1-e2e",
     "13.2.1-facilities",
     "18.1.1-admin-console",
-    "13.1.2-jockeys"
+    "13.1.2-jockeys",
+    "18.1.2-admin-payments-races"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -73,8 +74,8 @@
   "failed_tasks": [],
   "test_status": {
     "engine": "57/57",
-    "api": "100/100 (real Postgres)",
-    "web": "Playwright E2E: 9 journeys — CI job",
+    "api": "102/102 (real Postgres)",
+    "web": "Playwright E2E: 10 journeys — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); 1 finding fixed (XFF trust)",
@@ -86,5 +87,5 @@
     "Tournaments are not yet part of the economy cohort simulation",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Console tools for refunds and races; owner: bot token + hosting"
+  "next_action": "Owner: bot token + hosting for a real Telegram test; then fraud queue / live-ops tooling"
 }

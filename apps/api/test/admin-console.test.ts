@@ -95,3 +95,81 @@ describe("admin console API", () => {
     expect((await t.get<StableDto>("/stable", player.token)).body.nextUpgradeCost).toBe(3000);
   });
 });
+
+describe("admin console — payments and races", () => {
+  let t: TestApp;
+  let finance: User;
+  let game: User;
+  let player: User;
+
+  beforeAll(async () => {
+    t = await createTestApp();
+    finance = await t.login(9811, "Ledger");
+    game = await t.login(9812, "Steward");
+    player = await t.login(9813, "Punter");
+    await t.db.query("UPDATE users SET role = 'FINANCE_ADMIN' WHERE id = $1", [finance.userId]);
+    await t.db.query("UPDATE users SET role = 'GAME_ADMIN' WHERE id = $1", [game.userId]);
+  });
+  afterAll(() => t.close());
+
+  it("lists payments for finance only", async () => {
+    expect((await t.get("/admin/payments", game.token)).status).toBe(403);
+    expect((await t.get("/admin/payments", player.token)).status).toBe(403);
+    const r = await t.get<unknown[]>("/admin/payments?status=COMPLETED", finance.token);
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.body)).toBe(true);
+    expect((await t.get("/admin/payments?status=LOST", finance.token)).status).toBe(400);
+  });
+
+  it("creates a special race (validated) and cancels it with refunds", async () => {
+    const startsAt = new Date(t.clock.now().getTime() + 60 * 60_000).toISOString();
+    const bad = await t.post<{ error: { code: string } }>(
+      "/admin/races",
+      { name: "Bad distance", class: "MAIDEN", trackCode: "GCS", distance: 1234, startsAt },
+      game.token,
+    );
+    expect(bad.status).toBe(400);
+    const tracks = (await import("@thoroughline/engine")).TRACKS;
+    const track = tracks[0]!;
+    const created = await t.post<{ id: string }>(
+      "/admin/races",
+      {
+        name: "Steward's Cup",
+        class: "MAIDEN",
+        trackCode: track.code,
+        distance: track.distances[0],
+        startsAt,
+        purse: 5000,
+        entryFee: 50,
+      },
+      game.token,
+    );
+    expect(created.status).toBe(201);
+    const listed = (
+      await t.get<{ id: string; is_special: boolean }[]>("/admin/races?scope=upcoming", game.token)
+    ).body;
+    expect(listed.find((r) => r.id === created.body.id)?.is_special).toBe(true);
+
+    const horse = (await t.get<{ id: string }[]>("/horses", player.token)).body[0]!;
+    expect(
+      (
+        await t.post(
+          `/races/${created.body.id}/entries`,
+          { horseId: horse.id, strategy: "CLOSER" },
+          player.token,
+        )
+      ).status,
+    ).toBe(201);
+    const before = (await t.get<{ balances: { CREDITS: number } }>("/wallet", player.token)).body.balances
+      .CREDITS;
+    const cancel = await t.post(
+      `/admin/races/${created.body.id}/cancel`,
+      { reason: "Track closed for maintenance" },
+      game.token,
+    );
+    expect(cancel.status).toBe(201);
+    const after = (await t.get<{ balances: { CREDITS: number } }>("/wallet", player.token)).body.balances
+      .CREDITS;
+    expect(after).toBe(before + 50);
+  });
+});

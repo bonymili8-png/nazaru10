@@ -41,7 +41,7 @@ purely virtual and keeps the game from being pay-to-win. Revisit only after lega
 | Stable upgrade cost | 3 000 / 12 000 / 35 000 / 90 000 |
 | Training session (NORMAL) | 60–120 credits by type; LIGHT ×0.6, HARD ×1.5 |
 | Vet treatment (heal injury faster) | 300 (minor) / 900 (moderate) |
-| Race entry / purse | class table in GDD (purse ≈ 15–16× entry fee) |
+| Race entry / purse | class table in GDD (purse ≈ 16× entry fee) |
 | Daily allowance (safety net) | 250 credits once per UTC day while below 400 |
 | House horse purchase (primary market) | 1 500 – 25 000 by quality |
 
@@ -73,18 +73,23 @@ Current targets and results (seeded, deterministic; CI gate):
 
 | Target | Result |
 |---|---|
-| Recurring income 400–1 200 per owner-day | ≈ 430 |
-| No inflation: median wallet grows ≤ 25 % over the last two weeks | 3 690 → 3 295 |
-| No runaway top: p90 grows ≤ 50 % over the last two weeks | 5 716 → 5 296 |
+| Recurring income 400–1 200 per owner-day | ≈ 450–470 |
+| No inflation: median wallet grows ≤ 25 % over the last two weeks | 3 816 → 3 246 |
+| No runaway top: p90 grows ≤ 50 % over the last two weeks | 5 480 → 5 513 |
 | < 5 % of owners below the cheapest entry fee at season end | 0 % |
-| Average string ≥ 2 horses by season end | 2.52 |
-| ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 24 % |
-| In-class player win rate 10–25 % (Elo-based eligibility as in the game) | ≈ 24 % (23 % before jockeys) |
-| Allowance < 10 % of income | 0.9 % |
-| 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 76 % |
-| 10–85 % of owners retain a jockey at season end | ≈ 67 % |
+| Average string ≥ 2 horses by season end | 2.49 |
+| ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 25 % |
+| In-class player win rate 10–25 % (Elo-based eligibility as in the game) | 23.6 % (300) / 24.5 % (500) |
+| Allowance < 10 % of income | 0.8 % |
+| 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 77 % |
+| 10–85 % of owners retain a jockey at season end | ≈ 72 % |
 | Staff salaries (trainers + jockeys) 3–25 % of recurring income | ≈ 15 % |
-| 5–40 % of owners build a facility within a season | ≈ 14 % |
+| 5–40 % of owners build a facility within a season | ≈ 16–18 % |
+
+Retained jockeys (added later) lifted the win rate back to ≈ 24 %; house jockey skill bands were
+raised (Maiden 35–60 … Class 1 72–94) and purses +5 % (1 600 … 17 100). The win rate varies by
+≈ ±1 point between cohort sizes, so the 25 % cap is the binding constraint for any new player
+edge: re-tune house fields in the same change.
 
 Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any
 single user's daily income > 10× P90.

@@ -124,7 +124,7 @@ risk factors that produced it (explainable, logged, bounded).
 ### H.1b Staff — retained jockeys (Phase 2)
 
 * Freelance pool (kept at 10) of jockeys with skill 45–95, separate from house jockeys
-  (house jockeys by class: Maiden 30–55 … Class 1 70–92).
+  (house jockeys by class: Maiden 35–60 … Class 1 72–94).
 * When a race locks, each owner's retained jockeys ride that owner's runners — best jockey on
   the best-rated horse, one ride per race each; other runners get a house jockey. Skill feeds the
   race simulation directly (pace-plan accuracy, mid-race re-planning, horse–jockey synergy).
@@ -261,12 +261,12 @@ transaction guarded by status + row lock, so the job can run on any number of wo
 
 | Class | Eligibility | Entry fee | Base purse |
 |---|---|---|---|
-| MAIDEN | 0 wins | 100 | 1 500 |
-| CLASS_5 | raceRating < 1 100 | 150 | 2 400 |
-| CLASS_4 | 1 050–1 200 | 250 | 3 900 |
-| CLASS_3 | 1 150–1 300 | 400 | 6 300 |
-| CLASS_2 | 1 250–1 400 | 650 | 10 300 |
-| CLASS_1 | ≥ 1 350 | 1 000 | 16 300 |
+| MAIDEN | 0 wins | 100 | 1 600 |
+| CLASS_5 | raceRating < 1 100 | 150 | 2 500 |
+| CLASS_4 | 1 050–1 200 | 250 | 4 100 |
+| CLASS_3 | 1 150–1 300 | 400 | 6 600 |
+| CLASS_2 | 1 250–1 400 | 650 | 10 800 |
+| CLASS_1 | ≥ 1 350 | 1 000 | 17 100 |
 
 Fields below the minimum size are filled with house (NPC) horses of matching class
 so races always run, even with few players. House quality rises by class (config

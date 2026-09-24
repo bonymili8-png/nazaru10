@@ -84,7 +84,7 @@
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
     "Docker image written but not executed in this environment",
     "Tournaments are not yet part of the economy cohort simulation",
-    "In-class win rate back to ~24% (cap 25%) after jockeys: re-tune house fields before adding further player edges"
+    "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
   "next_action": "Console tools for refunds and races; owner: bot token + hosting"
 }

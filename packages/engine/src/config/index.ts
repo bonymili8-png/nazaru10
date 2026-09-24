@@ -211,6 +211,15 @@ export interface GameConfig {
     /** Unemployed trainers kept available in the pool. */
     poolSize: number;
     contractDays: number;
+    /** Retained jockeys ride the owner's horses instead of a house jockey. */
+    jockeys: {
+      minSkill: number;
+      maxSkill: number;
+      salaryBase: number;
+      salaryPerSkill2: number;
+      maxJockeys: number[];
+      poolSize: number;
+    };
   };
   tournaments: {
     tiers: Record<TournamentTier, TournamentTierConfig>;
@@ -520,6 +529,14 @@ export const defaultConfig: GameConfig = {
     maxTrainers: [1, 1, 2, 2, 3],
     poolSize: 12,
     contractDays: 7,
+    jockeys: {
+      minSkill: 45,
+      maxSkill: 95,
+      salaryBase: 150,
+      salaryPerSkill2: 0.5,
+      maxJockeys: [1, 1, 1, 2, 2],
+      poolSize: 10,
+    },
   },
   tournaments: {
     tiers: {

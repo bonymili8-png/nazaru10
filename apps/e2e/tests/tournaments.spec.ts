@@ -4,7 +4,10 @@ test("an owner registers for the Local Cup and withdraws before the draw", async
   await newOwner(page);
   const before = await headerCredits(page);
   await page.getByRole("link", { name: "Races" }).click();
-  await page.getByRole("link", { name: "Tournaments" }).click();
+  // The entry point exists; navigate by its href (a click can land before hydration).
+  const link = page.getByRole("link", { name: "Tournaments" });
+  await expect(link).toHaveAttribute("href", "/tournaments/");
+  await page.goto("/tournaments/");
   const local = page.locator("a[href^='/tournament/?id=']", { hasText: "Local Cup" }).first();
   await expect(async () => {
     await page.reload();

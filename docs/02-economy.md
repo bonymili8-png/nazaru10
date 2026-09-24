@@ -79,10 +79,11 @@ Current targets and results (seeded, deterministic; CI gate):
 | < 5 % of owners below the cheapest entry fee at season end | 0 % |
 | Average string ≥ 2 horses by season end | 2.52 |
 | ≥ 15 % of owners upgrade their stable in a season (conservative simulated owner) | 24 % |
-| In-class player win rate 10–25 % (Elo-based eligibility as in the game) | ≈ 23 % |
+| In-class player win rate 10–25 % (Elo-based eligibility as in the game) | ≈ 24 % (23 % before jockeys) |
 | Allowance < 10 % of income | 0.9 % |
 | 20–85 % of owners employ a trainer at season end (eager simulated owner) | ≈ 76 % |
-| Trainer salaries 3–25 % of recurring income | ≈ 8 % |
+| 10–85 % of owners retain a jockey at season end | ≈ 67 % |
+| Staff salaries (trainers + jockeys) 3–25 % of recurring income | ≈ 15 % |
 | 5–40 % of owners build a facility within a season | ≈ 14 % |
 
 Operational alerts (economy dashboard): 7-day net mint > 25 % of circulating supply, or any

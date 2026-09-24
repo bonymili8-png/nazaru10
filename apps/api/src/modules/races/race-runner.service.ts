@@ -269,11 +269,20 @@ export class RaceRunnerService {
         ).map((h) => [h.id, h] as const),
       );
       const gates = rng.shuffle(entries.map((_, i) => i));
-      const jockeys = await this.house.pickJockeys(c, race.class, entries.length, rng.fork("jockeys"));
+      // Owners' retained jockeys ride their horses (best jockey on the best-rated horse, one ride
+      // per race each); everyone else gets a house jockey of the class.
+      const retained = await this.retainedJockeys(c, entries, horseRows, race.starts_at);
+      const house = await this.house.pickJockeys(
+        c,
+        race.class,
+        entries.length - retained.size,
+        rng.fork("jockeys"),
+      );
+      let nextHouse = 0;
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i]!;
         const h = horseRows.get(e.horse_id)!;
-        const jockey = jockeys[i % jockeys.length]!;
+        const jockey = retained.get(e.horse_id) ?? house[nextHouse++ % house.length]!;
         const snapshot: EntrySnapshot = {
           name: h.name,
           ownerName: await this.horses.ownerName(h.owner_id, c),
@@ -301,6 +310,35 @@ export class RaceRunnerService {
       });
       return true;
     });
+  }
+
+  private async retainedJockeys(
+    c: Queryable,
+    entries: EntryRow[],
+    horses: Map<string, HorseRow>,
+    startsAt: Date,
+  ): Promise<Map<string, { id: string; name: string; skill: number }>> {
+    const owners = [...new Set(entries.filter((e) => !e.is_house && e.owner_id).map((e) => e.owner_id!))];
+    const out = new Map<string, { id: string; name: string; skill: number }>();
+    if (owners.length === 0) return out;
+    const list = await rows<{ owner_id: string; id: string; name: string; skill: number }>(
+      c,
+      `SELECT k.owner_id, j.id, j.name, j.skill::float AS skill FROM staff_contracts k JOIN jockeys j ON j.id = k.jockey_id
+        WHERE k.owner_id = ANY($1::uuid[]) AND k.ended_at IS NULL AND k.paid_until > $2
+        ORDER BY j.skill DESC, j.id`,
+      [owners, startsAt],
+    );
+    for (const owner of owners) {
+      const mine = list.filter((j) => j.owner_id === owner);
+      const horsesByRating = entries
+        .filter((e) => e.owner_id === owner && !e.is_house)
+        .sort((a, b) => horses.get(b.horse_id)!.race_rating - horses.get(a.horse_id)!.race_rating);
+      mine.forEach((j, i) => {
+        const e = horsesByRating[i];
+        if (e) out.set(e.horse_id, { id: j.id, name: j.name, skill: j.skill });
+      });
+    }
+    return out;
   }
 
   /* ─────────────────────────────── run ─────────────────────────────── */

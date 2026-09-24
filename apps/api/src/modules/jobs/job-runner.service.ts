@@ -57,6 +57,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("seasons", () => this.seasons.closeDue());
         await this.step("tournament-schedule", () => this.tournaments.scheduleAhead());
         await this.step("staff-pool", () => this.staff.restock());
+        await this.step("jockey-pool", () => this.staff.restockJockeys());
         await this.step("staff-salaries", () => this.staff.renewDue());
       }
       await this.step("lock", () => this.races.lockDue());

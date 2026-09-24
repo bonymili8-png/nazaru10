@@ -123,3 +123,69 @@ export function maxTrainers(stableLevel: number, cfg: GameConfig): number {
   const list = cfg.staff.maxTrainers;
   return list[clamp(stableLevel, 1, list.length) - 1] ?? 0;
 }
+
+export interface JockeyProfile {
+  name: string;
+  skill: number;
+}
+
+const JOCKEY_FIRST = [
+  "Ailbhe",
+  "Bruno",
+  "Caoimhe",
+  "Dario",
+  "Emeka",
+  "Farah",
+  "Gianni",
+  "Hana",
+  "Ivo",
+  "Jolene",
+  "Kofi",
+  "Luis",
+  "Mairead",
+  "Nico",
+  "Oisin",
+  "Pia",
+  "Rafa",
+  "Saoirse",
+  "Tadhg",
+  "Yara",
+];
+const JOCKEY_LAST = [
+  "Arrowsmith",
+  "Brannigan",
+  "Castellano",
+  "Doyle",
+  "Esposito",
+  "Flanagan",
+  "Guerrero",
+  "Hayes",
+  "Kinsella",
+  "Moreno",
+  "Nakamura",
+  "O'Shea",
+  "Prendergast",
+  "Rourke",
+  "Santana",
+  "Treacy",
+];
+
+/** A freelance jockey for hire: skill skews toward the lower end of the band. */
+export function generateJockey(rng: Rng, cfg: GameConfig): JockeyProfile {
+  const j = cfg.staff.jockeys;
+  return {
+    name: `${rng.pick(JOCKEY_FIRST)} ${rng.pick(JOCKEY_LAST)}`,
+    skill: Math.round(j.minSkill + (j.maxSkill - j.minSkill) * rng.next() ** 1.4),
+  };
+}
+
+export function jockeySalary(skill: number, cfg: GameConfig): number {
+  const j = cfg.staff.jockeys;
+  const over = Math.max(0, skill - j.minSkill);
+  return Math.round((j.salaryBase + j.salaryPerSkill2 * over * over) / 10) * 10;
+}
+
+export function maxJockeys(stableLevel: number, cfg: GameConfig): number {
+  const list = cfg.staff.jockeys.maxJockeys;
+  return list[clamp(stableLevel, 1, list.length) - 1] ?? 0;
+}

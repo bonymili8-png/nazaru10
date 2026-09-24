@@ -155,6 +155,7 @@ export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest
 export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
 
 export const HireTrainerRequest = z.object({ trainerId: z.string().uuid() });
+export const HireJockeyRequest = z.object({ jockeyId: z.string().uuid() });
 export type HireTrainerRequest = z.infer<typeof HireTrainerRequest>;
 
 export const BreedRequest = z.object({ sireId: z.string().uuid(), damId: z.string().uuid() });
@@ -277,9 +278,32 @@ export interface StaffContractDto {
   paidUntil: string;
 }
 
+export interface JockeyDto {
+  id: string;
+  name: string;
+  skill: number;
+  /** Weekly salary in credits (charged in advance). */
+  salary: number;
+  rides: number;
+  wins: number;
+}
+
+export interface JockeyContractDto {
+  id: string;
+  jockey: JockeyDto;
+  salary: number;
+  periods: number;
+  startedAt: string;
+  paidUntil: string;
+}
+
 export interface StaffDto {
+  /** Trainer contracts. */
   contracts: StaffContractDto[];
   maxTrainers: number;
+  jockeys: JockeyContractDto[];
+  maxJockeys: number;
+  /** All salaries per week (trainers and jockeys). */
   weeklyCost: number;
 }
 

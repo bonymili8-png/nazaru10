@@ -1,5 +1,11 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
-import { HireTrainerRequest, type StaffDto, type TrainerDto } from "@thoroughline/contracts";
+import {
+  HireJockeyRequest,
+  HireTrainerRequest,
+  type JockeyDto,
+  type StaffDto,
+  type TrainerDto,
+} from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { StaffService } from "./staff.service.js";
@@ -21,6 +27,16 @@ export class StaffController {
   @Post("contracts")
   hire(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<StaffDto> {
     return this.staff.hire(user.id, parse(HireTrainerRequest, body).trainerId);
+  }
+
+  @Get("jockeys")
+  availableJockeys(): Promise<JockeyDto[]> {
+    return this.staff.availableJockeys();
+  }
+
+  @Post("jockey-contracts")
+  hireJockey(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<StaffDto> {
+    return this.staff.hireJockey(user.id, parse(HireJockeyRequest, body).jockeyId);
   }
 
   @Delete("contracts/:id")

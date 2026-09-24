@@ -16,7 +16,9 @@ import {
   facilityUpgradeCost,
   type FacilityLevels,
   generateGenome,
+  generateJockey,
   generateTrainer,
+  jockeySalary,
   maxTrainers,
   trainerEffect,
   trainerSalary,
@@ -72,6 +74,7 @@ interface Player {
   level: number;
   quests: Set<string>;
   trainer: (TrainerProfile & { salary: number; paidUntil: number }) | null;
+  jockey: { skill: number; salary: number; paidUntil: number } | null;
   facilities: FacilityLevels;
 }
 
@@ -176,7 +179,7 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
     raceIntelligence: h.genome.hidden.raceIntelligence,
     condition: cond,
     strategy: "MID_PACK",
-    jockey: { id: "j", name: "j", skill: rng.float(...cc.houseJockeySkill) },
+    jockey: { id: "j", name: "j", skill: p.jockey?.skill ?? rng.float(...cc.houseJockeySkill) },
   };
   const field = [me];
   for (let i = 0; i < cfg.race.schedule.targetField - 1; i++) {
@@ -250,6 +253,7 @@ const stats = {
   purchases: 0,
   upgrades: 0,
   hires: 0,
+  jockeys: 0,
   facilities: 0,
   vet: 0,
   positions: [] as number[],
@@ -321,6 +325,12 @@ function session(rng: Rng, p: Player, nowH: number): void {
       p.trainer.paidUntil += week;
     else p.trainer = null;
   }
+  // Retained jockey: same policy as trainers, hired only once the trainer is in place.
+  if (p.jockey && nowH >= p.jockey.paidUntil) {
+    if (p.credits >= p.jockey.salary + 1500 && spend(p, "STAFF_SALARY", p.jockey.salary))
+      p.jockey.paidUntil += week;
+    else p.jockey = null;
+  }
   // A full stable saves for the next upgrade first.
   const full = p.horses.length >= cfg.economy.stableCapacity[p.level - 1]!;
   const saving = full ? (cfg.economy.stableUpgradeCost[p.level - 1] ?? 0) : 0;
@@ -334,6 +344,17 @@ function session(rng: Rng, p: Player, nowH: number): void {
     if (best && spend(p, "STAFF_SALARY", best.salary)) {
       p.trainer = { ...best, paidUntil: nowH + week };
       stats.hires++;
+    }
+  }
+  if (!p.jockey && p.trainer && p.horses.length >= 2) {
+    const best = [0, 1, 2]
+      .map(() => generateJockey(rng, cfg))
+      .map((j) => ({ ...j, salary: jockeySalary(j.skill, cfg) }))
+      .filter((j) => p.credits >= 4 * j.salary + 3000 + saving)
+      .sort((a, b) => b.skill - a.skill)[0];
+    if (best && spend(p, "STAFF_SALARY", best.salary)) {
+      p.jockey = { skill: best.skill, salary: best.salary, paidUntil: nowH + week };
+      stats.jockeys++;
     }
   }
   // Facilities: build the next level when well funded (after the upgrade savings).
@@ -376,6 +397,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     level: 1,
     quests: new Set(),
     trainer: null,
+    jockey: null,
     facilities: { TRAINING_TRACK: 0, VET_CLINIC: 0 },
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
@@ -415,7 +437,7 @@ const perPlayerDay = (m: Map<string, number>, excludeOneOff: boolean) => {
 };
 const fmt = (n: number) => Math.round(n).toLocaleString("en");
 console.log(
-  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
+  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} jockeys=${stats.jockeys} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
 );
 console.log(
   "sources per player-day:",
@@ -460,6 +482,8 @@ const allowanceShare = (ledger.sources.get("DAILY_ALLOWANCE") ?? 0) / (PLAYERS *
 const building =
   players.filter((p) => p.facilities.TRAINING_TRACK + p.facilities.VET_CLINIC > 0).length / PLAYERS;
 console.log(`owners with a facility at season end ${(building * 100).toFixed(1)}%`);
+const riding = players.filter((p) => p.jockey).length / PLAYERS;
+console.log(`retaining a jockey at season end ${(riding * 100).toFixed(1)}%`);
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
 const salaryShare = (ledger.sinks.get("STAFF_SALARY") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
@@ -481,6 +505,7 @@ const checks: [string, boolean][] = [
   // Staff is an optional sink: attractive (the eager simulated owner hires whenever it can carry
   // a month of salary) but not universal, and never the main cost.
   ["20–85% of owners employ a trainer at season end", employing >= 0.2 && employing <= 0.85],
+  ["10–85% of owners retain a jockey at season end", riding >= 0.1 && riding <= 0.85],
   ["salaries are 3–25% of recurring income", salaryShare >= 0.03 && salaryShare <= 0.25],
   // Facilities are a mid-game goal: gated by stable level, so a minority builds in season one.
   ["5–40% of owners build a facility within a season", building >= 0.05 && building <= 0.4],

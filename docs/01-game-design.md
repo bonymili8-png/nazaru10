@@ -121,6 +121,17 @@ risk factors that produced it (explainable, logged, bounded).
   leaves (bot notification); dismissal is immediate and the current week isn't refunded.
   After a long outage renewal restarts from now instead of back-charging.
 
+### H.1b Staff — retained jockeys (Phase 2)
+
+* Freelance pool (kept at 10) of jockeys with skill 45–95, separate from house jockeys
+  (house jockeys by class: Maiden 30–55 … Class 1 70–92).
+* When a race locks, each owner's retained jockeys ride that owner's runners — best jockey on
+  the best-rated horse, one ride per race each; other runners get a house jockey. Skill feeds the
+  race simulation directly (pace-plan accuracy, mid-race re-planning, horse–jockey synergy).
+* Team cap by stable level: 1 / 1 / 1 / 2 / 2. Salary = 150 + 0.5 × (skill − 45)², rounded to 10
+  (skill 60 → 260, 75 → 600, 95 → 1 400 per week), same weekly contract lifecycle as trainers
+  (advance payment, unpaid renewal ends the contract, immediate dismissal without refund).
+
 ### H.2 Stable facilities (Phase 2)
 
 | Facility | Effect per level | Level costs (1 / 2 / 3) | Level k needs stable level |

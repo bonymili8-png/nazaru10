@@ -1,7 +1,16 @@
-import type { HorseSummaryDto, StaffDto, TrainerDto, TrainingSessionDto } from "@thoroughline/contracts";
+import type {
+  HorseSummaryDto,
+  JockeyDto,
+  RaceDetailDto,
+  RaceSummaryDto,
+  StaffDto,
+  TrainerDto,
+  TrainingSessionDto,
+} from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { LedgerService } from "../src/modules/economy/ledger.service.js";
+import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
 import { StaffService } from "../src/modules/staff/staff.service.js";
 import { TrainingService } from "../src/modules/training/training.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
@@ -125,6 +134,64 @@ describe("staff", () => {
     expect(res.body.contracts).toHaveLength(0);
     expect(await credits(bob)).toBe(before);
     expect((await t.del(`/staff/contracts/${k.id}`, bob.token)).status).toBe(404);
+  });
+
+  it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
+});
+
+describe("retained jockeys", () => {
+  let t: TestApp;
+  let owner: User;
+
+  beforeAll(async () => {
+    t = await createTestApp();
+    owner = await t.login(9601, "Jockeyed");
+  });
+  afterAll(() => t.close());
+
+  it("retains a freelance jockey who then rides the owner's horse", async () => {
+    const svc = t.service(StaffService);
+    expect(await svc.restockJockeys()).toBe(defaultConfig.staff.jockeys.poolSize);
+    const pool = (await t.get<JockeyDto[]>("/staff/jockeys", owner.token)).body;
+    expect(pool).toHaveLength(defaultConfig.staff.jockeys.poolSize);
+    const pick = [...pool].sort((a, b) => a.salary - b.salary)[0]!;
+    const before = (await t.get<{ balances: { CREDITS: number } }>("/wallet", owner.token)).body.balances
+      .CREDITS;
+    const hired = await t.post<StaffDto>("/staff/jockey-contracts", { jockeyId: pick.id }, owner.token);
+    expect(hired.status).toBe(201);
+    expect(hired.body).toMatchObject({ maxJockeys: 1, weeklyCost: pick.salary });
+    expect(hired.body.jockeys[0]!.jockey.id).toBe(pick.id);
+    expect(
+      (await t.get<{ balances: { CREDITS: number } }>("/wallet", owner.token)).body.balances.CREDITS,
+    ).toBe(before - pick.salary);
+    expect((await t.post("/staff/jockey-contracts", { jockeyId: pool[1]!.id }, owner.token)).status).toBe(
+      409,
+    );
+    const runner = t.service(RaceRunnerService);
+    await runner.scheduleAhead();
+    const race = (await t.get<RaceSummaryDto[]>("/races?status=upcoming&class=MAIDEN", owner.token)).body[0]!;
+    const horse = (await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!;
+    expect(
+      (await t.post(`/races/${race.id}/entries`, { horseId: horse.id, strategy: "MID_PACK" }, owner.token))
+        .status,
+    ).toBe(201);
+    t.clock.advance(new Date(race.locksAt).getTime() - t.clock.now().getTime() + 1000);
+    await runner.lockDue();
+    const detail = (await t.get<RaceDetailDto>(`/races/${race.id}`, owner.token)).body;
+    const mine = detail.entryList.find((e) => e.mine)!;
+    expect(mine.jockeyName).toBe(pick.name);
+    // Nobody else in the field rides with the retained jockey.
+    expect(detail.entryList.filter((e) => e.jockeyName === pick.name)).toHaveLength(1);
+  });
+
+  it("dismissing a jockey returns them to the pool", async () => {
+    const k = (await t.get<StaffDto>("/staff", owner.token)).body.jockeys[0]!;
+    expect((await t.del(`/staff/contracts/${k.id}`, owner.token)).status).toBe(200);
+    const pool = (await t.get<JockeyDto[]>("/staff/jockeys", owner.token)).body;
+    expect(pool.some((j) => j.id === k.jockey.id)).toBe(true);
+    // House jockeys are not for hire.
+    const house = await t.db.one<{ id: string }>("SELECT id FROM jockeys WHERE is_house LIMIT 1");
+    expect((await t.post("/staff/jockey-contracts", { jockeyId: house!.id }, owner.token)).status).toBe(404);
   });
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));

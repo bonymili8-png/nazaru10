@@ -10,6 +10,12 @@ import { SkipRateLimit } from "../../common/rate-limit.js";
 export class HealthController {
   constructor(private readonly db: Db) {}
 
+  /** Root: a friendly pointer instead of a 404 when someone opens the API address in a browser. */
+  @Get()
+  root() {
+    return { service: "thoroughline-api", status: "ok", health: "/health", ready: "/ready" };
+  }
+
   /** Liveness: the process is up. */
   @Get("health")
   health() {

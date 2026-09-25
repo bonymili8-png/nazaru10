@@ -15,6 +15,7 @@ describe("authentication & onboarding", () => {
     expect((await t.get("/me", "not-a-jwt")).status).toBe(401);
     expect((await t.get("/health")).status).toBe(200);
     expect((await t.get("/ready")).body).toMatchObject({ status: "ready" });
+    expect((await t.get("/")).body).toMatchObject({ status: "ok", health: "/health" });
   });
 
   it("rejects forged init data", async () => {

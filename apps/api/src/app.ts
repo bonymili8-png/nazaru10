@@ -20,7 +20,7 @@ export async function buildApp(deps: AppDeps): Promise<NestFastifyApplication> {
     .filter(Boolean);
   await app.register(cors, {
     origin: origins.length ? origins : false,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["authorization", "content-type"],
     maxAge: 600,
   });

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { fmt, ordinal } from "@/lib/format";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
+import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
 
 const SILKS = [
@@ -145,17 +146,24 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
             const e = names[frames.ids[i]!];
             return (
               <g key={frames.ids[i]}>
+                {e?.silks ? (
+                  <SilkMarks silks={e.silks} cx={p.x} cy={p.y} r={e.mine ? 17 : 14} clipId={`lr-${i}`} />
+                ) : (
+                  <circle cx={p.x} cy={p.y} r={14} fill={SILKS[i % SILKS.length]} />
+                )}
                 <circle
                   cx={p.x}
                   cy={p.y}
                   r={e?.mine ? 17 : 14}
-                  fill={SILKS[i % SILKS.length]}
+                  fill="none"
                   stroke={e?.mine ? "#fafaf9" : "#0c0a09"}
                   strokeWidth={e?.mine ? 5 : 2.5}
                 />
-                <text x={p.x} y={p.y + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0c0a09">
-                  {e?.gate ?? i + 1}
-                </text>
+                {!e?.silks && (
+                  <text x={p.x} y={p.y + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0c0a09">
+                    {e?.gate ?? i + 1}
+                  </text>
+                )}
               </g>
             );
           })}

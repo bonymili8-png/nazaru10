@@ -5,6 +5,7 @@ import { Share2, ShieldCheck, Trophy } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
+import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
@@ -100,6 +101,11 @@ function RacePage() {
                 className={`flex items-center gap-3 px-4 py-2.5 ${e.mine ? "bg-gold/10" : ""}`}
               >
                 <span className="num w-6 text-center text-sm text-muted">{e.gate ?? "–"}</span>
+                {e.silks ? (
+                  <Silk silks={e.silks} size={24} title={`${e.ownerName ?? "Owner"}'s silks`} />
+                ) : (
+                  <span className="size-6" aria-hidden />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{e.horseName}</p>
                   <p className="truncate text-xs text-muted">

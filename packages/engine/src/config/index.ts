@@ -179,6 +179,10 @@ export interface GameConfig {
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
   };
+  cosmetics: {
+    /** Gem price to unlock each racing-silk pattern (0 = free for everyone). */
+    silkPatternPrices: Record<string, number>;
+  };
   facilities: Record<
     FacilityType,
     {
@@ -512,6 +516,9 @@ export const defaultConfig: GameConfig = {
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
     allowance: { threshold: 400, amount: 250 },
+  },
+  cosmetics: {
+    silkPatternPrices: { SOLID: 0, HOOPS: 60, SASH: 80, QUARTERED: 100, DIAMONDS: 150, STAR: 200 },
   },
   facilities: {
     TRAINING_TRACK: { costs: [4000, 12000, 30000], gainPerLevel: 0.04, injuryReductionPerLevel: 0 },

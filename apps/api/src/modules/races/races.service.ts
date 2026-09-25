@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type {
   LiveRaceDto,
+  Silks,
   RaceDetailDto,
   RaceEntryDto,
   RaceListQuery,
@@ -18,6 +19,7 @@ import { TrainingService } from "../training/training.service.js";
 import type { EntryRow, RaceRow, ResultRow } from "./race.types.js";
 
 type EntryViewRow = EntryRow & {
+  silks: Silks | null;
   horse_name: string;
   owner_name: string | null;
   ability_rating: number;
@@ -212,10 +214,11 @@ export class RacesService {
     return rows<EntryViewRow>(
       c,
       `SELECT e.*, h.name AS horse_name, h.ability_rating, h.race_rating, j.name AS jockey_name,
-              COALESCE(u.username, u.first_name) AS owner_name
+              COALESCE(u.username, u.first_name) AS owner_name, st.silks
          FROM race_entries e
          JOIN horses h ON h.id = e.horse_id
          LEFT JOIN users u ON u.id = e.owner_id
+         LEFT JOIN stables st ON st.owner_id = e.owner_id AND NOT e.is_house
          LEFT JOIN jockeys j ON j.id = e.jockey_id
         WHERE e.race_id = $1 AND e.status IN ('ENTERED','RAN')
         ORDER BY e.gate NULLS LAST, e.created_at`,
@@ -241,6 +244,7 @@ export class RacesService {
       lengthsBehind: reveal ? e.lengths_behind : null,
       prize: reveal ? e.prize : null,
       mine,
+      silks: e.is_house ? null : e.silks,
     };
   }
 

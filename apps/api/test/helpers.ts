@@ -22,6 +22,7 @@ export interface TestApp {
     headers?: Record<string, string>,
   ): Promise<{ status: number; body: T }>;
   del<T = unknown>(url: string, token?: string): Promise<{ status: number; body: T }>;
+  put<T = unknown>(url: string, body?: unknown, token?: string): Promise<{ status: number; body: T }>;
   login(
     telegramId: number,
     firstName?: string,
@@ -41,7 +42,7 @@ export async function createTestApp(): Promise<TestApp> {
   const clock = new Clock();
   const app = await buildApp({ env, logger: createLogger("silent"), db, bot, clock });
   const request = async <T>(
-    method: "GET" | "POST" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     url: string,
     body?: unknown,
     token?: string,
@@ -69,6 +70,7 @@ export async function createTestApp(): Promise<TestApp> {
     get: (url, token) => request("GET", url, undefined, token),
     post: (url, body, token, headers) => request("POST", url, body ?? {}, token, headers),
     del: (url, token) => request("DELETE", url, undefined, token),
+    put: (url, body, token) => request("PUT", url, body ?? {}, token),
     async login(telegramId, firstName = "Tester", startParam) {
       const initData = signInitData(
         {

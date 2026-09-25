@@ -1,6 +1,6 @@
 {
   "project_status": "IN_PROGRESS",
-  "current_phase": "M6_PHASE_2",
+  "current_phase": "LIVE_BETA",
   "last_checkpoint": "PHASE_2_STAFF",
   "completed_tasks": [
     "0.1.1",
@@ -64,7 +64,10 @@
     "13.1.2-jockeys",
     "18.1.2-admin-payments-races",
     "19.2.1-fraud-signals",
-    "0.4.1-session-start-hook"
+    "0.4.1-session-start-hook",
+    "21.1.1-bot-paysupport-terms",
+    "22.1.1-cosmetics-silks",
+    "0.5.1-production-deploy"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -76,8 +79,8 @@
   "failed_tasks": [],
   "test_status": {
     "engine": "57/57",
-    "api": "109/109 (real Postgres)",
-    "web": "Playwright E2E: 11 journeys — CI job",
+    "api": "117/117 (real Postgres)",
+    "web": "Playwright E2E: 12 journeys — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); XFF trust fixed; referral hardening; fraud signals + review queue",
@@ -85,9 +88,8 @@
   "known_bugs": [],
   "technical_debt": [
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
-    "Docker image written but not executed in this environment",
     "Tournaments are not yet part of the economy cohort simulation",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Owner: bot token + hosting for a real Telegram test; then fraud queue / live-ops tooling"
+  "next_action": "More gem sinks (horse coats, stable themes), Racing Pass; tournaments in the economy sim"
 }

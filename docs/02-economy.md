@@ -175,3 +175,10 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   rate to the 25 % cap, so the effect was reduced to +0.25 %/skill and +5 % speciality. After
   the class-ladder fix (K.4 item 4) the margins are comfortable again; re-run
   `pnpm sim:economy` after any staff, training or house-field change.
+
+## Cosmetics (live)
+
+* Gems' main sink: racing-silk patterns (Solid free; Hoops 60, Sash 80, Quartered 100, Diamonds
+  150, Star 200 gems — config `cosmetics.silkPatternPrices`, admin-tunable). Colours are free.
+* Silks show on race cards and live-race markers; they never touch the simulation.
+* Sink `COSMETICS`; unlocks are idempotent per owner and item (`cosmetic:<user>:silk:<pattern>`).

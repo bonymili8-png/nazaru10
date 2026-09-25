@@ -177,6 +177,52 @@ export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest
 
 export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
 
+/* ───────────────────────────── cosmetics ───────────────────────────── */
+
+export const SILK_PATTERNS = ["SOLID", "HOOPS", "SASH", "QUARTERED", "DIAMONDS", "STAR"] as const;
+export type SilkPattern = (typeof SILK_PATTERNS)[number];
+
+/** Racing-silk palette (name → hex). Colours are free; patterns are unlocked with gems. */
+export const SILK_COLORS = {
+  gold: "#e0b43a",
+  black: "#0c0a09",
+  white: "#fafaf9",
+  scarlet: "#dc2626",
+  royal: "#2563eb",
+  emerald: "#059669",
+  purple: "#7c3aed",
+  orange: "#ea580c",
+  sky: "#38bdf8",
+  pink: "#ec4899",
+  navy: "#1e3a8a",
+  lime: "#84cc16",
+} as const;
+export type SilkColor = keyof typeof SILK_COLORS;
+const SILK_COLOR_NAMES = Object.keys(SILK_COLORS) as [SilkColor, ...SilkColor[]];
+
+export interface Silks {
+  pattern: SilkPattern;
+  primary: SilkColor;
+  secondary: SilkColor;
+}
+
+export const SetSilksRequest = z
+  .object({
+    pattern: z.enum(SILK_PATTERNS),
+    primary: z.enum(SILK_COLOR_NAMES),
+    secondary: z.enum(SILK_COLOR_NAMES),
+  })
+  .refine((s) => s.primary !== s.secondary, "Primary and secondary colours must differ");
+export type SetSilksRequest = z.infer<typeof SetSilksRequest>;
+
+export const SilkPatternParam = z.enum(SILK_PATTERNS);
+
+export interface CosmeticsDto {
+  silks: Silks;
+  patterns: { pattern: SilkPattern; priceGems: number; owned: boolean }[];
+  gems: number;
+}
+
 export const HireTrainerRequest = z.object({ trainerId: z.string().uuid() });
 export const HireJockeyRequest = z.object({ jockeyId: z.string().uuid() });
 export type HireTrainerRequest = z.infer<typeof HireTrainerRequest>;
@@ -389,6 +435,8 @@ export interface RaceEntryDto {
   lengthsBehind: number | null;
   prize: number | null;
   mine: boolean;
+  /** Owner's racing silks (null for house horses). */
+  silks: Silks | null;
 }
 
 export type RaceStatus = "OPEN" | "LOCKED" | "RUNNING" | "COMPLETED" | "CANCELLED";

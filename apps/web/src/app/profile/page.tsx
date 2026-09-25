@@ -1,6 +1,6 @@
 "use client";
 import type { LedgerLineDto, UserDto, WalletDto } from "@thoroughline/contracts";
-import { Copy, LifeBuoy, Share2, ShieldCheck } from "lucide-react";
+import { Copy, LifeBuoy, Share2, ShieldCheck, Shirt } from "lucide-react";
 import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { fmt, titleCase } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
@@ -38,6 +38,11 @@ export default function ProfilePage() {
           <Skeleton className="col-span-2 h-24" />
         )}
       </div>
+
+      <LinkButton href="/silks/" variant="secondary" className="mt-3 w-full">
+        <Shirt className="size-4" aria-hidden />
+        Racing silks
+      </LinkButton>
 
       {me.data && me.data.role !== "PLAYER" && (
         <LinkButton href="/admin/" variant="secondary" className="mt-3 w-full">

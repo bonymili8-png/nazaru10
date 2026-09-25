@@ -23,6 +23,8 @@ import { BreedingController } from "./modules/breeding/breeding.controller.js";
 import { BreedingService } from "./modules/breeding/breeding.service.js";
 import { SeasonsController } from "./modules/seasons/seasons.controller.js";
 import { SeasonsService } from "./modules/seasons/seasons.service.js";
+import { CosmeticsController } from "./modules/cosmetics/cosmetics.controller.js";
+import { CosmeticsService } from "./modules/cosmetics/cosmetics.service.js";
 import { FraudController } from "./modules/fraud/fraud.controller.js";
 import { FraudService } from "./modules/fraud/fraud.service.js";
 import { StaffController } from "./modules/staff/staff.controller.js";
@@ -92,6 +94,7 @@ export class AppModule {
         TournamentsController,
         StaffController,
         FraudController,
+        CosmeticsController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -120,6 +123,7 @@ export class AppModule {
         TournamentsService,
         StaffService,
         FraudService,
+        CosmeticsService,
         OnboardingService,
         AuthService,
         TelegramStarsProvider,

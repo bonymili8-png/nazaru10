@@ -80,6 +80,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 
 export const post = <T>(path: string, body: unknown = {}) => api<T>(path, { method: "POST", body });
 export const del = <T>(path: string) => api<T>(path, { method: "DELETE" });
+export const put = <T>(path: string, body: unknown = {}) => api<T>(path, { method: "PUT", body });
 
 export async function loginWithTelegram(initData: string): Promise<AuthResponse> {
   const r = await post<AuthResponse>("/auth/telegram", { initData });

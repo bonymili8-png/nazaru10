@@ -111,3 +111,40 @@ describe("client IP trust", () => {
     expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
   });
 });
+
+describe("CORS", () => {
+  it("lets the Mini App origin use every method the client sends (incl. PUT)", async () => {
+    await (await import("./db.js")).resetDatabase();
+    const { buildApp } = await import("../src/app.js");
+    const { createLogger } = await import("../src/common/logger.js");
+    const { FakeBotApi } = await import("../src/modules/telegram/bot-api.js");
+    const { Db } = await import("../src/common/db.js");
+    const env = loadEnv({ ...process.env, CORS_ORIGINS: "https://app.example" });
+    const db = new Db(env.DATABASE_URL, 2);
+    const app = await buildApp({ env, logger: createLogger("silent"), db, bot: new FakeBotApi() });
+    try {
+      for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"]) {
+        const r = await app.inject({
+          method: "OPTIONS",
+          url: "/cosmetics/silks",
+          headers: {
+            origin: "https://app.example",
+            "access-control-request-method": method,
+            "access-control-request-headers": "authorization,content-type",
+          },
+        });
+        expect(r.statusCode).toBeLessThan(300);
+        expect(String(r.headers["access-control-allow-methods"])).toContain(method);
+      }
+      const foreign = await app.inject({
+        method: "OPTIONS",
+        url: "/cosmetics/silks",
+        headers: { origin: "https://evil.example", "access-control-request-method": "PUT" },
+      });
+      expect(foreign.headers["access-control-allow-origin"]).toBeUndefined();
+    } finally {
+      await app.close();
+      await db.close();
+    }
+  });
+});

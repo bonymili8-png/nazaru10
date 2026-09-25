@@ -19,7 +19,8 @@
     "dev:api": "pnpm --filter @thoroughline/api dev",
     "dev:web": "pnpm --filter @thoroughline/web dev",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
-    "sim:economy": "pnpm --filter @thoroughline/engine sim:economy"
+    "sim:economy": "pnpm --filter @thoroughline/engine sim:economy",
+    "build:cloudflare": "pnpm install --frozen-lockfile && pnpm build:packages && pnpm --filter @thoroughline/web build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

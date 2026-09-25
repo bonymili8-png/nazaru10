@@ -51,6 +51,9 @@ pnpm --filter @thoroughline/e2e e2e
 4. Web build env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BOT_USERNAME`, `NEXT_PUBLIC_APP_SHORT_NAME`,
    and **no** `NEXT_PUBLIC_DEV_AUTH`.
 5. Hosting the Mini App on Cloudflare Workers (static assets): `wrangler.jsonc` at the repo root
-   serves `apps/web/out`. Build command
-   `pnpm install --frozen-lockfile && pnpm build:packages && pnpm --filter @thoroughline/web build`,
-   deploy command `npx wrangler deploy`, build variables as in step 4 plus `NODE_VERSION=22`.
+   serves `apps/web/out`. The Cloudflare build image has no pnpm preset, so the build command pins it
+   through npx:
+   `npx -y pnpm@10.33.0 install --frozen-lockfile && npx -y pnpm@10.33.0 -r --filter "./packages/**" build && npx -y pnpm@10.33.0 --filter @thoroughline/web build`
+   (where pnpm is available, `pnpm build:cloudflare` does the same). Deploy command
+   `npx wrangler deploy`; build variables as in step 4 plus `NODE_VERSION=22`. Set the production
+   branch to the branch that carries the game (Settings → Build → Branch control).

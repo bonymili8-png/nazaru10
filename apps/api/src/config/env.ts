@@ -23,6 +23,11 @@ const EnvSchema = z
     TELEGRAM_WEBHOOK_SECRET: z.string().default(""),
     TELEGRAM_BOT_USERNAME: z.string().default(""),
     TELEGRAM_APP_SHORT_NAME: z.string().default(""),
+    /** Shown by /paysupport and /terms: a Telegram @handle or an email address. */
+    SUPPORT_CONTACT: z.string().max(100).default(""),
+    /** Full terms of service / privacy policy pages, linked from /terms when set. */
+    TERMS_URL: z.string().url().optional(),
+    PRIVACY_URL: z.string().url().optional(),
     /** Public URL of the Mini App (used for the bot's "Open" button). */
     WEBAPP_URL: z.string().url().optional(),
     TELEGRAM_AUTH_MAX_AGE_SEC: z.coerce

@@ -174,5 +174,31 @@ describe("payments (Telegram Stars)", () => {
     ).toBe(true);
   });
 
+  it("registers the bot command menu on startup", () => {
+    const call = t.bot.calls.find((c) => c.method === "setMyCommands");
+    const names = (call?.args[0] as { command: string }[]).map((c) => c.command);
+    expect(names).toEqual(expect.arrayContaining(["start", "paysupport", "terms", "help"]));
+  });
+
+  it("answers /paysupport with the player's recent purchases and /terms with the purchase terms", async () => {
+    const sent = () => t.bot.calls.filter((c) => c.method === "sendMessage");
+    const before = sent().length;
+    await hook({ update_id: 90, message: { chat: { id: TG_ID }, from: { id: TG_ID }, text: "/paysupport" } });
+    const support = String(sent()[before]!.args[1]);
+    expect(support).toContain("Payment support");
+    const completed = await t.db.one<{ id: string }>(
+      "SELECT id FROM payments WHERE status = 'COMPLETED' ORDER BY created_at DESC LIMIT 1",
+    );
+    expect(support).toContain(completed!.id.slice(0, 8));
+
+    await hook({ update_id: 91, message: { chat: { id: 777 }, from: { id: 777 }, text: "/paysupport" } });
+    expect(String(sent()[before + 1]!.args[1])).toContain("could not find purchases");
+
+    await hook({ update_id: 92, message: { chat: { id: TG_ID }, from: { id: TG_ID }, text: "/terms" } });
+    const terms = String(sent()[before + 2]!.args[1]);
+    expect(terms).toContain("Terms of purchase");
+    expect(terms).toContain("no cash value");
+  });
+
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
 });

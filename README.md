@@ -46,6 +46,9 @@ pnpm --filter @thoroughline/e2e e2e
 1. Create a bot with @BotFather, enable a Mini App pointing at the deployed web build.
 2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEBAPP_URL`, strong `JWT_SECRET` /
    `RACE_SEED_SECRET`; `ALLOW_DEV_AUTH` must be `false` (the API refuses to start otherwise).
+   Optional but recommended for Stars payments: `SUPPORT_CONTACT` (an @handle or email shown by
+   `/paysupport` and `/terms`), `TERMS_URL`, `PRIVACY_URL`. The bot registers its command menu
+   (`/start`, `/paysupport`, `/terms`, `/help`) on startup.
 3. `setWebhook` to `https://<api>/telegram/webhook` with `secret_token = TELEGRAM_WEBHOOK_SECRET`
    and `allowed_updates = ["message","pre_checkout_query"]`.
 4. Web build env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BOT_USERNAME`, `NEXT_PUBLIC_APP_SHORT_NAME`,

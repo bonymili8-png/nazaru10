@@ -1,16 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
 import Script from "next/script";
+// Fonts ship with the app (no build-time fetch from Google Fonts, which fails on some CI builders).
+import "@fontsource-variable/inter/index.css";
+import "@fontsource/playfair-display/latin-600.css";
+import "@fontsource/playfair-display/latin-700.css";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-  weight: ["600", "700"],
-});
 
 export const metadata: Metadata = {
   title: "Thoroughline — Racing Stable",
@@ -26,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en">
       <head>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       </head>

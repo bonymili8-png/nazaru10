@@ -105,6 +105,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/playfair-display':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@thoroughline/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -383,6 +389,12 @@ packages:
 
   '@fastify/proxy-addr@5.1.1':
     resolution: {integrity: sha512-zv07Y9GEuDsJPegZoDFd4SDWaZOW8N2pa0GSrYmKpId/tjt1Hgo3BjZBVjdVpfVrHaA+Qv5jawtS2O50J5xM9g==}
+
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource/playfair-display@5.3.0':
+    resolution: {integrity: sha512-uJSABalvdWc10fEPppQjQocamT21LEyRfzzWfRfqbkPz+sRv+kKpYDKyluBUskvJREkJTos9epj1WjQROGu99Q==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2364,6 +2376,10 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.2
       ipaddr.js: 2.5.0
+
+  '@fontsource-variable/inter@5.3.0': {}
+
+  '@fontsource/playfair-display@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

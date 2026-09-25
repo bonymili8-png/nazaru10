@@ -14,8 +14,8 @@
   --color-good: #4ade80;
   --color-warn: #fbbf24;
   --color-bad: #f87171;
-  --font-display: var(--font-playfair), "Georgia", serif;
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Playfair Display", "Georgia", serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --radius-card: 18px;
 }
 

@@ -50,3 +50,7 @@ pnpm --filter @thoroughline/e2e e2e
    and `allowed_updates = ["message","pre_checkout_query"]`.
 4. Web build env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BOT_USERNAME`, `NEXT_PUBLIC_APP_SHORT_NAME`,
    and **no** `NEXT_PUBLIC_DEV_AUTH`.
+5. Hosting the Mini App on Cloudflare Workers (static assets): `wrangler.jsonc` at the repo root
+   serves `apps/web/out`. Build command
+   `pnpm install --frozen-lockfile && pnpm build:packages && pnpm --filter @thoroughline/web build`,
+   deploy command `npx wrangler deploy`, build variables as in step 4 plus `NODE_VERSION=22`.

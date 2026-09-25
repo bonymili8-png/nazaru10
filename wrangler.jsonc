@@ -1,0 +1,13 @@
+// Cloudflare Workers (static assets only): serves the exported Mini App from apps/web/out.
+// Build first: pnpm build:packages && pnpm --filter @thoroughline/web build
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nazaru10",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./apps/web/out",
+    // Next exports /races/index.html etc. (trailingSlash: true).
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+  },
+}

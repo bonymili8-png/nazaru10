@@ -74,6 +74,35 @@ describe("authentication & onboarding", () => {
     expect(row2!.referred_by).toBeNull();
   });
 
+  it("keeps an invite that arrived through the bot's /start until the first sign-in", async () => {
+    const host = await t.login(1010, "Hana");
+    const code = (await t.get<{ referralCode: string }>("/me", host.token)).body.referralCode;
+    const hook = (id: number, text: string) =>
+      t.post(
+        "/telegram/webhook",
+        { update_id: id, message: { chat: { id: 1011 }, from: { id: 1011 }, text } },
+        undefined,
+        {
+          "x-telegram-bot-api-secret-token": t.env.TELEGRAM_WEBHOOK_SECRET,
+        },
+      );
+    expect((await hook(1, `/start ref_${code}`)).status).toBe(200);
+    // The Mini App then opens from the bot's button, without a start parameter.
+    const guest = await t.login(1011, "Ivan");
+    const row = await t.db.one<{ referred_by: string }>("SELECT referred_by FROM users WHERE id = $1", [
+      guest.userId,
+    ]);
+    expect(row!.referred_by).toBe(host.userId);
+    expect(await t.db.query("SELECT 1 FROM pending_start_params WHERE telegram_id = 1011")).toHaveLength(0);
+    // Existing players are never re-assigned.
+    await hook(2, "/start ref_OTHER");
+    await t.login(1011, "Ivan");
+    const again = await t.db.one<{ referred_by: string }>("SELECT referred_by FROM users WHERE id = $1", [
+      guest.userId,
+    ]);
+    expect(again!.referred_by).toBe(host.userId);
+  });
+
   it("blocks suspended accounts immediately, even with a valid token", async () => {
     const { token, userId } = await t.login(1006, "Mallory");
     await t.db.query("UPDATE users SET status = 'SUSPENDED' WHERE id = $1", [userId]);

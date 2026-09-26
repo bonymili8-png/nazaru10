@@ -73,14 +73,15 @@
     "23.1.1-localisation-uk",
     "23.1.2-commentary-uk",
     "19.3.1-shared-rate-limits",
-    "22.1.2-stable-crest"
+    "22.1.2-stable-crest",
+    "19.2.2-referral-payout-sweep"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
   "failed_tasks": [],
   "test_status": {
     "engine": "58/58",
-    "api": "132/132 (+1 Redis test in CI)",
+    "api": "133/133 (+1 Redis test in CI)",
     "web": "Playwright E2E: 15 journeys (incl. Ukrainian UI) — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },

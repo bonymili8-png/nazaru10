@@ -41,9 +41,13 @@ grants for the app role in production; trigger blocks mutation).
   chargeback/refund history. Actions: throttle → hold rewards → manual review →
   suspend. Never auto-ban on a single signal.
 * **Referral abuse:** reward only after the referred user reaches first race + 24 h
-  account age; daily cap per referrer; clustered accounts excluded. *Implemented:* the check
-  re-runs on each settled race until the invitee is a day old; invitees that signed in from the
-  referrer's address never earn it; referrers with trust < 30 get no referrer reward.
+  account age; daily cap per referrer; clustered accounts excluded. *Implemented:* checked on
+  each settled race and by a background sweep (every 30 s, invitees up to 30 days old), so a
+  race on day one pays out once the invitee is a day old; invitees that signed in from the
+  referrer's address never earn it; referrers with trust < 30 get no referrer reward; a
+  referrer over the daily cap is paid on a later day. Invites that reach the bot's `/start`
+  are kept (7 days) and applied at the first sign-in. Owners see each invite's status
+  (`GET /me/referrals`).
 * **Implemented signals (every 10 min, idempotent flags, never auto-punish):** sign-in
   address clusters (≥ 3 accounts in 7 days; stored as a keyed HMAC of the IP, never the raw
   address), circular trades (A → B → A within 14 days), trade funnels (≥ 3 sales to one buyer in

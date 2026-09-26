@@ -722,7 +722,8 @@ export const en = {
   "profile.admin": "Admin console · {role}",
   "profile.language": "Language",
   "profile.invite": "Invite friends",
-  "profile.inviteText": "When a friend you invite runs their first race, you both get 500 credits.",
+  "profile.inviteText":
+    "Invite a friend with your link. Once they have run a race and their account is a day old, you both get 500 credits. Friends playing from your own network don't count.",
   "profile.copied": "Copied",
   "profile.copy": "Copy",
   "profile.shareText": "Join my racing stable on Thoroughline 🏇",
@@ -764,6 +765,13 @@ export const en = {
   "enum.CLOVER": "Clover",
   "enum.GEM": "Gem",
   "enum.LAUREL": "Laurel",
+  "ref.title": "Your invites",
+  "ref.none": "No friends have joined through your link yet.",
+  "ref.PAID": "Reward received",
+  "ref.WAITING_RACE": "Waiting for their first race",
+  "ref.WAITING_DAY": "Reward in {t}",
+  "ref.PROCESSING": "Reward on its way",
+  "ref.SAME_NETWORK": "Same network as you — no reward",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

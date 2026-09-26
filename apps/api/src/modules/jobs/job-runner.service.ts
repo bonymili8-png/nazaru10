@@ -11,6 +11,7 @@ import { NotificationsService } from "../notifications/notifications.service.js"
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
+import { ReferralsService } from "../users/referrals.service.js";
 
 /**
  * Background sweeps. Each step claims work with row locks (FOR UPDATE SKIP LOCKED) and is
@@ -34,6 +35,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly staff: StaffService,
     private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
+    private readonly referrals: ReferralsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
@@ -62,6 +64,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("staff-pool", () => this.staff.restock());
         await this.step("jockey-pool", () => this.staff.restockJockeys());
         await this.step("staff-salaries", () => this.staff.renewDue());
+        await this.step("referrals", () => this.referrals.sweep());
       }
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;

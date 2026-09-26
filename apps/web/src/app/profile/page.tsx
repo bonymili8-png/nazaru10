@@ -1,10 +1,10 @@
 "use client";
-import type { LedgerLineDto, UserDto, WalletDto } from "@thoroughline/contracts";
+import type { LedgerLineDto, ReferralDto, UserDto, WalletDto } from "@thoroughline/contracts";
 import { Copy, Languages, LifeBuoy, Share2, Shield, ShieldCheck, Shirt } from "lucide-react";
 import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { put } from "@/lib/api";
-import { errorMessage, fmt, has, titleCase } from "@/lib/format";
-import { invalidate, useApi } from "@/lib/hooks";
+import { countdown, errorMessage, fmt, has, titleCase } from "@/lib/format";
+import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { getLocale, LOCALES, t, useLocale } from "@/lib/i18n";
 import { appLink, shareToTelegram } from "@/lib/telegram";
 
@@ -129,6 +129,7 @@ export default function ProfilePage() {
             {t("profile.share")}
           </Button>
         </div>
+        <Referrals />
       </Card>
 
       <SectionTitle>{t("profile.history")}</SectionTitle>
@@ -173,3 +174,37 @@ const ledgerText = (l: LedgerLineDto) => {
   if (getLocale() !== "en" && has(k)) return t(k);
   return l.reason ?? (has(k) ? t(k) : titleCase(l.type));
 };
+
+function Referrals() {
+  const { data } = useApi<ReferralDto[]>("/me/referrals", { refreshMs: 60_000 });
+  const now = useNow(60_000);
+  if (!data) return null;
+  const tone: Record<ReferralDto["status"], string> = {
+    PAID: "text-good",
+    PROCESSING: "text-gold",
+    WAITING_DAY: "text-gold",
+    WAITING_RACE: "text-muted",
+    SAME_NETWORK: "text-bad",
+  };
+  return (
+    <div className="mt-4 border-t border-line/40 pt-3">
+      <p className="text-sm font-medium">{t("ref.title")}</p>
+      {data.length === 0 ? (
+        <p className="mt-1 text-sm text-muted">{t("ref.none")}</p>
+      ) : (
+        <ul className="mt-1 divide-y divide-line/30 text-sm">
+          {data.map((r) => (
+            <li key={`${r.name}${r.joinedAt}`} className="flex items-center justify-between gap-3 py-2">
+              <span className="truncate">{r.name}</span>
+              <span className={`shrink-0 text-right text-xs ${tone[r.status]}`}>
+                {r.status === "WAITING_DAY" && r.readyAt
+                  ? t("ref.WAITING_DAY", { t: countdown(r.readyAt, now) })
+                  : t(`ref.${r.status}`)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

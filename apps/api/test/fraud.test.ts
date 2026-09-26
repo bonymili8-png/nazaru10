@@ -1,7 +1,8 @@
-import type { HorseSummaryDto, RaceSummaryDto } from "@thoroughline/contracts";
+import type { HorseSummaryDto, RaceSummaryDto, ReferralDto } from "@thoroughline/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FraudService } from "../src/modules/fraud/fraud.service.js";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
+import { ReferralsService } from "../src/modules/users/referrals.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
 
 type User = { token: string; userId: string };
@@ -167,7 +168,17 @@ describe("referral rewards", () => {
     const referrerAfterFirst = await credits(referrer);
     expect(referrerAfterFirst).toBe(before);
 
-    // A later race, now older than a day: both sides are rewarded, once.
+    // Once the invitee is a day old the background sweep pays both sides — no second race needed.
+    expect(
+      t.clock.now().getTime() -
+        new Date((await t.get<{ createdAt: string }>("/me", young.token)).body.createdAt).getTime(),
+    ).toBeGreaterThan(DAY);
+    const statuses = (await t.get<ReferralDto[]>("/me/referrals", referrer.token)).body;
+    expect(statuses.find((r) => r.name === "Newbie")?.status).toBe("PROCESSING");
+    expect(await t.service(ReferralsService).sweep()).toBe(1);
+    expect(await t.service(ReferralsService).sweep()).toBe(0);
+    expect(await credits(referrer)).toBe(referrerAfterFirst + 500);
+    // Racing again pays nothing more.
     await raceOnce(young);
     expect(await credits(referrer)).toBe(referrerAfterFirst + 500);
     const tx = await t.db.query("SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1", [
@@ -182,7 +193,13 @@ describe("referral rewards", () => {
     ]);
     const hostBefore = await credits(referrer);
     await raceOnce(sameIp);
+    await t.service(ReferralsService).sweep();
     expect(await credits(referrer)).toBe(hostBefore);
+    const list = (await t.get<ReferralDto[]>("/me/referrals", referrer.token)).body;
+    expect(list.map((r) => [r.name, r.status])).toEqual([
+      ["Sock", "SAME_NETWORK"],
+      ["Newbie", "PAID"],
+    ]);
     const none = await t.db.query("SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1", [
       `referral:${sameIp.userId}:referee`,
     ]);

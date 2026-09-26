@@ -28,9 +28,9 @@ import { LedgerService } from "../economy/ledger.service.js";
 import type { HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
-import { FraudService } from "../fraud/fraud.service.js";
 import { PassService } from "../pass/pass.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
+import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
 import {
   CLASS_LABEL,
@@ -39,12 +39,6 @@ import {
   type RaceRow,
   type ResultRow,
 } from "./race.types.js";
-
-const REFERRAL_REWARD = 500;
-const REFERRAL_DAILY_CAP = 10;
-const REFERRAL_MIN_AGE_MS = 24 * 3_600_000;
-/** Referrers below this trust score do not earn referral rewards (the invitee still does). */
-const REFERRAL_MIN_TRUST = 30;
 
 /**
  * Server-authoritative race lifecycle: schedule → lock (fill field, gates, jockeys, snapshot)
@@ -62,7 +56,7 @@ export class RaceRunnerService {
     private readonly house: HouseService,
     private readonly quests: QuestsService,
     private readonly seasons: SeasonsService,
-    private readonly fraud: FraudService,
+    private readonly referrals: ReferralsService,
     private readonly pass: PassService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
@@ -609,7 +603,7 @@ export class RaceRunnerService {
         await this.quests.complete(c, owner, "FIRST_RACE", now);
         if (pos <= 3) await this.quests.complete(c, owner, "FIRST_PODIUM", now);
         if (pos === 1) await this.quests.complete(c, owner, "FIRST_WIN", now);
-        await this.referralReward(c, owner, now);
+        await this.referrals.rewardIfDue(c, owner, now);
         await this.events.emit(c, {
           type: "race_result",
           aggregateType: "race",
@@ -648,57 +642,6 @@ export class RaceRunnerService {
       });
       return true;
     });
-  }
-
-  /** Both referrer and referee earn a reward once the referee has run a race (anti-abuse: once, capped daily). */
-  private async referralReward(c: Queryable, userId: string, now: Date): Promise<void> {
-    const u = await row<{ referred_by: string | null; created_at: Date }>(
-      c,
-      "SELECT referred_by, created_at FROM users WHERE id = $1",
-      [userId],
-    );
-    if (!u?.referred_by) return;
-    // Anti-abuse: the invitee must be at least a day old (checked again on later races), and
-    // accounts that sign in from the referrer's address never earn the reward.
-    if (now.getTime() - u.created_at.getTime() < REFERRAL_MIN_AGE_MS) return;
-    if (await this.fraud.sharesIp(c, userId, u.referred_by)) return;
-    const already = await row<{ id: number }>(
-      c,
-      "SELECT id FROM ledger_transactions WHERE idempotency_key = $1",
-      [`referral:${userId}:referee`],
-    );
-    if (already) return;
-    const recent = await row<{ n: number }>(
-      c,
-      `SELECT count(*)::int AS n FROM ledger_transactions WHERE type = 'REFERRAL_REWARD' AND metadata->>'referrer' = $1 AND created_at > $2`,
-      [u.referred_by, new Date(now.getTime() - 86_400_000)],
-    );
-    const meta = { referrer: u.referred_by, referee: userId };
-    await this.ledger.credit(c, {
-      userId,
-      currency: "CREDITS",
-      amount: REFERRAL_REWARD,
-      source: "REFERRAL_REWARD",
-      key: `referral:${userId}:referee`,
-      type: "REFERRAL_REWARD_REFEREE",
-      reason: "Invited by a friend",
-      metadata: meta,
-    });
-    const trust = await row<{ trust_score: number }>(c, "SELECT trust_score FROM users WHERE id = $1", [
-      u.referred_by,
-    ]);
-    if (recent!.n < REFERRAL_DAILY_CAP && (trust?.trust_score ?? 0) >= REFERRAL_MIN_TRUST) {
-      await this.ledger.credit(c, {
-        userId: u.referred_by,
-        currency: "CREDITS",
-        amount: REFERRAL_REWARD,
-        source: "REFERRAL_REWARD",
-        key: `referral:${userId}:referrer`,
-        type: "REFERRAL_REWARD",
-        reason: "Your friend ran their first race",
-        metadata: meta,
-      });
-    }
   }
 
   /* ─────────────────────────────── cancel ─────────────────────────────── */

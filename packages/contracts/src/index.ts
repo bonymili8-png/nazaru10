@@ -346,6 +346,19 @@ export const UpdateSettingsRequest = z
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
+export interface ReferralDto {
+  /** The invitee's first name (nothing more is shared). */
+  name: string;
+  joinedAt: string;
+  /**
+   * PAID — both rewards credited; WAITING_RACE — they have not run a race yet;
+   * WAITING_DAY — raced, reward due once their account is a day old (readyAt);
+   * PROCESSING — due now, credited within minutes; SAME_NETWORK — plays from your network, never rewarded.
+   */
+  status: "PAID" | "WAITING_RACE" | "WAITING_DAY" | "PROCESSING" | "SAME_NETWORK";
+  readyAt: string | null;
+}
+
 export interface UserDto {
   id: string;
   firstName: string | null;

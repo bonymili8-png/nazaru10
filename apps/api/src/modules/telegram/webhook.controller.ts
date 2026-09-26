@@ -152,6 +152,14 @@ export class TelegramWebhookController implements OnApplicationBootstrap {
     const T = TEXT[lang];
     if (text.startsWith("/start")) {
       const param = text.split(/\s+/)[1] ?? "";
+      if (/^ref_[A-Za-z0-9]{1,16}$/.test(param) && msg.from) {
+        // Remember the invite until the first sign-in; an existing player keeps their referrer.
+        await this.db.query(
+          `INSERT INTO pending_start_params (telegram_id, param) VALUES ($1, $2)
+           ON CONFLICT (telegram_id) DO UPDATE SET param = EXCLUDED.param, created_at = now()`,
+          [msg.from.id, param],
+        );
+      }
       const url = this.env.WEBAPP_URL
         ? `${this.env.WEBAPP_URL}${param ? `?startapp=${encodeURIComponent(param)}` : ""}`
         : undefined;

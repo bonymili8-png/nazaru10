@@ -108,8 +108,15 @@ export class OnboardingService {
     now: Date,
   ) {
     const cfg = this.config.get();
-    if (startParam?.startsWith("ref_")) {
-      const code = startParam.slice(4, 20).toUpperCase();
+    // An invite that reached the bot's /start (within a week) counts as if it came with the app link.
+    const pending = await row<{ param: string; fresh: boolean }>(
+      c,
+      "DELETE FROM pending_start_params WHERE telegram_id = $1 RETURNING param, created_at > $2 AS fresh",
+      [p.telegramId, new Date(now.getTime() - 7 * 86_400_000)],
+    );
+    const invite = startParam?.startsWith("ref_") ? startParam : pending?.fresh ? pending.param : null;
+    if (invite) {
+      const code = invite.slice(4, 20).toUpperCase();
       await c.query(
         "UPDATE users SET referred_by = (SELECT id FROM users WHERE referral_code = $2 AND id <> $1 AND status = 'ACTIVE') WHERE id = $1",
         [user.id, code],

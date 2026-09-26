@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put } from "@nestjs/common";
-import { type HomeDto, UpdateSettingsRequest, type UserDto } from "@thoroughline/contracts";
+import { type HomeDto, type ReferralDto, UpdateSettingsRequest, type UserDto } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
@@ -14,6 +14,7 @@ import { RacesService } from "../races/races.service.js";
 import { StableService } from "../stable/stable.service.js";
 import { TrainingService } from "../training/training.service.js";
 import type { UserRow } from "./onboarding.service.js";
+import { ReferralsService } from "./referrals.service.js";
 
 @Controller()
 export class MeController {
@@ -26,6 +27,7 @@ export class MeController {
     private readonly races: RacesService,
     private readonly quests: QuestsService,
     private readonly clock: Clock,
+    private readonly referrals: ReferralsService,
   ) {}
 
   private async user(id: string): Promise<UserDto> {
@@ -37,6 +39,12 @@ export class MeController {
   @Get("me")
   me(@CurrentUser() user: AuthUser): Promise<UserDto> {
     return this.user(user.id);
+  }
+
+  /** Friends this player invited and the state of each invite reward. */
+  @Get("me/referrals")
+  myReferrals(@CurrentUser() user: AuthUser): Promise<ReferralDto[]> {
+    return this.referrals.list(user.id);
   }
 
   /** Personal preferences (language, notifications). A null locale means "follow Telegram". */

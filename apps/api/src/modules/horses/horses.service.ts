@@ -103,6 +103,7 @@ export class HorsesService {
       ownerId: h.owner_id,
       ownerName,
       isHouse: h.is_house,
+      cloth: h.is_house ? null : h.cloth,
     };
   }
 

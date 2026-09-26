@@ -1,6 +1,10 @@
 "use client";
 import {
+  type CosmeticsDto,
   type HorseDetailDto,
+  type SaddleCloth as Cloth,
+  SILK_COLORS,
+  type SilkColor,
   type PedigreeNodeDto,
   type StaffDto,
   type TrainingSessionDto,
@@ -9,11 +13,23 @@ import {
   type TrainingType,
 } from "@thoroughline/contracts";
 import { bestTrainerFor, defaultConfig, trainingCost, trainingDurationMinutes } from "@thoroughline/engine";
-import { Activity, Dna, HeartHandshake, HeartPulse, Microscope, Stethoscope, Tag, Timer } from "lucide-react";
+import {
+  Activity,
+  Dna,
+  Gem,
+  HeartHandshake,
+  HeartPulse,
+  Lock,
+  Microscope,
+  Stethoscope,
+  Tag,
+  Timer,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { coatColor } from "@/components/HorseCard";
+import { SaddleCloth } from "@/components/SaddleCloth";
 import {
   Badge,
   Button,
@@ -25,7 +41,7 @@ import {
   Stars,
   useToast,
 } from "@/components/ui";
-import { del, post } from "@/lib/api";
+import { del, post, put } from "@/lib/api";
 import {
   ATTRIBUTE_LABELS,
   countdown,
@@ -211,6 +227,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
         {p.diagnostics && <p className="mt-2 text-xs text-muted">{t("horse.ceilingHint")}</p>}
       </Card>
 
+      <ClothEditor h={h} />
       <Sell h={h} />
       <Breeding h={h} />
 
@@ -711,6 +728,120 @@ function Breeding({ h }: { h: HorseDetailDto }) {
             </div>
           </>
         )}
+      </Card>
+    </>
+  );
+}
+
+const CLOTH_COLORS = Object.keys(SILK_COLORS) as SilkColor[];
+const DEFAULT_CLOTH: Cloth = { pattern: "PLAIN", color: "navy", trim: "white" };
+
+function ClothEditor({ h }: { h: HorseDetailDto }) {
+  const cosmetics = useApi<CosmeticsDto>("/cosmetics");
+  const [draft, setDraft] = useState<Cloth | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const toast = useToast();
+  const data = cosmetics.data;
+  if (!data) return null;
+  const saved = h.cloth ?? DEFAULT_CLOTH;
+  const cloth = draft ?? saved;
+  const changed = JSON.stringify(cloth) !== JSON.stringify(h.cloth);
+
+  const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
+    setBusy(key);
+    try {
+      await fn();
+      haptic.success();
+      toast(ok);
+      return true;
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  };
+  const choose = async (p: CosmeticsDto["clothPatterns"][number]) => {
+    if (p.owned) return setDraft({ ...cloth, pattern: p.pattern });
+    if (!window.confirm(t("cloth.confirmUnlock", { name: titleCase(p.pattern), n: p.priceGems }))) return;
+    const ok = await run(
+      p.pattern,
+      () => post(`/cosmetics/cloth/patterns/${p.pattern}/unlock`),
+      t("silks.unlocked", { name: titleCase(p.pattern) }),
+    );
+    if (ok) {
+      setDraft({ ...cloth, pattern: p.pattern });
+      invalidate("/cosmetics", "/wallet");
+    }
+  };
+  const swatches = (slot: "color" | "trim", label: string) => (
+    <div className="mt-3">
+      <p className="text-xs text-muted">{label}</p>
+      <div className="mt-1 grid grid-cols-6 gap-2" role="radiogroup" aria-label={label}>
+        {CLOTH_COLORS.map((c) => (
+          <button
+            key={c}
+            role="radio"
+            aria-checked={cloth[slot] === c}
+            aria-label={titleCase(c)}
+            disabled={c === (slot === "color" ? cloth.trim : cloth.color)}
+            onClick={() => setDraft({ ...cloth, [slot]: c })}
+            className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 disabled:cursor-not-allowed disabled:opacity-30 ${cloth[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
+            style={{ background: SILK_COLORS[c] }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <SectionTitle>{t("cloth.title")}</SectionTitle>
+      <Card>
+        <div className="flex items-center gap-4">
+          <SaddleCloth cloth={cloth} width={84} label={h.name.charAt(0)} title={t("cloth.title")} />
+          <p className="text-sm text-muted">{t("cloth.hint")}</p>
+        </div>
+        <p className="mt-3 text-xs text-muted">{t("cloth.pattern")}</p>
+        <div className="mt-1 grid grid-cols-4 gap-2" role="radiogroup" aria-label={t("cloth.pattern")}>
+          {data.clothPatterns.map((p) => (
+            <button
+              key={p.pattern}
+              role="radio"
+              aria-checked={cloth.pattern === p.pattern}
+              disabled={busy !== null}
+              onClick={() => void choose(p)}
+              className={`flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border p-1.5 ${cloth.pattern === p.pattern ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
+            >
+              <SaddleCloth cloth={{ ...cloth, pattern: p.pattern }} width={40} />
+              <span className="text-[11px] font-medium">{titleCase(p.pattern)}</span>
+              {!p.owned && (
+                <span className="num flex items-center gap-0.5 text-[11px] text-gold">
+                  <Lock className="size-3" aria-hidden />
+                  {p.priceGems}
+                  <Gem className="size-3" aria-hidden />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {swatches("color", t("cloth.colour"))}
+        {swatches("trim", t("cloth.trim"))}
+        <Button
+          className="mt-4 w-full"
+          variant="secondary"
+          disabled={!changed}
+          loading={busy === "save"}
+          onClick={async () => {
+            if (await run("save", () => put(`/cosmetics/horses/${h.id}/cloth`, cloth), t("cloth.saved"))) {
+              setDraft(null);
+              invalidate(`/horses/${h.id}`, "/horses", "/home");
+            }
+          }}
+        >
+          {t("cloth.save")}
+        </Button>
       </Card>
     </>
   );

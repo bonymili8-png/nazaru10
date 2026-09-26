@@ -1,10 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import {
+  CLOTH_PATTERNS,
+  type ClothPattern,
   type CosmeticsDto,
   CREST_ICONS,
   type Crest,
   type CrestIcon,
   SILK_PATTERNS,
+  type SaddleCloth,
   type SilkPattern,
   type Silks,
 } from "@thoroughline/contracts";
@@ -17,6 +20,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 
 export const silkItem = (p: SilkPattern | string) => `silk:${p}`;
 export const crestItem = (i: CrestIcon | string) => `crest:${i}`;
+export const clothItem = (p: ClothPattern | string) => `cloth:${p}`;
 
 /**
  * Cosmetics are the main gem sink: they change how a stable looks (racing silks on race cards and
@@ -38,6 +42,10 @@ export class CosmeticsService {
 
   private crestPrice(i: CrestIcon): number {
     return this.config.get().cosmetics.crestIconPrices[i] ?? 0;
+  }
+
+  private clothPrice(p: ClothPattern): number {
+    return this.config.get().cosmetics.clothPatternPrices[p] ?? 0;
   }
 
   async view(userId: string): Promise<CosmeticsDto> {
@@ -64,6 +72,10 @@ export class CosmeticsService {
       crestIcons: CREST_ICONS.map((icon) => {
         const price = this.crestPrice(icon);
         return { icon, priceGems: price, owned: price <= 0 || have.has(crestItem(icon)) };
+      }),
+      clothPatterns: CLOTH_PATTERNS.map((pattern) => {
+        const price = this.clothPrice(pattern);
+        return { pattern, priceGems: price, owned: price <= 0 || have.has(clothItem(pattern)) };
       }),
       gems: balances.GEMS,
     };
@@ -113,6 +125,32 @@ export class CosmeticsService {
       JSON.stringify({ shape: crest.shape, icon: crest.icon, field: crest.field, charge: crest.charge }),
     ]);
     return this.view(userId);
+  }
+
+  async unlockClothPattern(userId: string, pattern: ClothPattern): Promise<CosmeticsDto> {
+    const price = this.clothPrice(pattern);
+    if (price > 0)
+      await this.buy(userId, clothItem(pattern), price, `Saddle cloth — ${pattern.toLowerCase()}`);
+    return this.view(userId);
+  }
+
+  /** Dress one of the owner's horses in a saddle cloth (pattern must be unlocked). */
+  async setCloth(userId: string, horseId: string, cloth: SaddleCloth): Promise<SaddleCloth> {
+    if (this.clothPrice(cloth.pattern) > 0) {
+      const owned = await row<{ item: string }>(
+        this.db.pool,
+        "SELECT item FROM owned_cosmetics WHERE user_id = $1 AND item = $2",
+        [userId, clothItem(cloth.pattern)],
+      );
+      if (!owned) throw conflict("NOT_OWNED", "Unlock this pattern first");
+    }
+    const value = { pattern: cloth.pattern, color: cloth.color, trim: cloth.trim };
+    const r = await this.db.query(
+      "UPDATE horses SET cloth = $3 WHERE id = $1 AND owner_id = $2 AND retired_at IS NULL RETURNING id",
+      [horseId, userId, JSON.stringify(value)],
+    );
+    if (r.length === 0) throw notFound("Horse");
+    return value;
   }
 
   /** Pay gems for a cosmetic item exactly once (the ownership row and the debit commit together). */

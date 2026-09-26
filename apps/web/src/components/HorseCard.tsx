@@ -2,6 +2,7 @@ import type { HorseSummaryDto } from "@thoroughline/contracts";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { fmt, titleCase } from "@/lib/format";
+import { SaddleCloth } from "./SaddleCloth";
 import { Badge } from "./ui";
 import { t } from "@/lib/i18n";
 
@@ -48,12 +49,19 @@ export function HorseCard({
 }) {
   const body = (
     <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-line/60 bg-surface p-3.5 transition-colors hover:border-gold/40">
-      <div
-        className="grid size-12 shrink-0 place-items-center rounded-full border-2 border-gold/60 font-display text-lg font-bold text-ink"
-        style={{ background: coatColor(horse.coat) }}
-        aria-hidden
-      >
-        {horse.name.charAt(0)}
+      <div className="relative shrink-0">
+        <div
+          className="grid size-12 place-items-center rounded-full border-2 border-gold/60 font-display text-lg font-bold text-ink"
+          style={{ background: coatColor(horse.coat) }}
+          aria-hidden
+        >
+          {horse.name.charAt(0)}
+        </div>
+        {horse.cloth && (
+          <span className="absolute -bottom-1 -right-2">
+            <SaddleCloth cloth={horse.cloth} width={26} />
+          </span>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{horse.name}</p>

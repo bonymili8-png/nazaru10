@@ -146,3 +146,70 @@ describe("cosmetics — stable crest", () => {
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
 });
+
+describe("cosmetics — saddle cloths", () => {
+  let t: TestApp;
+  let owner: { token: string; userId: string };
+  let other: { token: string; userId: string };
+  const stripe = defaultConfig.cosmetics.clothPatternPrices.STRIPE!;
+
+  beforeAll(async () => {
+    t = await createTestApp();
+    owner = await t.login(9991, "Tailor");
+    other = await t.login(9992, "Rival");
+  });
+  afterAll(() => t.close());
+
+  it("dresses the owner's horse (plain is free) and shows it on the horse and race card", async () => {
+    const horse = (await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!;
+    expect(horse.cloth).toBeNull();
+    const cloth = { pattern: "PLAIN", color: "royal", trim: "gold" } as const;
+    const r = await t.put(`/cosmetics/horses/${horse.id}/cloth`, cloth, owner.token);
+    expect(r.status).toBe(200);
+    expect((await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!.cloth).toEqual(cloth);
+
+    const runner = t.service(RaceRunnerService);
+    await runner.scheduleAhead();
+    const race = (await t.get<RaceSummaryDto[]>("/races?status=upcoming&class=MAIDEN", owner.token)).body[0]!;
+    await t.post(`/races/${race.id}/entries`, { horseId: horse.id, strategy: "MID_PACK" }, owner.token);
+    const detail = (await t.get<RaceDetailDto>(`/races/${race.id}`, other.token)).body;
+    expect(detail.entryList.find((e) => e.horseId === horse.id)?.cloth).toEqual(cloth);
+  });
+
+  it("refuses other owners' horses, locked patterns and matching colours", async () => {
+    const horse = (await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!;
+    const put = (body: unknown, token = owner.token) =>
+      t.put(`/cosmetics/horses/${horse.id}/cloth`, body, token);
+    expect((await put({ pattern: "PLAIN", color: "pink", trim: "white" }, other.token)).status).toBe(404);
+    expect((await put({ pattern: "STRIPE", color: "pink", trim: "white" })).status).toBe(409);
+    expect((await put({ pattern: "PLAIN", color: "pink", trim: "pink" })).status).toBe(400);
+    expect((await t.put(`/cosmetics/horses/not-a-uuid/cloth`, {}, owner.token)).status).toBe(400);
+  });
+
+  it("unlocks a pattern once for the whole stable", async () => {
+    await t.db.tx((c) =>
+      t.service(LedgerService).credit(c, {
+        userId: owner.userId,
+        currency: "GEMS",
+        amount: 100,
+        source: "ADMIN_ADJUSTMENT",
+        key: "test:gems:tailor",
+        type: "ADMIN_ADJUSTMENT",
+      }),
+    );
+    const r = await t.post<CosmeticsDto>("/cosmetics/cloth/patterns/STRIPE/unlock", {}, owner.token);
+    expect(r.status).toBe(201);
+    expect(r.body.gems).toBe(100 - stripe);
+    expect(r.body.clothPatterns.find((p) => p.pattern === "STRIPE")?.owned).toBe(true);
+    expect((await t.post("/cosmetics/cloth/patterns/STRIPE/unlock", {}, owner.token)).status).toBe(409);
+    const horse = (await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!;
+    const ok = await t.put(
+      `/cosmetics/horses/${horse.id}/cloth`,
+      { pattern: "STRIPE", color: "emerald", trim: "white" },
+      owner.token,
+    );
+    expect(ok.status).toBe(200);
+  });
+
+  it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
+});

@@ -189,6 +189,9 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 * Stable crest (shown beside the stable name on Home and in owner rankings): shapes and colours
   free; emblems Horseshoe, Star, Crescent free; Crown 60, Lightning 80, Clover 100, Gem 120,
   Laurel 150 gems (config `cosmetics.crestIconPrices`). Item key `crest:<icon>`.
+* Saddle cloths (per horse; on its card and as the ring of its race marker): colours free;
+  patterns Plain free, Stripe 40, Check 60, Stars 90 gems — unlocked once for the whole stable
+  (config `cosmetics.clothPatternPrices`, item key `cloth:<pattern>`).
 * Sink `COSMETICS`; unlocks are idempotent per owner and item (`cosmetic:<user>:silk:<pattern>`).
 
 ## Racing Pass (live)

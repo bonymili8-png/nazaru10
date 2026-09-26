@@ -1,5 +1,5 @@
 "use client";
-import type { LiveRaceDto, RaceDetailDto } from "@thoroughline/contracts";
+import { type LiveRaceDto, type RaceDetailDto, SILK_COLORS } from "@thoroughline/contracts";
 import { trackByCode } from "@thoroughline/engine";
 import { Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -208,14 +208,18 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
                 ) : (
                   <circle cx={p.x} cy={p.y} r={14} fill={SILKS[i % SILKS.length]} />
                 )}
+                {/* Ring in the horse's saddle-cloth colour; the viewer's runners get an extra white halo. */}
                 <circle
                   cx={p.x}
                   cy={p.y}
                   r={e?.mine ? 17 : 14}
                   fill="none"
-                  stroke={e?.mine ? "#fafaf9" : "#0c0a09"}
-                  strokeWidth={e?.mine ? 5 : 2.5}
+                  stroke={e?.cloth ? SILK_COLORS[e.cloth.color] : e?.mine ? "#fafaf9" : "#0c0a09"}
+                  strokeWidth={e?.cloth ? 4.5 : e?.mine ? 5 : 2.5}
                 />
+                {e?.mine && e.cloth && (
+                  <circle cx={p.x} cy={p.y} r={21} fill="none" stroke="#fafaf9" strokeWidth={2.5} />
+                )}
                 {!e?.silks && (
                   <text x={p.x} y={p.y + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0c0a09">
                     {e?.gate ?? i + 1}

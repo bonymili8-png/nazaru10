@@ -1,7 +1,10 @@
-import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put } from "@nestjs/common";
 import {
+  ClothPatternParam,
   type CosmeticsDto,
+  type SaddleCloth,
   CrestIconParam,
+  SetClothRequest,
   SetCrestRequest,
   SetSilksRequest,
   SilkPatternParam,
@@ -32,6 +35,20 @@ export class CosmeticsController {
   @Post("crest/icons/:icon/unlock")
   unlockCrest(@CurrentUser() user: AuthUser, @Param("icon") icon: string): Promise<CosmeticsDto> {
     return this.cosmetics.unlockCrestIcon(user.id, parse(CrestIconParam, icon));
+  }
+
+  @Post("cloth/patterns/:pattern/unlock")
+  unlockCloth(@CurrentUser() user: AuthUser, @Param("pattern") pattern: string): Promise<CosmeticsDto> {
+    return this.cosmetics.unlockClothPattern(user.id, parse(ClothPatternParam, pattern));
+  }
+
+  @Put("horses/:id/cloth")
+  setCloth(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<SaddleCloth> {
+    return this.cosmetics.setCloth(user.id, id, parse(SetClothRequest, body));
   }
 
   @Put("crest")

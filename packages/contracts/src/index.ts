@@ -272,12 +272,34 @@ export type SetCrestRequest = z.infer<typeof SetCrestRequest>;
 
 export const CrestIconParam = z.enum(CREST_ICONS);
 
+/** Saddle cloth: a per-horse colour scheme shown on its card and around its marker in races. */
+export const CLOTH_PATTERNS = ["PLAIN", "STRIPE", "CHECK", "STARS"] as const;
+export type ClothPattern = (typeof CLOTH_PATTERNS)[number];
+
+export interface SaddleCloth {
+  pattern: ClothPattern;
+  color: SilkColor;
+  trim: SilkColor;
+}
+
+export const SetClothRequest = z
+  .object({
+    pattern: z.enum(CLOTH_PATTERNS),
+    color: z.enum(SILK_COLOR_NAMES),
+    trim: z.enum(SILK_COLOR_NAMES),
+  })
+  .refine((c) => c.color !== c.trim, "Cloth and trim colours must differ");
+export type SetClothRequest = z.infer<typeof SetClothRequest>;
+
+export const ClothPatternParam = z.enum(CLOTH_PATTERNS);
+
 export interface CosmeticsDto {
   silks: Silks;
   /** priceGems is null for Racing Pass exclusives (earned, never sold). */
   patterns: { pattern: SilkPattern; priceGems: number | null; owned: boolean }[];
   crest: Crest;
   crestIcons: { icon: CrestIcon; priceGems: number; owned: boolean }[];
+  clothPatterns: { pattern: ClothPattern; priceGems: number; owned: boolean }[];
   gems: number;
 }
 
@@ -515,6 +537,8 @@ export interface HorseSummaryDto {
   ownerId: string | null;
   ownerName: string | null;
   isHouse: boolean;
+  /** Owner-chosen saddle cloth; null = the default (house horses always null). */
+  cloth: SaddleCloth | null;
 }
 
 export interface HorseDetailDto extends HorseSummaryDto {
@@ -560,6 +584,8 @@ export interface RaceEntryDto {
   mine: boolean;
   /** Owner's racing silks (null for house horses). */
   silks: Silks | null;
+  /** The horse's saddle cloth, if its owner set one. */
+  cloth: SaddleCloth | null;
 }
 
 export type RaceStatus = "OPEN" | "LOCKED" | "RUNNING" | "COMPLETED" | "CANCELLED";

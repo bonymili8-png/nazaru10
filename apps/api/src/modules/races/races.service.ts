@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type {
   LiveRaceDto,
+  SaddleCloth,
   Silks,
   RaceDetailDto,
   RaceEntryDto,
@@ -20,6 +21,7 @@ import type { EntryRow, RaceRow, ResultRow } from "./race.types.js";
 
 type EntryViewRow = EntryRow & {
   silks: Silks | null;
+  cloth: SaddleCloth | null;
   horse_name: string;
   owner_name: string | null;
   ability_rating: number;
@@ -216,7 +218,7 @@ export class RacesService {
   private async entryViews(c: Queryable, raceId: string): Promise<EntryViewRow[]> {
     return rows<EntryViewRow>(
       c,
-      `SELECT e.*, h.name AS horse_name, h.ability_rating, h.race_rating, j.name AS jockey_name,
+      `SELECT e.*, h.name AS horse_name, h.ability_rating, h.race_rating, h.cloth, j.name AS jockey_name,
               COALESCE(u.username, u.first_name) AS owner_name, st.silks
          FROM race_entries e
          JOIN horses h ON h.id = e.horse_id
@@ -248,6 +250,7 @@ export class RacesService {
       prize: reveal ? e.prize : null,
       mine,
       silks: e.is_house ? null : e.silks,
+      cloth: e.is_house ? null : e.cloth,
     };
   }
 

@@ -184,6 +184,8 @@ export interface GameConfig {
     silkPatternPrices: Record<string, number>;
     /** Gem price to unlock each stable-crest emblem (0 = free). Shapes and colours are free. */
     crestIconPrices: Record<string, number>;
+    /** Gem price to unlock each saddle-cloth pattern for the whole stable (0 = free). */
+    clothPatternPrices: Record<string, number>;
   };
   /** Racing Pass: seasonal track of cosmetic/gem rewards earned by playing (never credits or power). */
   pass: {
@@ -552,6 +554,7 @@ export const defaultConfig: GameConfig = {
       GEM: 120,
       LAUREL: 150,
     },
+    clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
   },
   pass: {
     tiers: 20,

@@ -1,3 +1,4 @@
+import type { SaddleCloth } from "@thoroughline/contracts";
 import type { Attributes, Genome, HorseStatus, Rarity, Sex } from "@thoroughline/engine";
 import { type Queryable, row, rows } from "../../common/db.js";
 import { notFound } from "../../common/errors.js";
@@ -36,6 +37,7 @@ export interface HorseRow {
   diagnosed_at: Date | null;
   created_at: Date;
   retired_at: Date | null;
+  cloth: SaddleCloth | null;
 }
 
 export interface NewHorse {

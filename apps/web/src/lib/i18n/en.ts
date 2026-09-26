@@ -781,6 +781,17 @@ export const en = {
   "live.start": "Start",
   "live.finish": "Finish",
   "live.startFinish": "Start / Finish",
+  "cloth.title": "Saddle cloth",
+  "cloth.hint": "Shown on this horse's card and around its marker in races. Purely cosmetic.",
+  "cloth.pattern": "Cloth pattern",
+  "cloth.colour": "Cloth colour",
+  "cloth.trim": "Trim colour",
+  "cloth.save": "Save cloth",
+  "cloth.saved": "Saddle cloth saved",
+  "cloth.confirmUnlock": "Unlock the {name} pattern for all your horses for {n} gems?",
+  "enum.PLAIN": "Plain",
+  "enum.STRIPE": "Stripe",
+  "enum.STARS": "Stars",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

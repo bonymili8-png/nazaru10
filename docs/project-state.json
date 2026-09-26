@@ -71,7 +71,8 @@
     "22.2.1-racing-pass",
     "20.4.1-tournaments-in-economy-sim",
     "23.1.1-localisation-uk",
-    "23.1.2-commentary-uk"
+    "23.1.2-commentary-uk",
+    "19.3.1-shared-rate-limits"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
@@ -86,8 +87,7 @@
   "performance_status": "1150 req/s single node, p95 89ms (docs/07)",
   "known_bugs": [],
   "technical_debt": [
-    "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "More cosmetics (horse coats, stable themes); Redis rate limiter before scaling out; remove the blocked 15.x once validated on real clients"
+  "next_action": "More cosmetics (horse coats, stable themes); set REDIS_URL when running more than one API replica; remove the blocked 15.x once validated on real clients"
 }

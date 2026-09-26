@@ -13,7 +13,7 @@
 | Currency integrity | Single ledger writer; balanced-transaction trigger; non-negative wallets (app + CHECK); idempotency keys; concurrency tests (50 parallel debits) | ✅ |
 | Race integrity | Server-only simulation; commit–reveal seed; results released on the broadcast clock (no spoilers via API); lifecycle steps idempotent | ✅ |
 | Payments | Webhook secret header (constant-time); order/user/amount/currency matched; charge-id uniqueness; client callback never credits; refunds audited | ✅ |
-| Rate limiting | Token buckets per user/IP; **fixed:** X-Forwarded-For was trusted unconditionally (spoofable IPs bypassed auth limits) → now `TRUST_PROXY_HOPS` (default 0), regression-tested | ✅ fixed |
+| Rate limiting | Token buckets per user/IP; **fixed:** X-Forwarded-For was trusted unconditionally (spoofable IPs bypassed auth limits) → now `TRUST_PROXY_HOPS` (default 0), regression-tested. Buckets live in Redis when `REDIS_URL` is set (atomic script on Redis' clock, shared by all replicas; per-replica memory fallback if Redis is unreachable) | ✅ fixed |
 | Append-only data | Ledger, audit log, ownership history protected by triggers; genome immutable | ✅ |
 | Output encoding | React escaping, no `dangerouslySetInnerHTML`; bot messages HTML-escaped (tested) | ✅ |
 | Headers | nosniff, no-referrer, frame DENY, no-store on API; CORS allow-list (default deny) | ✅ |

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../src/config/env.js";
 import { type InitDataError, signInitData, verifyInitData } from "../src/modules/auth/telegram-init-data.js";
-import { RateLimitGuard } from "../src/common/rate-limit.js";
-import { Reflector } from "@nestjs/core";
+import { createLogger } from "../src/common/logger.js";
+import { MemoryRateStore, RedisRateStore } from "../src/common/rate-limit.js";
 
 const TOKEN = "123456:ABCDEF";
 const now = new Date("2026-09-01T12:00:00Z");
@@ -76,12 +76,47 @@ describe("environment validation", () => {
 
 describe("rate limiter", () => {
   it("allows the burst capacity then refills over time", () => {
-    const g = new RateLimitGuard(new Reflector(), loadEnv());
+    const s = new MemoryRateStore();
     const limit = { capacity: 3, perMinute: 60 };
     const t0 = 1_000_000;
-    expect([1, 2, 3, 4].map(() => g.take("k", limit, t0))).toEqual([true, true, true, false]);
-    expect(g.take("k", limit, t0 + 1000)).toBe(true);
-    expect(g.take("other", limit, t0)).toBe(true);
+    expect([1, 2, 3, 4].map(() => s.takeAt("k", limit, t0))).toEqual([true, true, true, false]);
+    expect(s.takeAt("k", limit, t0 + 1000)).toBe(true);
+    expect(s.takeAt("other", limit, t0)).toBe(true);
+  });
+
+  const redisUrl = process.env.TEST_REDIS_URL;
+  it.skipIf(!redisUrl)("shares one budget across replicas through Redis", async () => {
+    const logger = createLogger("silent");
+    const prefix = `rl-test-${Date.now()}:`;
+    const a = new RedisRateStore(redisUrl!, new MemoryRateStore(), logger, prefix);
+    const b = new RedisRateStore(redisUrl!, new MemoryRateStore(), logger, prefix);
+    const limit = { capacity: 3, perMinute: 6000 };
+    try {
+      // Two "replicas" draw from the same bucket.
+      const takes = [await a.take("k", limit), await b.take("k", limit), await a.take("k", limit)];
+      expect(takes).toEqual([true, true, true]);
+      expect(await b.take("k", limit)).toBe(false);
+      // 6000/min refills a token every 10 ms.
+      await new Promise((r) => setTimeout(r, 30));
+      expect(await a.take("k", limit)).toBe(true);
+    } finally {
+      await a.close();
+      await b.close();
+    }
+  });
+
+  it("keeps limiting in memory when Redis is unreachable", async () => {
+    const s = new RedisRateStore("redis://127.0.0.1:1", new MemoryRateStore(), createLogger("silent"));
+    const limit = { capacity: 2, perMinute: 1 };
+    try {
+      expect([await s.take("k", limit), await s.take("k", limit), await s.take("k", limit)]).toEqual([
+        true,
+        true,
+        false,
+      ]);
+    } finally {
+      await s.close();
+    }
   });
 });
 

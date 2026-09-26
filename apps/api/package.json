@@ -19,6 +19,7 @@
     "@thoroughline/contracts": "workspace:*",
     "@thoroughline/engine": "workspace:*",
     "fastify": "5.11.3",
+    "ioredis": "^5.11.1",
     "jose": "^6.2.12",
     "pg": "^8.23.0",
     "pino": "^9.14.0",

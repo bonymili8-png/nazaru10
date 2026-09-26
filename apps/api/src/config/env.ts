@@ -45,6 +45,11 @@ const EnvSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     /** Multiplies every rate-limit bucket (1 in production; raised for E2E runs from one IP). */
     RATE_LIMIT_SCALE: z.coerce.number().min(1).max(100).default(1),
+    /**
+     * Shared rate-limit store for several API replicas (e.g. redis://…). Empty = per-process
+     * memory, which is correct for a single replica.
+     */
+    REDIS_URL: z.union([z.literal(""), z.string().url()]).default(""),
     JOB_RUNNER: bool,
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   })

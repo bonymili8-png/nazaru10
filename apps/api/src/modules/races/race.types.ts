@@ -12,6 +12,7 @@ import type {
   Weather,
   Wetness,
 } from "@thoroughline/engine";
+import type { LiveRaceDto } from "@thoroughline/contracts";
 
 export interface RaceRow {
   id: string;
@@ -83,7 +84,7 @@ export interface ResultRow {
   race_id: string;
   results: RaceResultRow[];
   events: RaceEvent[];
-  commentary: { t: number; text: string }[];
+  commentary: LiveRaceDto["commentary"];
   frames: RaceFrames;
   winning_time: number;
 }

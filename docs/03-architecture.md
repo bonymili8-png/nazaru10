@@ -178,4 +178,7 @@ through `LedgerService.post`; every critical mutation is transactional and idemp
   error codes are translated on the client (`error.<CODE>`, falling back to the server message);
   quest and product texts are translated by code with the server text as fallback. Bot replies,
   the command menu and notifications are localised server-side (`apps/api/src/common/i18n.ts`).
-  The admin console stays English. Race commentary is still generated in English.
+  Race commentary lines carry a template key and values (`LEAD_CHANGE.1`, names, raw
+  numbers); the engine holds English and Ukrainian templates side by side (tests keep them
+  aligned) and the client re-renders each line in the player's language; older races fall back
+  to the stored English text. The admin console stays English.

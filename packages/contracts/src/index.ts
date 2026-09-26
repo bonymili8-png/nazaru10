@@ -539,7 +539,13 @@ export interface LiveRaceDto {
   duration: number | null;
   distance: number;
   frames: { interval: number; ids: string[]; data: [number, number, number, number][][] } | null;
-  commentary: { t: number; text: string }[];
+  /** `key`/`vars` are absent on races run before commentary became translatable. */
+  commentary: {
+    t: number;
+    text: string;
+    key?: string;
+    vars?: { h: string; o1: string; o2: string; v?: number };
+  }[];
   events: { t: number; type: RaceEventType; horseId?: string }[];
   results: RaceEntryDto[] | null;
 }
@@ -775,6 +781,7 @@ export type {
   Aptitudes,
   HorseStatus,
   RaceClass,
+  RaceEventType,
   Rarity,
   Sex,
   Strategy,

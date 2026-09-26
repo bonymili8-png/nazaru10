@@ -3,8 +3,17 @@ import type { RaceEvent } from "./simulate.js";
 
 export interface CommentaryLine {
   t: number;
+  /** English text (also the fallback for clients without a translation). */
   text: string;
+  /** Template id, `<EVENT_TYPE>.<index>`, so clients can render the same line in their language. */
+  key: string;
+  /** Template values: horse names, and `v` as a raw number (a position or a margin in lengths). */
+  vars: { h: string; o1: string; o2: string; v?: number };
 }
+
+/** Number of template variants per event type (clients keep translations index-aligned). */
+export const COMMENTARY_VARIANTS = (type: RaceEvent["type"], lang: CommentaryLang = "en"): number =>
+  TEMPLATES[lang][type].length;
 
 const T: Record<RaceEvent["type"], readonly string[]> = {
   GOOD_BREAK: ["{h} breaks sharply from the gates!", "A lightning start from {h}!", "{h} is quickest away."],
@@ -41,6 +50,52 @@ const T: Record<RaceEvent["type"], readonly string[]> = {
   ],
 };
 
+/** Ukrainian templates, index-aligned with the English ones above (enforced by tests). */
+const UK: Record<RaceEvent["type"], readonly string[]> = {
+  GOOD_BREAK: [
+    "{h} блискавично вилітає зі стартових боксів!",
+    "Блискавичний старт у {h}!",
+    "{h} стартує найшвидше.",
+  ],
+  SLOW_START: [
+    "{h} повільно стартує — це може дорого коштувати.",
+    "Проблеми на старті в {h} — старт пропущено.",
+  ],
+  LEAD_CHANGE: [
+    "{h} виходить уперед!",
+    "Зміна лідера — тепер попереду {h}!",
+    "{h} ривком захоплює лідерство.",
+  ],
+  HALFWAY: [
+    "Половина дистанції: лідирує {h}, за ним {o1} і {o2}.",
+    "На половині дистанції — {h}, далі {o1}, потім {o2}.",
+  ],
+  FINAL_TURN: [
+    "Останній поворот — {h} досі попереду, {o1} напоготові.",
+    "Проходять фінальний поворот, веде {h}.",
+  ],
+  HOME_STRAIGHT: [
+    "Фінішна пряма: лідирує {h}, {o1} і {o2} переслідують!",
+    "Фінішна пряма! Попереду {h}, {o1} наближається.",
+  ],
+  MOVE_UP: [
+    "{h} стрімко просувається — вже {v}!",
+    "По зовнішній іде {h}, тепер {v}!",
+    "{h} летить — уже {v}!",
+  ],
+  BLOCKED: ["{h} затиснутий і шукає простір.", "Для {h} поки що немає проходу!"],
+  KICK: ["{h} робить фінішний ривок!", "{h} подовжує крок і йде ва-банк!"],
+  TIRING: ["{h} починає відчувати темп.", "У {h} закінчуються сили."],
+  PHOTO_FINISH: ["Неймовірно близько між {h} і {o1} — фотофініш!"],
+  FINISH: [
+    "Перемога {h}! {o1} другий, відставання — {v} корпусу.",
+    "{h} першим перетинає фініш! {o1} другий ({v} к.).",
+  ],
+};
+
+export type CommentaryLang = "en" | "uk";
+const TEMPLATES: Record<CommentaryLang, typeof T> = { en: T, uk: UK };
+
 const ordinal = (n: number): string => {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -59,7 +114,16 @@ export function buildCommentary(
   const rng = new Rng(`commentary:${seed}`);
   const name = (id?: string) => (id ? (names[id] ?? "Unknown") : "");
   return events.map((e) => {
-    const tpl = rng.pick(T[e.type]);
+    const templates = T[e.type];
+    // Same draw as rng.pick(templates), keeping lines identical for already-seeded races.
+    const index = Math.floor(rng.next() * templates.length);
+    const tpl = templates[index]!;
+    const vars = {
+      h: name(e.horseId),
+      o1: name(e.others?.[e.type === "FINISH" || e.type === "PHOTO_FINISH" ? 0 : 1]),
+      o2: name(e.others?.[2]),
+      ...(e.value !== undefined ? { v: e.value } : {}),
+    };
     const value =
       e.type === "MOVE_UP" && e.value !== undefined
         ? ordinal(e.value)
@@ -67,10 +131,36 @@ export function buildCommentary(
           ? String(e.value)
           : "";
     const text = tpl
-      .replaceAll("{h}", name(e.horseId))
-      .replaceAll("{o1}", name(e.others?.[e.type === "FINISH" || e.type === "PHOTO_FINISH" ? 0 : 1]))
-      .replaceAll("{o2}", name(e.others?.[2]))
+      .replaceAll("{h}", vars.h)
+      .replaceAll("{o1}", vars.o1)
+      .replaceAll("{o2}", vars.o2)
       .replaceAll("{v}", value);
-    return { t: e.t, text };
+    return { t: e.t, text, key: `${e.type}.${index}`, vars };
   });
+}
+
+/**
+ * Re-render a stored line in another language from its template key and values.
+ * Returns null when the line predates keys or the template is unknown (callers show `text`).
+ */
+export function renderCommentary(
+  line: Pick<CommentaryLine, "key" | "vars"> | { key?: string; vars?: CommentaryLine["vars"] },
+  lang: CommentaryLang,
+): string | null {
+  if (!line.key || !line.vars) return null;
+  const [type, index] = line.key.split(".") as [RaceEvent["type"], string];
+  const tpl = TEMPLATES[lang][type]?.[Number(index)];
+  if (!tpl) return null;
+  const { h, o1, o2, v } = line.vars;
+  const value =
+    v === undefined
+      ? ""
+      : type === "MOVE_UP"
+        ? lang === "uk"
+          ? `${v}-й`
+          : ordinal(v)
+        : lang === "uk"
+          ? v.toLocaleString("uk-UA", { maximumFractionDigits: 2 })
+          : String(v);
+  return tpl.replaceAll("{h}", h).replaceAll("{o1}", o1).replaceAll("{o2}", o2).replaceAll("{v}", value);
 }

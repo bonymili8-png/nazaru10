@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig as cfg } from "../config/index.js";
 import { Rng } from "../rng.js";
-import { buildCommentary } from "./commentary.js";
+import { buildCommentary, COMMENTARY_VARIANTS, renderCommentary } from "./commentary.js";
 import { raceAftermath } from "./aftermath.js";
 import { splitPurse, updateRatings } from "./rating.js";
 import { simulateRace, seedHash, type RaceEntrant } from "./simulate.js";
@@ -82,6 +82,44 @@ describe("race simulation", () => {
     const lines = buildCommentary(res.events, names, "e");
     expect(lines).toHaveLength(res.events.length);
     expect(lines.every((l) => !l.text.includes("{"))).toBe(true);
+    // Every line names its template and carries the values to rebuild it in another language.
+    for (const l of lines) {
+      const [type, i] = l.key.split(".");
+      expect(Number(i)).toBeLessThan(COMMENTARY_VARIANTS(type as never));
+      expect(l.text).toContain(l.vars.h);
+      expect(renderCommentary(l, "en")).toBe(l.text);
+      const uk = renderCommentary(l, "uk")!;
+      expect(uk).toContain(l.vars.h);
+      expect(uk).not.toMatch(/\{\w+\}/);
+    }
+  });
+
+  it("has a Ukrainian variant for every English commentary template, with the same slots", () => {
+    const types = [
+      "GOOD_BREAK",
+      "SLOW_START",
+      "LEAD_CHANGE",
+      "HALFWAY",
+      "FINAL_TURN",
+      "HOME_STRAIGHT",
+      "MOVE_UP",
+      "BLOCKED",
+      "KICK",
+      "TIRING",
+      "PHOTO_FINISH",
+      "FINISH",
+    ] as const;
+    const vars = { h: "‹h›", o1: "‹o1›", o2: "‹o2›", v: 3 };
+    for (const type of types) {
+      expect(COMMENTARY_VARIANTS(type, "uk")).toBe(COMMENTARY_VARIANTS(type));
+      for (let i = 0; i < COMMENTARY_VARIANTS(type); i++) {
+        const slots = (lang: "en" | "uk") =>
+          ["‹h›", "‹o1›", "‹o2›"].filter((s) =>
+            renderCommentary({ key: `${type}.${i}`, vars }, lang)!.includes(s),
+          );
+        expect(slots("uk")).toEqual(slots("en"));
+      }
+    }
   });
 
   it("a clearly superior horse wins most head-to-heads", () => {

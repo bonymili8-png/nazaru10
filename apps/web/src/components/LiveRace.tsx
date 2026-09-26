@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
 import { t as tr } from "@/lib/i18n";
+import { commentaryText } from "@/lib/i18n/commentary";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
 import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
@@ -196,7 +197,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
                 key={`${c.t}${c.text}`}
                 className="text-ink first:font-medium [&:not(:first-child)]:text-muted"
               >
-                {c.text}
+                {commentaryText(c)}
               </li>
             ))}
           </ul>

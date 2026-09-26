@@ -781,4 +781,7 @@ export const uk: Record<MessageKey, Msg> = {
   "races.scope.all": "Усі забіги",
   "races.scope.mine": "Мої забіги",
   "races.emptyMine": "Тут поки немає ваших коней.",
+  "live.start": "Старт",
+  "live.finish": "Фініш",
+  "live.startFinish": "Старт / Фініш",
 };

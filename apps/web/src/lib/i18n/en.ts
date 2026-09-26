@@ -778,6 +778,9 @@ export const en = {
   "races.scope.all": "All races",
   "races.scope.mine": "My races",
   "races.emptyMine": "None of your horses here yet.",
+  "live.start": "Start",
+  "live.finish": "Finish",
+  "live.startFinish": "Start / Finish",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

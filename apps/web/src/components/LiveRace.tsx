@@ -28,6 +28,13 @@ const SILKS = [
 
 type Frame = [number, number, number, number];
 
+/**
+ * Frames reach the client in real time (polled every POLL_MS), so the live view plays this far
+ * behind the broadcast clock: the next frame is always already here and motion stays smooth.
+ */
+const POLL_MS = 2000;
+const liveDelay = (interval: number) => interval + POLL_MS / 1000 + 0.5;
+
 /** Interpolated runner positions at time t (seconds) from 1-second frames. */
 function sample(frames: Frame[][], interval: number, t: number): Frame[] | null {
   if (frames.length === 0) return null;
@@ -60,7 +67,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
         if (stop) return;
         offsetRef.current = d.elapsed - (Date.now() - startMs) / 1000;
         setLive(d);
-        if (d.status !== "COMPLETED" && d.status !== "CANCELLED") timer = setTimeout(poll, 2000);
+        if (d.status !== "COMPLETED" && d.status !== "CANCELLED") timer = setTimeout(poll, POLL_MS);
       } catch {
         if (!stop) timer = setTimeout(poll, 4000);
       }
@@ -93,10 +100,11 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
   }
 
   const frames = live.frames;
-  const playT = Math.max(0, Math.min(t, (frames.data.length - 1) * frames.interval));
+  const available = (frames.data.length - 1) * frames.interval;
+  const playT = Math.max(0, Math.min(replayStart !== null ? t : t - liveDelay(frames.interval), available));
   const pos = sample(frames.data, frames.interval, playT);
   const LANE = 6;
-  const b = ovalBounds(track, 14 * LANE);
+  const b = ovalBounds(track, 26 * LANE);
   const lanePath = (lane: number) => {
     const pts: string[] = [];
     const C = 2 * track.turnLength + 2 * track.straightLength;
@@ -106,10 +114,22 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
     }
     return `M${pts.join("L")}Z`;
   };
-  const finish = ovalPoint(track, race.distance, race.distance, 0, LANE);
+  /** A line across the track at a race distance, and where its label goes (outside the rail). */
+  const marker = (progress: number) => ({
+    a: ovalPoint(track, race.distance, progress, -1.5, LANE),
+    b: ovalPoint(track, race.distance, progress, 12.5, LANE),
+    label: ovalPoint(track, race.distance, progress, 19, LANE),
+  });
+  const lap = 2 * track.turnLength + 2 * track.straightLength;
+  const startOnFinish = Math.min(race.distance % lap, lap - (race.distance % lap)) < 60;
+  const start = marker(0);
+  const finish = marker(race.distance);
   const order = pos ? frames.ids.map((id, i) => ({ id, i, x: pos[i]![0] })).sort((p, q) => q.x - p.x) : [];
-  const commentary = (replayStart !== null ? [] : live.commentary).slice(-3).reverse();
-  const done = live.status === "COMPLETED" && playT >= (frames.data.length - 1) * frames.interval;
+  // Commentary follows the (slightly delayed) picture, never ahead of it.
+  const commentary = (replayStart !== null ? [] : live.commentary.filter((c) => c.t <= playT))
+    .slice(-3)
+    .reverse();
+  const done = live.status === "COMPLETED" && playT >= available;
 
   return (
     <>
@@ -135,14 +155,49 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
           <path d={lanePath(5.5)} fill="none" stroke="#1f3a24" strokeWidth={13 * LANE} />
           <path d={lanePath(-1)} fill="none" stroke="#78716c" strokeWidth={2} />
           <path d={lanePath(12)} fill="none" stroke="#78716c" strokeWidth={2} />
+          {!startOnFinish && (
+            <g>
+              <line
+                x1={start.a.x}
+                y1={start.a.y}
+                x2={start.b.x}
+                y2={start.b.y}
+                stroke="#fafaf9"
+                strokeWidth={4}
+                strokeDasharray="7 5"
+              />
+              <text
+                x={start.label.x}
+                y={start.label.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={22}
+                fontWeight={600}
+                fill="#fafaf9"
+              >
+                {tr("live.start")}
+              </text>
+            </g>
+          )}
           <line
-            x1={finish.x}
-            y1={finish.y - LANE}
-            x2={finish.x}
-            y2={finish.y + 12 * LANE}
+            x1={finish.a.x}
+            y1={finish.a.y}
+            x2={finish.b.x}
+            y2={finish.b.y}
             stroke="#e0b43a"
             strokeWidth={5}
           />
+          <text
+            x={finish.label.x}
+            y={finish.label.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={22}
+            fontWeight={600}
+            fill="#e0b43a"
+          >
+            {startOnFinish ? tr("live.startFinish") : tr("live.finish")}
+          </text>
           {pos?.map((r, i) => {
             const p = ovalPoint(track, race.distance, r[0], r[1], LANE);
             const e = names[frames.ids[i]!];

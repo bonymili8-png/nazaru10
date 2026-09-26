@@ -373,6 +373,28 @@ export const UpdateSettingsRequest = z
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
+/* ───────────────────────────── feed ───────────────────────────── */
+
+export const FEED_KINDS = ["WIN", "CHAMPION", "BIG_SALE", "FOAL", "SEASON_TOP", "CLUB_CREATED"] as const;
+export type FeedKind = (typeof FEED_KINDS)[number];
+
+export const FeedQuery = z.object({
+  scope: z.enum(["all", "club"]).default("all"),
+  limit: z.coerce.number().int().min(1).max(50).default(30),
+});
+
+export interface FeedItemDto {
+  id: number;
+  kind: FeedKind;
+  createdAt: string;
+  actorId: string | null;
+  actorName: string;
+  /** Values for the kind's message template (names, numbers). */
+  vars: Record<string, string | number>;
+  /** In-app link (race, horse, club), if any. */
+  link: string | null;
+}
+
 /* ───────────────────────────── syndicates ───────────────────────────── */
 
 export const ShareOfferRequest = z.object({

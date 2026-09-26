@@ -874,6 +874,23 @@ export const en = {
   "ledger.SYNDICATE_SHARE_SALE": "Syndicate shares",
   "ledger.SYNDICATE_BUYBACK": "Syndicate buy-back",
   "ledger.RACE_PRIZE_SHARE": "Prize share (syndicate)",
+  "feed.title": "Racing news",
+  "feed.all": "Everyone",
+  "feed.club": "My club",
+  "feed.emptyTitle": "No news yet",
+  "feed.emptyAll": "Wins, champions and big sales will show up here.",
+  "feed.emptyClub": "Join a club to follow your club-mates here.",
+  "feed.now": "now",
+  "feed.minAgo": "{n} min",
+  "feed.hAgo": "{n} h",
+  "feed.dAgo": "{n} d",
+  "feed.WIN": "{name}'s {horseName} won the {raceName}",
+  "feed.CHAMPION": "{horseName} ({name}) is the {tournamentName} champion!",
+  "feed.BIG_SALE": "{name} bought {horseName} for {price} cr",
+  "feed.FOAL": "A remarkable foal, {foalName}, was born in {name}'s stable ({sireName} × {damName})",
+  "feed.SEASON_TOP": "{name} finished #{rank} in season {season}",
+  "feed.CLUB_CREATED": "{name} founded the club {clubName} [{tag}]",
+  "home.news": "Racing news",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

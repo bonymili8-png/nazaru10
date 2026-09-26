@@ -12,6 +12,7 @@ import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
+import { FeedService } from "../feed/feed.service.js";
 
 /**
  * Background sweeps. Each step claims work with row locks (FOR UPDATE SKIP LOCKED) and is
@@ -36,6 +37,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
     private readonly referrals: ReferralsService,
+    private readonly feed: FeedService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
@@ -65,6 +67,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("jockey-pool", () => this.staff.restockJockeys());
         await this.step("staff-salaries", () => this.staff.renewDue());
         await this.step("referrals", () => this.referrals.sweep());
+        await this.step("feed-prune", () => this.feed.prune());
       }
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;
@@ -78,6 +81,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
       await this.step("market", () => this.market.settleDue());
       await this.step("foals", () => this.breeding.deliverDue());
       await this.step("notify", () => this.notifications.processOutbox());
+      await this.step("feed", () => this.feed.ingest());
     } finally {
       this.running = false;
     }

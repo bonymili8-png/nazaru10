@@ -300,3 +300,11 @@ the remainder); the manager keeps full control (training, entries, breeding) and
 partners hold shares the horse cannot be listed or transferred. The manager can dissolve the
 syndicate by buying every share back at the price its holder paid. Config: `syndicates.*`.
 Partners cannot resell shares yet.
+
+## Racing news feed (Phase 3, v1)
+
+A read model over the domain-event log (cursor + `feed_items` keyed by event id, so ingestion is
+idempotent and safe with several workers; 30-day retention). Public highlights only: race wins by
+players, tournament champions, market sales ≥ 20,000 credits, remarkable foals, season top-3 and
+new clubs. Shown on Home (latest 5) and on /feed with Everyone / My club tabs; texts are
+rendered on the client from the item kind and values (EN/UK).

@@ -1,7 +1,8 @@
 "use client";
-import type { HomeDto, QuestDto, RacingPassDto, WalletDto } from "@thoroughline/contracts";
+import type { FeedItemDto, HomeDto, QuestDto, RacingPassDto, WalletDto } from "@thoroughline/contracts";
 import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Store, Ticket } from "lucide-react";
 import { Crest } from "@/components/Crest";
+import { FeedList } from "@/components/Feed";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
 import { HorseIcon } from "@/components/icons";
@@ -66,6 +67,8 @@ export default function HomePage() {
       <PassTeaser />
 
       <Quests quests={data.quests} />
+
+      <News />
 
       {data.myUpcomingRaces.length > 0 && (
         <>
@@ -246,3 +249,22 @@ const questText = (q: QuestDto) => {
   const k = `quest.${q.code}.description` as MessageKey;
   return t(k) === k ? q.description : t(k);
 };
+
+function News() {
+  const { data } = useApi<FeedItemDto[]>("/feed?limit=5", { refreshMs: 60_000 });
+  if (!data?.length) return null;
+  return (
+    <>
+      <SectionTitle
+        action={
+          <LinkButton href="/feed/" variant="ghost" className="min-h-9 text-sm">
+            {t("common.all")}
+          </LinkButton>
+        }
+      >
+        {t("home.news")}
+      </SectionTitle>
+      <FeedList items={data} />
+    </>
+  );
+}

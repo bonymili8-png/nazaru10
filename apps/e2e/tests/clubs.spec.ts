@@ -17,6 +17,15 @@ test("an owner founds a club, sees it ranked and leaves it", async ({ page }) =>
   await expect.poll(() => headerCredits(page)).toBe(before - 5000);
   await page.screenshot({ path: "/tmp/claude-0/shots/club.png" });
 
+  // Founding a club makes the racing news (the job runner ingests events every few seconds).
+  await page.goto("/feed/");
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByText(`founded the club E2E Club ${id}`)).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
+  await page.screenshot({ path: "/tmp/claude-0/shots/feed.png" });
+  await page.goto("/rankings/?tab=clubs");
+  await page.getByRole("link", { name: /Your club/ }).click();
   await page.getByRole("link", { name: "Back" }).click();
   await page.getByRole("tab", { name: "Clubs" }).click();
   await expect(page.getByRole("link", { name: /Your club/ })).toBeVisible();

@@ -290,3 +290,13 @@ before joining another club (no hopping); owners can remove members (audited, no
 the removed player). When the owner leaves, the longest-serving member takes over; the last
 member out disbands the club and frees its name. Config: `clubs.createCost`, `maxMembers`,
 `rejoinCooldownHours`. No club rewards yet — to be added with a live-data economy review.
+
+## Syndicates (Phase 3, v1)
+
+A horse's owner (the manager) can sell up to 5 of its 10 shares to other players at a fixed price
+per share within 0.5×–3× of (valuation / 10); a 6% fee goes to the market-fee sink. Partners get
+their pro-rata share of every race prize (`RACE_PRIZE_SHARE`, floor per partner, the manager gets
+the remainder); the manager keeps full control (training, entries, breeding) and stud fees. While
+partners hold shares the horse cannot be listed or transferred. The manager can dissolve the
+syndicate by buying every share back at the price its holder paid. Config: `syndicates.*`.
+Partners cannot resell shares yet.

@@ -30,6 +30,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { coatColor } from "@/components/HorseCard";
 import { SaddleCloth } from "@/components/SaddleCloth";
+import { Syndicate } from "@/components/Syndicate";
 import {
   Badge,
   Button,
@@ -139,6 +140,7 @@ function HorsePage() {
       {mine && tab === "train" && <Train h={h} />}
       {(!mine || tab === "history") && <History id={h.id} />}
       {(!mine || tab === "history") && <Pedigree id={h.id} />}
+      {!h.isHouse && (!mine || tab === "overview") && <Syndicate horseId={h.id} horseName={h.name} />}
     </div>
   );
 }

@@ -10,6 +10,8 @@ import { RateLimitGuard } from "./common/rate-limit.js";
 import { ReferralsService } from "./modules/users/referrals.service.js";
 import { ClubsController } from "./modules/clubs/clubs.controller.js";
 import { ClubsService } from "./modules/clubs/clubs.service.js";
+import { SyndicatesController } from "./modules/syndicates/syndicates.controller.js";
+import { SyndicatesService } from "./modules/syndicates/syndicates.service.js";
 import { ENV, type Env } from "./config/env.js";
 import { AdminController } from "./modules/admin/admin.controller.js";
 import { AuthController } from "./modules/auth/auth.controller.js";
@@ -102,6 +104,7 @@ export class AppModule {
         CosmeticsController,
         PassController,
         ClubsController,
+        SyndicatesController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -124,6 +127,7 @@ export class AppModule {
         RaceRunnerService,
         ReferralsService,
         ClubsService,
+        SyndicatesService,
         RacesService,
         ShopService,
         MarketService,

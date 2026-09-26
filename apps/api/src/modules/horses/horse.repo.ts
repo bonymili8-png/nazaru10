@@ -130,6 +130,14 @@ export async function transferHorse(
   price: number | null,
   now: Date,
 ): Promise<HorseRow> {
+  // Safety net: a syndicated horse never changes hands (callers check first with a clear error).
+  const partners = await row<{ n: number }>(
+    c,
+    "SELECT count(*)::int AS n FROM horse_shares WHERE horse_id = $1",
+    [h.id],
+  );
+  if (partners!.n > 0) throw new Error(`transferHorse: horse ${h.id} has syndicate partners`);
+  await c.query("DELETE FROM share_offers WHERE horse_id = $1", [h.id]);
   const res = await c.query<HorseRow>(
     `UPDATE horses SET owner_id = $2, stable_id = $3, is_house = false, house_class = NULL, sale_price = NULL,
             status = 'IDLE', updated_at = $4 WHERE id = $1 RETURNING *`,

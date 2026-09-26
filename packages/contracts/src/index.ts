@@ -373,6 +373,54 @@ export const UpdateSettingsRequest = z
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
+/* ───────────────────────────── syndicates ───────────────────────────── */
+
+export const ShareOfferRequest = z.object({
+  shares: z.number().int().min(1).max(10),
+  pricePerShare: z.number().int().min(1).max(10_000_000),
+});
+export type ShareOfferRequest = z.infer<typeof ShareOfferRequest>;
+
+export const BuySharesRequest = z.object({ shares: z.number().int().min(1).max(10) });
+
+export interface SyndicatePartnerDto {
+  userId: string;
+  name: string;
+  shares: number;
+}
+
+export interface SyndicateDto {
+  horseId: string;
+  totalShares: number;
+  maxPartnerShares: number;
+  managerId: string;
+  managerName: string;
+  managerShares: number;
+  partners: SyndicatePartnerDto[];
+  offer: { pricePerShare: number; available: number } | null;
+  myShares: number;
+  /** Allowed price per share (manager only). */
+  priceBand: { min: number; max: number } | null;
+  feeRate: number;
+}
+
+export interface ShareOfferDto {
+  horse: HorseSummaryDto;
+  managerName: string;
+  pricePerShare: number;
+  available: number;
+  totalShares: number;
+}
+
+export interface MyShareDto {
+  horse: HorseSummaryDto;
+  shares: number;
+  totalShares: number;
+  costPaid: number;
+  /** Prize money received from this horse so far. */
+  earned: number;
+}
+
 /* ───────────────────────────── clubs ───────────────────────────── */
 
 export const CreateClubRequest = z.object({

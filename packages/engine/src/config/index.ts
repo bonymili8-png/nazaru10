@@ -195,6 +195,17 @@ export interface GameConfig {
     /** Hours before a player who left a club can join another (stops club hopping). */
     rejoinCooldownHours: number;
   };
+  /** Syndicates: co-ownership of a horse in equal shares; prizes are split pro rata. */
+  syndicates: {
+    totalShares: number;
+    /** At most this many shares may belong to partners (the manager keeps control). */
+    maxPartnerShares: number;
+    /** Fee on each share sale (sink). */
+    feeRate: number;
+    /** Share price band as a multiple of (valuation / totalShares). */
+    minPriceFactor: number;
+    maxPriceFactor: number;
+  };
   /** Racing Pass: seasonal track of cosmetic/gem rewards earned by playing (never credits or power). */
   pass: {
     tiers: number;
@@ -565,6 +576,7 @@ export const defaultConfig: GameConfig = {
     clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
   },
   clubs: { createCost: 5000, maxMembers: 20, rejoinCooldownHours: 24 },
+  syndicates: { totalShares: 10, maxPartnerShares: 5, feeRate: 0.06, minPriceFactor: 0.5, maxPriceFactor: 3 },
   pass: {
     tiers: 20,
     xpPerTier: 80,

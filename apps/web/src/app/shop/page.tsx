@@ -1,6 +1,8 @@
 "use client";
 import type {
   MarketListingDto,
+  MyShareDto,
+  ShareOfferDto,
   MarketMineDto,
   PaymentDto,
   ProductDto,
@@ -27,8 +29,8 @@ import { invalidate, useApi } from "@/lib/hooks";
 import { type MessageKey, t } from "@/lib/i18n";
 import { haptic, tg } from "@/lib/telegram";
 
-type Tab = "players" | "ring" | "mine" | "gems";
-const TABS: Tab[] = ["players", "ring", "mine", "gems"];
+type Tab = "players" | "shares" | "ring" | "mine" | "gems";
+const TABS: Tab[] = ["players", "shares", "ring", "mine", "gems"];
 
 /** Product texts are translated by id; the server's English text is the fallback. */
 const productText = (p: ProductDto, field: "title" | "description") => {
@@ -41,14 +43,14 @@ export default function MarketPage() {
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{t("shop.title")}</h1>
-      <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-surface p-1" role="tablist">
+      <div className="mt-3 grid grid-cols-5 gap-1 rounded-xl bg-surface p-1" role="tablist">
         {TABS.map((k) => (
           <button
             key={k}
             role="tab"
             aria-selected={tab === k}
             onClick={() => setTab(k)}
-            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium transition-colors ${tab === k ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
+            className={`min-h-10 cursor-pointer rounded-lg px-0.5 text-[13px] font-medium leading-tight transition-colors ${tab === k ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
           >
             {t(`shop.tab.${k}`)}
           </button>
@@ -58,6 +60,7 @@ export default function MarketPage() {
       {tab === "ring" && <SalesRing />}
       {tab === "mine" && <MyMarket />}
       {tab === "gems" && <Gems />}
+      {tab === "shares" && <Shares />}
     </div>
   );
 }
@@ -244,6 +247,59 @@ function Gems() {
               {t("shop.stars", { n: p.priceStars })}
             </Button>
           </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Shares() {
+  const mine = useApi<MyShareDto[]>("/syndicates/mine");
+  const offers = useApi<ShareOfferDto[]>("/syndicates/offers", { refreshMs: 30_000 });
+  return (
+    <>
+      <SectionTitle>{t("shares.mine")}</SectionTitle>
+      {!mine.data && <Skeleton className="h-20" />}
+      {mine.data?.length === 0 && <p className="text-sm text-muted">{t("shares.none")}</p>}
+      <div className="space-y-2">
+        {mine.data?.map((s) => (
+          <HorseCard
+            key={s.horse.id}
+            horse={s.horse}
+            href={`/horse/?id=${s.horse.id}`}
+            extra={
+              <p className="num text-xs text-muted">
+                {t("shares.line", {
+                  n: s.shares,
+                  total: s.totalShares,
+                  cost: fmt(s.costPaid),
+                  earned: fmt(s.earned),
+                })}
+              </p>
+            }
+          />
+        ))}
+      </div>
+      <SectionTitle>{t("shares.offers")}</SectionTitle>
+      {offers.error && <ErrorState error={offers.error} retry={offers.reload} />}
+      {!offers.data && !offers.error && <Skeleton className="h-32" />}
+      {offers.data?.length === 0 && <p className="text-sm text-muted">{t("shares.noOffers")}</p>}
+      <div className="space-y-2">
+        {offers.data?.map((o) => (
+          <HorseCard
+            key={o.horse.id}
+            horse={o.horse}
+            href={`/horse/?id=${o.horse.id}`}
+            extra={
+              <p className="num text-xs text-gold">
+                {t("shares.offerLine", {
+                  n: o.available,
+                  price: fmt(o.pricePerShare),
+                  manager: o.managerName,
+                })}
+              </p>
+            }
+          />
         ))}
       </div>
     </>

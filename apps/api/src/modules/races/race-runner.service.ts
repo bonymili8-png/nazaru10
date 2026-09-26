@@ -30,6 +30,7 @@ import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { PassService } from "../pass/pass.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
+import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
 import {
@@ -57,6 +58,7 @@ export class RaceRunnerService {
     private readonly quests: QuestsService,
     private readonly seasons: SeasonsService,
     private readonly referrals: ReferralsService,
+    private readonly syndicates: SyndicatesService,
     private readonly pass: PassService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
@@ -570,9 +572,10 @@ export class RaceRunnerService {
         if (e.is_house || !e.owner_id) continue;
         const owner = e.owner_id;
         if (prize > 0) {
-          await this.ledger.credit(c, {
-            userId: owner,
-            currency: "CREDITS",
+          // Syndicate partners get their pro-rata share; the manager keeps the rest.
+          await this.syndicates.splitCredit(c, {
+            horseId: e.horse_id,
+            managerId: owner,
             amount: prize,
             source: "RACE_PRIZE",
             key: `race:${raceId}:prize:${e.horse_id}`,

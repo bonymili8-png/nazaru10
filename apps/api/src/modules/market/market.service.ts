@@ -15,6 +15,7 @@ import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { getHorse, type HorseRow, transferHorse } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
+import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { StableService } from "../stable/stable.service.js";
 
 interface ListingRow {
@@ -62,6 +63,7 @@ export class MarketService {
     private readonly ledger: LedgerService,
     private readonly horses: HorsesService,
     private readonly stables: StableService,
+    private readonly syndicates: SyndicatesService,
     private readonly events: EventsService,
     private readonly clock: Clock,
   ) {}
@@ -98,6 +100,9 @@ export class MarketService {
       let h = await this.horses.lockOwned(c, req.horseId, sellerId);
       h = await this.horses.normalize(c, h, now);
       if (h.status !== "IDLE") throw conflict("HORSE_BUSY", `Horse is ${h.status.toLowerCase()}`);
+      await this.syndicates.assertNoPartners(c, h.id);
+      // Unsold shares can't stay on offer while the whole horse is for sale.
+      await c.query("DELETE FROM share_offers WHERE horse_id = $1", [h.id]);
       assertTransition(h.status, "LISTED");
       const reference = this.horses.valuation(h, now);
       const [lo, hi] = [

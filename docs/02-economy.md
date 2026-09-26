@@ -204,3 +204,13 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   not touch the credit economy (the cohort simulation is unaffected).
 * Tuning in config `pass.*`; admin overrides can change existing tiers' rewards and prices (new
   tier keys need a release, as the override validator only accepts known settings).
+
+## Sponsors (Phase 3, v1)
+
+Each Monday an owner gets three offers (deterministic per owner and week) from an 8-sponsor
+catalog and may sign one contract per week; it runs `contractDays` (7) from signing and pays
+600–900 credits + 8–12 reputation (source `SPONSORS`) once its goal is met — e.g. 2 top-3
+finishes on turf, 3 starts at 1,800 m+, 1 win, 6 starts. Progress is counted when races settle;
+unfinished contracts expire without penalty. Modelled in `sim:economy`: ~54% of contracts
+complete and sponsors are ~11% of recurring income (new gate: 2–15%); all 14 gates pass at 300
+and 500 owners. Config: `sponsors.offersPerWeek`, `contractDays`, `catalog`.

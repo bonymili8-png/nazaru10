@@ -100,6 +100,13 @@ export class NotificationsService {
             ? `📋 ${name("trainerName")} залишив вашу стайню — не вдалося сплатити тижневу зарплату ${credits(p.salary, lang)}.`
             : `📋 ${name("trainerName")} has left your stable — the weekly salary of ${credits(p.salary, lang)} could not be paid.`,
         };
+      case "sponsor_completed":
+        return {
+          userId,
+          text: uk
+            ? `🤝 Контракт зі спонсором «${escape(p.sponsor)}» виконано! На гаманець зараховано ${credits(p.reward, lang)}.`
+            : `🤝 Sponsor contract with ${escape(p.sponsor)} complete! ${credits(p.reward, lang)} added to your wallet.`,
+        };
       case "payment_completed":
         return {
           userId,

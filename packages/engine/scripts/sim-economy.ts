@@ -33,6 +33,9 @@ import {
   Rng,
   rollWeather,
   rollWetness,
+  type SponsorDef,
+  sponsorOffers,
+  sponsorQualifies,
   simulateRace,
   splitPurse,
   updateRatings,
@@ -76,6 +79,10 @@ interface Player {
   trainer: (TrainerProfile & { salary: number; paidUntil: number }) | null;
   jockey: { skill: number; salary: number; paidUntil: number } | null;
   facilities: FacilityLevels;
+  /** Active sponsor contract (progress counts qualifying runs until `until`, in hours). */
+  sponsor: { def: SponsorDef; progress: number; until: number } | null;
+  sponsoredWeek: number;
+  id: number;
 }
 
 const ledger = { sources: new Map<string, number>(), sinks: new Map<string, number>() };
@@ -163,6 +170,31 @@ const TRAIN_ROTATION: TrainingType[] = [
   "STRENGTH",
 ];
 
+/** Count a finished run towards the owner's sponsor contract; pay out once the goal is met. */
+function sponsorRun(p: Player, run: Parameters<typeof sponsorQualifies>[1], nowH: number): void {
+  const s = p.sponsor;
+  if (!s || nowH > s.until || !sponsorQualifies(s.def.goal, run)) return;
+  s.progress++;
+  if (s.progress >= s.def.goal.count) {
+    earn(p, "SPONSORS", s.def.reward);
+    stats.sponsorsCompleted++;
+    p.sponsor = null;
+    p.sponsoredWeek = Math.floor(nowH / (24 * 7));
+  }
+}
+
+/** Each week an owner without a contract signs one of their three offers (at random). */
+function signSponsor(rng: Rng, p: Player, nowH: number): void {
+  const week = Math.floor(nowH / (24 * 7));
+  if (p.sponsor && nowH <= p.sponsor.until) return;
+  if (p.sponsor) p.sponsor = null; // expired unfinished
+  if (p.sponsoredWeek === week) return;
+  const def = rng.pick(sponsorOffers(`p${p.id}`, week, cfg));
+  p.sponsor = { def, progress: 0, until: nowH + cfg.sponsors.contractDays * 24 };
+  p.sponsoredWeek = week;
+  stats.sponsorsSigned++;
+}
+
 function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition): void {
   const cls = raceClassFor(h);
   const cc = cfg.race.classes[cls];
@@ -170,6 +202,7 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   const track = rng.pick(TRACKS);
   const distance = rng.pick(track.distances);
   const weather = rollWeather(track, rng);
+  const wetness = rollWetness(track, weather, rng);
   const me: RaceEntrant = {
     id: "me",
     name: "me",
@@ -196,11 +229,12 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   }
   const res = simulateRace(
     rng.shuffle(field),
-    { distance, track, weather, wetness: rollWetness(track, weather, rng) },
+    { distance, track, weather, wetness },
     `${rng.nextUint32()}`,
     cfg,
   );
   const pos = res.results.find((r) => r.entrantId === "me")!.position;
+  sponsorRun(p, { surface: track.surface, distance, wetness, position: pos }, nowH);
   const prizes = splitPurse(
     cc.purse,
     res.results.map((r) => ({ id: r.entrantId, position: r.position })),
@@ -385,6 +419,8 @@ function tournament(rng: Rng, tier: "LOCAL" | "REGIONAL", nowH: number): void {
 }
 
 const stats = {
+  sponsorsSigned: 0,
+  sponsorsCompleted: 0,
   races: 0,
   trainings: 0,
   injuries: 0,
@@ -530,6 +566,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
 }
 
 const rng = new Rng("economy-sim");
+let nextId = 0;
 const players: Player[] = Array.from({ length: PLAYERS }, () => {
   const p: Player = {
     credits: 0,
@@ -539,6 +576,9 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     trainer: null,
     jockey: null,
     facilities: { TRAINING_TRACK: 0, VET_CLINIC: 0 },
+    sponsor: null,
+    sponsoredWeek: -1,
+    id: nextId++,
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
   p.horses.push(newHorse(rng, 0.42, 2.3, 0, "UNCOMMON"));
@@ -556,7 +596,10 @@ for (let day = 0; day < DAYS; day++) {
     if (p.credits < cfg.economy.allowance.threshold) earn(p, "DAILY_ALLOWANCE", cfg.economy.allowance.amount);
   }
   for (const hour of SESSIONS) {
-    for (const p of players) session(rng, p, day * 24 + hour);
+    for (const p of players) {
+      signSponsor(rng, p, day * 24 + hour);
+      session(rng, p, day * 24 + hour);
+    }
     // Tournament heats run in the evening, between the two play sessions.
     if (hour === SESSIONS[0]) {
       tournament(rng, "LOCAL", day * 24 + 18);
@@ -640,6 +683,10 @@ console.log(
   `tournaments net ${fmt(tournamentNet)} per player-day (${((tournamentNet / Math.max(1, income)) * 100).toFixed(1)}% of income)`,
 );
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
+const sponsorShare = (ledger.sources.get("SPONSORS") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
+console.log(
+  `sponsors: ${stats.sponsorsCompleted}/${stats.sponsorsSigned} contracts completed | ${(sponsorShare * 100).toFixed(1)}% of income`,
+);
 const salaryShare = (ledger.sinks.get("STAFF_SALARY") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
   `employing a trainer at season end ${(employing * 100).toFixed(1)}% | salaries ${(salaryShare * 100).toFixed(1)}% of income`,
@@ -666,6 +713,8 @@ const checks: [string, boolean][] = [
   ["5–40% of owners build a facility within a season", building >= 0.05 && building <= 0.4],
   // Tournaments are aspirational: a visible but minor share of the economy.
   ["tournaments' net mint is below 20% of recurring income", tournamentNet < 0.2 * income],
+  // Sponsors reward playing, they must not become the main income.
+  ["sponsor payouts are 2–15% of recurring income", sponsorShare >= 0.02 && sponsorShare <= 0.15],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

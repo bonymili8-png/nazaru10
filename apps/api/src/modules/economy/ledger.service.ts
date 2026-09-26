@@ -32,6 +32,7 @@ export type SystemAccount =
   | "FACILITIES"
   | "COSMETICS"
   | "CLUBS"
+  | "SPONSORS"
   | "RACING_PASS"
   | "PASS_REWARDS";
 

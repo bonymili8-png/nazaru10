@@ -1,6 +1,13 @@
 "use client";
-import type { FeedItemDto, HomeDto, QuestDto, RacingPassDto, WalletDto } from "@thoroughline/contracts";
-import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Store, Ticket } from "lucide-react";
+import type {
+  FeedItemDto,
+  HomeDto,
+  QuestDto,
+  RacingPassDto,
+  SponsorsDto,
+  WalletDto,
+} from "@thoroughline/contracts";
+import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Handshake, Store, Ticket } from "lucide-react";
 import { Crest } from "@/components/Crest";
 import { FeedList } from "@/components/Feed";
 import { HorseCard } from "@/components/HorseCard";
@@ -65,6 +72,8 @@ export default function HomePage() {
       <Allowance />
 
       <PassTeaser />
+
+      <SponsorTeaser />
 
       <Quests quests={data.quests} />
 
@@ -266,5 +275,39 @@ function News() {
       </SectionTitle>
       <FeedList items={data} />
     </>
+  );
+}
+
+function SponsorTeaser() {
+  const { data } = useApi<SponsorsDto>("/sponsors", { refreshMs: 60_000 });
+  if (!data || (!data.active && data.signedThisWeek)) return null;
+  const k = data.active;
+  return (
+    <a
+      href="/sponsors/"
+      className="mt-3 block rounded-[var(--radius-card)] border border-line/60 bg-surface p-4 hover:border-gold"
+    >
+      <div className="flex items-center gap-3">
+        <Handshake className="size-5 text-gold" aria-hidden />
+        <div className="min-w-0 flex-1">
+          {k ? (
+            <>
+              <p className="font-medium">
+                {t("home.sponsor")}: {k.name}
+              </p>
+              <div className="mt-1.5 h-1.5 rounded-full bg-surface-2" aria-hidden>
+                <div
+                  className="h-1.5 rounded-full bg-gold"
+                  style={{ width: `${(k.progress / k.goal.count) * 100}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm">{t("home.pickSponsor")}</p>
+          )}
+        </div>
+        <ChevronRight className="size-4 text-muted" aria-hidden />
+      </div>
+    </a>
   );
 }

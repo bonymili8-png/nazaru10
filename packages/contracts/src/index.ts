@@ -373,6 +373,43 @@ export const UpdateSettingsRequest = z
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
+/* ───────────────────────────── sponsors ───────────────────────────── */
+
+export interface SponsorGoalDto {
+  result: "START" | "TOP3" | "WIN";
+  surface?: Surface;
+  minDistance?: number;
+  maxDistance?: number;
+  minWetness?: number;
+  count: number;
+}
+
+export interface SponsorOfferDto {
+  code: string;
+  name: string;
+  goal: SponsorGoalDto;
+  reward: number;
+  reputation: number;
+}
+
+export interface SponsorContractDto extends SponsorOfferDto {
+  id: string;
+  progress: number;
+  status: "ACTIVE" | "COMPLETED" | "EXPIRED";
+  expiresAt: string;
+  completedAt: string | null;
+}
+
+export interface SponsorsDto {
+  week: number;
+  weekEndsAt: string;
+  offers: SponsorOfferDto[];
+  active: SponsorContractDto | null;
+  /** True once a contract was signed this week (one per week). */
+  signedThisWeek: boolean;
+  history: SponsorContractDto[];
+}
+
 /* ───────────────────────────── feed ───────────────────────────── */
 
 export const FEED_KINDS = ["WIN", "CHAMPION", "BIG_SALE", "FOAL", "SEASON_TOP", "CLUB_CREATED"] as const;

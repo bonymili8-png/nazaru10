@@ -30,6 +30,7 @@ import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { PassService } from "../pass/pass.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
+import { SponsorsService } from "../sponsors/sponsors.service.js";
 import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
@@ -59,6 +60,7 @@ export class RaceRunnerService {
     private readonly seasons: SeasonsService,
     private readonly referrals: ReferralsService,
     private readonly syndicates: SyndicatesService,
+    private readonly sponsors: SponsorsService,
     private readonly pass: PassService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
@@ -607,6 +609,12 @@ export class RaceRunnerService {
         if (pos <= 3) await this.quests.complete(c, owner, "FIRST_PODIUM", now);
         if (pos === 1) await this.quests.complete(c, owner, "FIRST_WIN", now);
         await this.referrals.rewardIfDue(c, owner, now);
+        await this.sponsors.onRun(
+          c,
+          owner,
+          { surface: race.surface, distance: race.distance, wetness: race.wetness, position: pos },
+          now,
+        );
         await this.events.emit(c, {
           type: "race_result",
           aggregateType: "race",

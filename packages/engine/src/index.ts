@@ -20,3 +20,4 @@ export * from "./race/validation.js";
 export * from "./season.js";
 export * from "./staff/index.js";
 export * from "./facilities/index.js";
+export * from "./sponsors/index.js";

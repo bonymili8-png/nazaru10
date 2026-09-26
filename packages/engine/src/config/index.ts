@@ -1,4 +1,5 @@
 import type { Rarity, TrainableAttribute } from "../horse/types.js";
+import type { SponsorDef } from "../sponsors/index.js";
 
 /**
  * Default game configuration. Every tunable number of the game lives here (and can be
@@ -194,6 +195,13 @@ export interface GameConfig {
     maxMembers: number;
     /** Hours before a player who left a club can join another (stops club hopping). */
     rejoinCooldownHours: number;
+  };
+  /** Sponsors: weekly contracts that pay credits for qualifying runs (never race power). */
+  sponsors: {
+    offersPerWeek: number;
+    /** A contract runs this many days from signing (so a late-week signing is not cut short). */
+    contractDays: number;
+    catalog: SponsorDef[];
   };
   /** Syndicates: co-ownership of a horse in equal shares; prizes are split pro rata. */
   syndicates: {
@@ -576,6 +584,68 @@ export const defaultConfig: GameConfig = {
     clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
   },
   clubs: { createCost: 5000, maxMembers: 20, rejoinCooldownHours: 24 },
+  sponsors: {
+    offersPerWeek: 3,
+    contractDays: 7,
+    catalog: [
+      {
+        code: "TURF_MASTERS",
+        name: "Turf Masters",
+        goal: { result: "TOP3", surface: "TURF", count: 2 },
+        reward: 700,
+        reputation: 10,
+      },
+      {
+        code: "DIRT_DEVILS",
+        name: "Dirt Devils",
+        goal: { result: "TOP3", surface: "DIRT", count: 2 },
+        reward: 700,
+        reputation: 10,
+      },
+      {
+        code: "SPRINT_CO",
+        name: "Sprint & Co",
+        goal: { result: "TOP3", maxDistance: 1200, count: 2 },
+        reward: 700,
+        reputation: 10,
+      },
+      {
+        code: "STAYERS_GUILD",
+        name: "Stayers' Guild",
+        goal: { result: "START", minDistance: 1800, count: 3 },
+        reward: 600,
+        reputation: 8,
+      },
+      {
+        code: "MUD_LARKS",
+        name: "Mud Larks",
+        goal: { result: "START", minWetness: 2, count: 2 },
+        reward: 600,
+        reputation: 8,
+      },
+      {
+        code: "PODIUM_PRO",
+        name: "Podium Pro",
+        goal: { result: "TOP3", count: 4 },
+        reward: 900,
+        reputation: 12,
+      },
+      {
+        code: "WINNERS_CIRCLE",
+        name: "Winners' Circle",
+        goal: { result: "WIN", count: 1 },
+        reward: 800,
+        reputation: 12,
+      },
+      {
+        code: "IRON_HORSE",
+        name: "Iron Horse Feeds",
+        goal: { result: "START", count: 6 },
+        reward: 700,
+        reputation: 8,
+      },
+    ],
+  },
   syndicates: { totalShares: 10, maxPartnerShares: 5, feeRate: 0.06, minPriceFactor: 0.5, maxPriceFactor: 3 },
   pass: {
     tiers: 20,

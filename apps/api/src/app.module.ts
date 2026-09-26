@@ -14,6 +14,8 @@ import { SyndicatesController } from "./modules/syndicates/syndicates.controller
 import { SyndicatesService } from "./modules/syndicates/syndicates.service.js";
 import { FeedController } from "./modules/feed/feed.controller.js";
 import { FeedService } from "./modules/feed/feed.service.js";
+import { SponsorsController } from "./modules/sponsors/sponsors.controller.js";
+import { SponsorsService } from "./modules/sponsors/sponsors.service.js";
 import { ENV, type Env } from "./config/env.js";
 import { AdminController } from "./modules/admin/admin.controller.js";
 import { AuthController } from "./modules/auth/auth.controller.js";
@@ -108,6 +110,7 @@ export class AppModule {
         ClubsController,
         SyndicatesController,
         FeedController,
+        SponsorsController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -132,6 +135,7 @@ export class AppModule {
         ClubsService,
         SyndicatesService,
         FeedService,
+        SponsorsService,
         RacesService,
         ShopService,
         MarketService,

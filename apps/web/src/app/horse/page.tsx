@@ -93,7 +93,7 @@ function HorsePage() {
             [t("common.rating"), Math.round(h.abilityRating)],
             [t("horse.mark"), h.raceRating],
             [t("horse.record"), `${h.record.wins}-${h.record.seconds}-${h.record.thirds}`],
-            [t("horse.earned"), fmt(h.record.earnings)],
+            [t("horse.earnedLabel"), fmt(h.record.earnings)],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-bg/40 py-2">
               <dt className="text-[10px] uppercase tracking-wider text-muted">{k}</dt>

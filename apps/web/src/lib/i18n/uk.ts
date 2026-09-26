@@ -745,4 +745,5 @@ export const uk: Record<MessageKey, Msg> = {
   "error.INSUFFICIENT_FUNDS.GEMS": "Недостатньо самоцвітів.",
   "error.INSUFFICIENT_FUNDS.REPUTATION": "Недостатньо репутації.",
   "error.INSUFFICIENT_FUNDS.PRESTIGE": "Недостатньо престижу.",
+  "horse.earnedLabel": "Зароблено",
 };

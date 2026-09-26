@@ -24,6 +24,11 @@ export async function openFirstHorse(page: Page): Promise<void> {
   await page.getByRole("link", { name: "Horses" }).click();
   await page.locator("a[href^='/horse/?id=']").first().click();
   await expect(page.getByRole("tab", { name: "overview" })).toBeVisible();
+  // The profile lists every attribute and a plain "Earned" stat (no raw placeholders).
+  for (const attr of ["Speed", "Stamina", "Final kick", "Focus"])
+    await expect(page.getByText(attr, { exact: true })).toBeVisible();
+  await expect(page.getByText("Earned", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\{\w+\}/)).toHaveCount(0);
 }
 
 export const test = base.extend<{ page: Page }>({

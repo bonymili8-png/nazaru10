@@ -1,4 +1,5 @@
 import { getLocale, type MessageKey, t } from "./i18n";
+import { en } from "./i18n/en";
 
 export const fmt = (n: number) =>
   new Intl.NumberFormat(getLocale() === "uk" ? "uk-UA" : "en").format(Math.round(n));
@@ -39,8 +40,14 @@ export const titleCase = (s: string) =>
         .join(" ");
 
 /** Label maps resolved in the active locale at read time (same shape as before i18n). */
-const lookup = <T>(make: (k: string) => T) =>
-  new Proxy({} as Record<string, T>, { get: (_, k) => make(String(k)) });
+/**
+ * A label map translated at read time. Pass `keys` when callers iterate it (Object.entries…):
+ * a proxy only enumerates the keys its target has.
+ */
+const lookup = <T>(make: (k: string) => T, keys: readonly string[] = []) =>
+  new Proxy(Object.fromEntries(keys.map((k) => [k, undefined])) as Record<string, T>, {
+    get: (_, k) => make(String(k)),
+  });
 
 export const CLASS_NAMES = lookup((k) => t(`class.${k}` as MessageKey));
 export const STRATEGY_INFO = lookup((k) => ({
@@ -51,7 +58,10 @@ export const TRAINING_INFO = lookup((k) => ({
   label: t(`training.${k}` as MessageKey),
   focus: t(`training.${k}.focus` as MessageKey),
 }));
-export const ATTRIBUTE_LABELS = lookup((k) => t(`attr.${k}` as MessageKey));
+const ATTRIBUTES = Object.keys(en)
+  .filter((k) => k.startsWith("attr."))
+  .map((k) => k.slice("attr.".length));
+export const ATTRIBUTE_LABELS = lookup((k) => t(`attr.${k}` as MessageKey), ATTRIBUTES);
 
 /** Localised message for an API error (by code), falling back to the server text. */
 export const errorMessage = (e: unknown): string => {

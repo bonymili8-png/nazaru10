@@ -741,6 +741,7 @@ export const en = {
   "error.INSUFFICIENT_FUNDS.GEMS": "Not enough gems.",
   "error.INSUFFICIENT_FUNDS.REPUTATION": "Not enough reputation.",
   "error.INSUFFICIENT_FUNDS.PRESTIGE": "Not enough prestige.",
+  "horse.earnedLabel": "Earned",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

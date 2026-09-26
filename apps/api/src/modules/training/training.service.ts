@@ -27,6 +27,7 @@ import { getHorse, type HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { StableService } from "../stable/stable.service.js";
+import { PassService } from "../pass/pass.service.js";
 
 interface SessionRow {
   id: string;
@@ -67,6 +68,7 @@ export class TrainingService {
     private readonly events: EventsService,
     private readonly quests: QuestsService,
     private readonly stables: StableService,
+    private readonly pass: PassService,
     private readonly clock: Clock,
     @Inject(ENV) private readonly env: Env,
   ) {}
@@ -261,6 +263,7 @@ export class TrainingService {
           injury: out.injury?.severity ?? null,
         },
       });
+      await this.pass.addXp(c, s.owner_id, `training:${s.id}`, this.pass.trainingXp, s.completes_at);
       await this.quests.complete(c, s.owner_id, "FIRST_TRAINING", now);
       return true;
     });

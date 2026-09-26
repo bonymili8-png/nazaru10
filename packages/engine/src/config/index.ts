@@ -180,8 +180,18 @@ export interface GameConfig {
     allowance: { threshold: number; amount: number };
   };
   cosmetics: {
-    /** Gem price to unlock each racing-silk pattern (0 = free for everyone). */
+    /** Gem price to unlock each racing-silk pattern (0 = free for everyone, -1 = Racing Pass only). */
     silkPatternPrices: Record<string, number>;
+  };
+  /** Racing Pass: seasonal track of cosmetic/gem rewards earned by playing (never credits or power). */
+  pass: {
+    tiers: number;
+    xpPerTier: number;
+    premiumPriceGems: number;
+    xp: { raceRun: number; win: number; second: number; third: number; training: number };
+    /** Rewards by tier number (string keys). */
+    free: Record<string, { gems?: number; silk?: string }>;
+    premium: Record<string, { gems?: number; silk?: string }>;
   };
   facilities: Record<
     FacilityType,
@@ -518,7 +528,44 @@ export const defaultConfig: GameConfig = {
     allowance: { threshold: 400, amount: 250 },
   },
   cosmetics: {
-    silkPatternPrices: { SOLID: 0, HOOPS: 60, SASH: 80, QUARTERED: 100, DIAMONDS: 150, STAR: 200 },
+    silkPatternPrices: {
+      SOLID: 0,
+      HOOPS: 60,
+      SASH: 80,
+      QUARTERED: 100,
+      DIAMONDS: 150,
+      STAR: 200,
+      CHEVRON: -1,
+      STRIPES: -1,
+      CROSS: -1,
+      CHECK: -1,
+    },
+  },
+  pass: {
+    tiers: 20,
+    xpPerTier: 80,
+    premiumPriceGems: 400,
+    xp: { raceRun: 20, win: 30, second: 20, third: 10, training: 10 },
+    free: {
+      "2": { gems: 10 },
+      "5": { gems: 15 },
+      "8": { gems: 20 },
+      "11": { gems: 25 },
+      "14": { gems: 30 },
+      "17": { gems: 40 },
+      "20": { gems: 60 },
+    },
+    premium: {
+      "1": { gems: 25 },
+      "3": { gems: 25 },
+      "5": { silk: "CHEVRON" },
+      "7": { gems: 50 },
+      "10": { silk: "STRIPES" },
+      "12": { gems: 50 },
+      "15": { silk: "CROSS" },
+      "17": { gems: 50 },
+      "20": { silk: "CHECK" },
+    },
   },
   facilities: {
     TRAINING_TRACK: { costs: [4000, 12000, 30000], gainPerLevel: 0.04, injuryReductionPerLevel: 0 },

@@ -30,7 +30,9 @@ export type SystemAccount =
   | "TOURNAMENT_PRIZE"
   | "STAFF_SALARY"
   | "FACILITIES"
-  | "COSMETICS";
+  | "COSMETICS"
+  | "RACING_PASS"
+  | "PASS_REWARDS";
 
 /** Non-negative holding accounts (money in flight, e.g. auction bids). */
 export type EscrowAccount = "MARKET";

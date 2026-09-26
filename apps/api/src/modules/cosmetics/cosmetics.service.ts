@@ -7,7 +7,7 @@ import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "../economy/ledger.service.js";
 
-const silkItem = (p: SilkPattern) => `silk:${p}`;
+export const silkItem = (p: SilkPattern | string) => `silk:${p}`;
 
 /**
  * Cosmetics are the main gem sink: they change how a stable looks (racing silks on race cards and
@@ -37,17 +37,21 @@ export class CosmeticsService {
     const have = new Set(owned.map((o) => o.item));
     return {
       silks: stable.silks,
-      patterns: SILK_PATTERNS.map((pattern) => ({
-        pattern,
-        priceGems: this.price(pattern),
-        owned: this.price(pattern) === 0 || have.has(silkItem(pattern)),
-      })),
+      patterns: SILK_PATTERNS.map((pattern) => {
+        const price = this.price(pattern);
+        return {
+          pattern,
+          priceGems: price < 0 ? null : price,
+          owned: price === 0 || have.has(silkItem(pattern)),
+        };
+      }),
       gems: balances.GEMS,
     };
   }
 
   async unlockPattern(userId: string, pattern: SilkPattern): Promise<CosmeticsDto> {
     const price = this.price(pattern);
+    if (price < 0) throw conflict("PASS_EXCLUSIVE", "This pattern is earned on the Racing Pass");
     if (price > 0) {
       await this.db.tx(async (c) => {
         const inserted = await c.query(
@@ -78,7 +82,7 @@ export class CosmeticsService {
   }
 
   async setSilks(userId: string, silks: Silks): Promise<CosmeticsDto> {
-    if (this.price(silks.pattern) > 0) {
+    if (this.price(silks.pattern) !== 0) {
       const owned = await row<{ item: string }>(
         this.db.pool,
         "SELECT item FROM owned_cosmetics WHERE user_id = $1 AND item = $2",

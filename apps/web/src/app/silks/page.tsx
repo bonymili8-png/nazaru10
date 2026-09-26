@@ -6,7 +6,7 @@ import {
   type SilkPattern,
   type Silks,
 } from "@thoroughline/contracts";
-import { Gem, Lock } from "lucide-react";
+import { Gem, Lock, Ticket } from "lucide-react";
 import { useState } from "react";
 import { Silk } from "@/components/Silk";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -82,14 +82,24 @@ export default function SilksPage() {
               role="radio"
               aria-checked={selected}
               onClick={() =>
-                isOwned ? setDraft({ ...silks, pattern: p.pattern }) : void unlock(p.pattern, p.priceGems)
+                isOwned
+                  ? setDraft({ ...silks, pattern: p.pattern })
+                  : p.priceGems === null
+                    ? (window.location.href = "/pass/")
+                    : void unlock(p.pattern, p.priceGems)
               }
               disabled={busy !== null}
               className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border p-2 transition-colors ${selected ? "border-gold bg-gold/10" : "border-line/60 bg-surface"}`}
             >
               <Silk silks={{ ...silks, pattern: p.pattern }} size={40} title={titleCase(p.pattern)} />
               <span className="text-xs font-medium">{titleCase(p.pattern)}</span>
-              {!isOwned && (
+              {!isOwned && p.priceGems === null && (
+                <span className="flex items-center gap-1 text-[11px] text-gold">
+                  <Ticket className="size-3" aria-hidden />
+                  Racing Pass
+                </span>
+              )}
+              {!isOwned && p.priceGems !== null && (
                 <span className="num flex items-center gap-1 text-[11px] text-gold">
                   <Lock className="size-3" aria-hidden />
                   {p.priceGems}

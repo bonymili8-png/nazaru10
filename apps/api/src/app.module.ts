@@ -25,6 +25,8 @@ import { SeasonsController } from "./modules/seasons/seasons.controller.js";
 import { SeasonsService } from "./modules/seasons/seasons.service.js";
 import { CosmeticsController } from "./modules/cosmetics/cosmetics.controller.js";
 import { CosmeticsService } from "./modules/cosmetics/cosmetics.service.js";
+import { PassController } from "./modules/pass/pass.controller.js";
+import { PassService } from "./modules/pass/pass.service.js";
 import { FraudController } from "./modules/fraud/fraud.controller.js";
 import { FraudService } from "./modules/fraud/fraud.service.js";
 import { StaffController } from "./modules/staff/staff.controller.js";
@@ -95,6 +97,7 @@ export class AppModule {
         StaffController,
         FraudController,
         CosmeticsController,
+        PassController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -124,6 +127,7 @@ export class AppModule {
         StaffService,
         FraudService,
         CosmeticsService,
+        PassService,
         OnboardingService,
         AuthService,
         TelegramStarsProvider,

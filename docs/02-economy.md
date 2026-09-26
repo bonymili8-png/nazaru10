@@ -182,3 +182,14 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   150, Star 200 gems — config `cosmetics.silkPatternPrices`, admin-tunable). Colours are free.
 * Silks show on race cards and live-race markers; they never touch the simulation.
 * Sink `COSMETICS`; unlocks are idempotent per owner and item (`cosmetic:<user>:silk:<pattern>`).
+
+## Racing Pass (live)
+
+* One pass per season (28 days): 20 tiers × 80 XP. XP only from play — 20 per race run, +30/+20/+10
+  for 1st/2nd/3rd, 10 per training session — recorded once per source (`pass_xp_events`).
+* Free track: 200 gems over the season. Premium track (400 gems, sink `RACING_PASS`): 200 gems back
+  plus four pass-exclusive silk patterns (Chevron, Stripes, Cross, Check) that cannot be bought.
+* No credits and nothing that affects racing, so the premium track does not buy power and does
+  not touch the credit economy (the cohort simulation is unaffected).
+* Tuning in config `pass.*`; admin overrides can change existing tiers' rewards and prices (new
+  tier keys need a release, as the override validator only accepts known settings).

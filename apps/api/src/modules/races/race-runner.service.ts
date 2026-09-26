@@ -29,6 +29,7 @@ import type { HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { FraudService } from "../fraud/fraud.service.js";
+import { PassService } from "../pass/pass.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
 import { HouseService } from "./house.service.js";
 import {
@@ -62,6 +63,7 @@ export class RaceRunnerService {
     private readonly quests: QuestsService,
     private readonly seasons: SeasonsService,
     private readonly fraud: FraudService,
+    private readonly pass: PassService,
     private readonly events: EventsService,
     private readonly audit: AuditService,
     private readonly clock: Clock,
@@ -597,6 +599,13 @@ export class RaceRunnerService {
             reason: race.name,
           });
         }
+        await this.pass.addXp(
+          c,
+          owner,
+          `race:${raceId}:${e.horse_id}`,
+          this.pass.raceXp(pos),
+          race.starts_at,
+        );
         await this.quests.complete(c, owner, "FIRST_RACE", now);
         if (pos <= 3) await this.quests.complete(c, owner, "FIRST_PODIUM", now);
         if (pos === 1) await this.quests.complete(c, owner, "FIRST_WIN", now);

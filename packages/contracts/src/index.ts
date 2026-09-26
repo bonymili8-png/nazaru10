@@ -179,7 +179,19 @@ export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
 
 /* ───────────────────────────── cosmetics ───────────────────────────── */
 
-export const SILK_PATTERNS = ["SOLID", "HOOPS", "SASH", "QUARTERED", "DIAMONDS", "STAR"] as const;
+export const SILK_PATTERNS = [
+  "SOLID",
+  "HOOPS",
+  "SASH",
+  "QUARTERED",
+  "DIAMONDS",
+  "STAR",
+  // Racing Pass exclusives (not for sale).
+  "CHEVRON",
+  "STRIPES",
+  "CROSS",
+  "CHECK",
+] as const;
 export type SilkPattern = (typeof SILK_PATTERNS)[number];
 
 /** Racing-silk palette (name → hex). Colours are free; patterns are unlocked with gems. */
@@ -219,9 +231,44 @@ export const SilkPatternParam = z.enum(SILK_PATTERNS);
 
 export interface CosmeticsDto {
   silks: Silks;
-  patterns: { pattern: SilkPattern; priceGems: number; owned: boolean }[];
+  /** priceGems is null for Racing Pass exclusives (earned, never sold). */
+  patterns: { pattern: SilkPattern; priceGems: number | null; owned: boolean }[];
   gems: number;
 }
+
+export interface PassRewardDto {
+  gems?: number;
+  silk?: SilkPattern;
+}
+
+export interface PassTierDto {
+  tier: number;
+  xpRequired: number;
+  free: PassRewardDto | null;
+  premium: PassRewardDto | null;
+  freeClaimed: boolean;
+  premiumClaimed: boolean;
+}
+
+export interface RacingPassDto {
+  season: number;
+  endsAt: string;
+  xp: number;
+  tier: number;
+  maxTier: number;
+  xpPerTier: number;
+  premium: boolean;
+  premiumPriceGems: number;
+  gems: number;
+  xpRules: { raceRun: number; win: number; second: number; third: number; training: number };
+  tiers: PassTierDto[];
+}
+
+export const PassClaimRequest = z.object({
+  tier: z.number().int().min(1).max(100),
+  track: z.enum(["FREE", "PREMIUM"]),
+});
+export type PassClaimRequest = z.infer<typeof PassClaimRequest>;
 
 export const HireTrainerRequest = z.object({ trainerId: z.string().uuid() });
 export const HireJockeyRequest = z.object({ jockeyId: z.string().uuid() });

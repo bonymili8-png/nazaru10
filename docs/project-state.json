@@ -67,7 +67,8 @@
     "0.4.1-session-start-hook",
     "21.1.1-bot-paysupport-terms",
     "22.1.1-cosmetics-silks",
-    "0.5.1-production-deploy"
+    "0.5.1-production-deploy",
+    "22.2.1-racing-pass"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -79,8 +80,8 @@
   "failed_tasks": [],
   "test_status": {
     "engine": "57/57",
-    "api": "117/117 (real Postgres)",
-    "web": "Playwright E2E: 12 journeys — CI job",
+    "api": "121/121 (real Postgres)",
+    "web": "Playwright E2E: 13 journeys — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); XFF trust fixed; referral hardening; fraud signals + review queue",
@@ -91,5 +92,5 @@
     "Tournaments are not yet part of the economy cohort simulation",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "More gem sinks (horse coats, stable themes), Racing Pass; tournaments in the economy sim"
+  "next_action": "Tournaments in the economy sim; more cosmetics (horse coats, stable themes); Redis rate limiter before scaling out"
 }

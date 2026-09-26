@@ -75,6 +75,50 @@ export function SilkMarks({
       marks = <polygon points={pts} fill={b} />;
       break;
     }
+    case "CHEVRON":
+      marks = [0.3, 0.62].map((f) => (
+        <polyline
+          key={f}
+          points={`${x0},${y0 + d * f} ${cx},${y0 + d * (f + 0.22)} ${x0 + d},${y0 + d * f}`}
+          fill="none"
+          stroke={b}
+          strokeWidth={d * 0.11}
+        />
+      ));
+      break;
+    case "STRIPES":
+      marks = [0.18, 0.5, 0.82].map((f) => (
+        <rect key={f} x={x0 + d * f - d * 0.08} y={y0} width={d * 0.16} height={d} fill={b} />
+      ));
+      break;
+    case "CROSS":
+      marks = (
+        <>
+          <rect x={cx - d * 0.1} y={y0} width={d * 0.2} height={d} fill={b} />
+          <rect x={x0} y={cy - d * 0.1} width={d} height={d * 0.2} fill={b} />
+        </>
+      );
+      break;
+    case "CHECK": {
+      const n = 4;
+      const cell = d / n;
+      const cells: React.ReactNode[] = [];
+      for (let i = 0; i < n; i++)
+        for (let j = 0; j < n; j++)
+          if ((i + j) % 2 === 1)
+            cells.push(
+              <rect
+                key={`${i}-${j}`}
+                x={x0 + i * cell}
+                y={y0 + j * cell}
+                width={cell}
+                height={cell}
+                fill={b}
+              />,
+            );
+      marks = cells;
+      break;
+    }
     default:
       marks = null;
   }

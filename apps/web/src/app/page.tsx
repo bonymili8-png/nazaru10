@@ -1,6 +1,6 @@
 "use client";
-import type { HomeDto, QuestDto, WalletDto } from "@thoroughline/contracts";
-import { CheckCircle2, Circle, Flag, Gift, Store } from "lucide-react";
+import type { HomeDto, QuestDto, RacingPassDto, WalletDto } from "@thoroughline/contracts";
+import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Store, Ticket } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
 import { HorseIcon } from "@/components/icons";
@@ -51,6 +51,8 @@ export default function HomePage() {
       </Card>
 
       <Allowance />
+
+      <PassTeaser />
 
       <Quests quests={data.quests} />
 
@@ -187,5 +189,42 @@ function Allowance() {
         Claim
       </Button>
     </Card>
+  );
+}
+
+function PassTeaser() {
+  const { data } = useApi<RacingPassDto>("/pass", { refreshMs: 60_000 });
+  if (!data) return null;
+  const inTier = data.tier >= data.maxTier ? data.xpPerTier : data.xp - data.tier * data.xpPerTier;
+  const open = data.tiers.filter(
+    (t) =>
+      t.tier <= data.tier && ((t.free && !t.freeClaimed) || (data.premium && t.premium && !t.premiumClaimed)),
+  ).length;
+  return (
+    <a
+      href="/pass/"
+      className="mt-3 block rounded-[var(--radius-card)] border border-gold/40 bg-surface p-4 hover:border-gold"
+    >
+      <div className="flex items-center gap-3">
+        <Ticket className="size-5 text-gold" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">
+            Racing Pass · tier {data.tier}/{data.maxTier}
+            {open > 0 && (
+              <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-xs font-semibold text-bg">
+                {open} to claim
+              </span>
+            )}
+          </p>
+          <div className="mt-1.5 h-1.5 rounded-full bg-surface-2" aria-hidden>
+            <div
+              className="h-1.5 rounded-full bg-gold"
+              style={{ width: `${(inTier / data.xpPerTier) * 100}%` }}
+            />
+          </div>
+        </div>
+        <ChevronRight className="size-4 text-muted" aria-hidden />
+      </div>
+    </a>
   );
 }

@@ -26,6 +26,9 @@ const has = (key: string): key is MessageKey => {
 };
 
 /** Human label for an enum value: the dictionary entry when there is one, else Title Case. */
+/** Track archetypes ("Urban Track") share the enum dictionary. */
+export const trackName = (archetype: string) => titleCase(archetype.replace(/ /g, "_"));
+
 export const titleCase = (s: string) =>
   has(`enum.${s.toUpperCase()}`)
     ? t(`enum.${s.toUpperCase()}` as MessageKey)

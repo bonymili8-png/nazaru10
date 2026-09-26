@@ -4,6 +4,7 @@ import { Gavel, Tag } from "lucide-react";
 import Link from "next/link";
 import { countdown, fmt, titleCase } from "@/lib/format";
 import { useNow } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { coatColor } from "./HorseCard";
 import { Badge, Stars } from "./ui";
 
@@ -28,16 +29,17 @@ export function ListingCard({ l }: { l: MarketListingDto }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{h.name}</p>
           <p className="text-sm text-muted">
-            {h.age.toFixed(1)}y {titleCase(h.sex)} · {h.record.wins}/{h.record.starts} wins · ~
-            {fmt(h.optimalDistance)}m
+            {t("horse.ageLine", { age: h.age.toFixed(1), sex: titleCase(h.sex) })} ·{" "}
+            {t("common.winsOf", { w: h.record.wins, n: h.record.starts })} · ~
+            {t("unit.m", { n: fmt(h.optimalDistance) })}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <Badge tone={auction ? "gold" : "neutral"}>
               {auction ? <Gavel className="size-3" aria-hidden /> : <Tag className="size-3" aria-hidden />}
-              {auction ? `Auction · ${l.bidCount} bid${l.bidCount === 1 ? "" : "s"}` : "Buy now"}
+              {auction ? t("listing.auctionBids", { n: l.bidCount }) : t("listing.buyNow")}
             </Badge>
-            {l.iAmLeading && <Badge tone="good">You lead</Badge>}
-            {l.mine && <Badge>Yours</Badge>}
+            {l.iAmLeading && <Badge tone="good">{t("listing.youLead")}</Badge>}
+            {l.mine && <Badge>{t("listing.yours")}</Badge>}
             <Stars n={h.potentialStars} />
           </div>
         </div>
@@ -46,10 +48,10 @@ export function ListingCard({ l }: { l: MarketListingDto }) {
           <p className="text-[11px] text-muted">
             {live
               ? auction && l.highestBid
-                ? "current bid"
+                ? t("listing.currentBid")
                 : auction
-                  ? "start"
-                  : "credits"
+                  ? t("listing.start")
+                  : t("common.credits")
               : titleCase(l.status)}
           </p>
           <p className="num text-[11px] text-muted">{live ? countdown(l.endsAt, now) : ""}</p>

@@ -24,23 +24,25 @@ import {
 import { api, post } from "@/lib/api";
 import { errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
+import { type MessageKey, t } from "@/lib/i18n";
 import { haptic, tg } from "@/lib/telegram";
 
 type Tab = "players" | "ring" | "mine" | "gems";
-const TABS: [Tab, string][] = [
-  ["players", "Players"],
-  ["ring", "Sales ring"],
-  ["mine", "Mine"],
-  ["gems", "Gems"],
-];
+const TABS: Tab[] = ["players", "ring", "mine", "gems"];
+
+/** Product texts are translated by id; the server's English text is the fallback. */
+const productText = (p: ProductDto, field: "title" | "description") => {
+  const k = `product.${p.id}.${field}` as MessageKey;
+  return t(k) === k ? p[field] : t(k);
+};
 
 export default function MarketPage() {
   const [tab, setTab] = useState<Tab>("players");
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Market</h1>
+      <h1 className="font-display text-3xl font-bold">{t("shop.title")}</h1>
       <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-surface p-1" role="tablist">
-        {TABS.map(([k, label]) => (
+        {TABS.map((k) => (
           <button
             key={k}
             role="tab"
@@ -48,7 +50,7 @@ export default function MarketPage() {
             onClick={() => setTab(k)}
             className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium transition-colors ${tab === k ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
           >
-            {label}
+            {t(`shop.tab.${k}`)}
           </button>
         ))}
       </div>
@@ -71,44 +73,38 @@ function PlayerMarket() {
     <>
       <div className="mt-3 flex gap-2">
         <select
-          aria-label="Listing type"
+          aria-label={t("shop.listingType")}
           value={type}
           onChange={(e) => setType(e.target.value as typeof type)}
           className="min-h-10 flex-1 rounded-xl border border-line bg-surface-2 px-3 text-sm"
         >
-          <option value="">All listings</option>
-          <option value="AUCTION">Auctions</option>
-          <option value="FIXED">Buy now</option>
+          <option value="">{t("shop.allListings")}</option>
+          <option value="AUCTION">{t("shop.auctions")}</option>
+          <option value="FIXED">{t("listing.buyNow")}</option>
         </select>
         <select
-          aria-label="Sort"
+          aria-label={t("shop.sort")}
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           className="min-h-10 flex-1 rounded-xl border border-line bg-surface-2 px-3 text-sm"
         >
-          <option value="ending">Ending soon</option>
-          <option value="newest">Newest</option>
-          <option value="price_asc">Price ↑</option>
-          <option value="price_desc">Price ↓</option>
-          <option value="rating">Rating</option>
+          <option value="ending">{t("shop.ending")}</option>
+          <option value="newest">{t("shop.newest")}</option>
+          <option value="price_asc">{t("shop.priceAsc")}</option>
+          <option value="price_desc">{t("shop.priceDesc")}</option>
+          <option value="rating">{t("common.rating")}</option>
         </select>
       </div>
       <div className="mt-3 space-y-2">
         {error && <ErrorState error={error} retry={reload} />}
         {!data && !error && <Skeleton className="h-40" />}
-        {data?.length === 0 && (
-          <EmptyState
-            title="No horses for sale"
-            body="Owners list horses from their horse page. Check back soon — or sell one yourself."
-          />
-        )}
+        {data?.length === 0 && <EmptyState title={t("shop.noneForSale")} body={t("shop.noneForSaleBody")} />}
         {data?.map((l) => (
           <ListingCard key={l.id} l={l} />
         ))}
       </div>
       <p className="mt-3 text-xs text-muted">
-        A {Math.round(defaultConfig.market.saleFeeRate * 100)}% market fee is taken from the seller when a
-        sale completes. Bids are held in escrow and returned if you are outbid.
+        {t("shop.feeNote", { fee: Math.round(defaultConfig.market.saleFeeRate * 100) })}
       </p>
     </>
   );
@@ -119,9 +115,9 @@ function MyMarket() {
   if (!data) return <Skeleton className="mt-3 h-40" />;
   return (
     <>
-      <SectionTitle>Your bids</SectionTitle>
+      <SectionTitle>{t("shop.yourBids")}</SectionTitle>
       {data.bids.length === 0 ? (
-        <p className="text-sm text-muted">No active bids.</p>
+        <p className="text-sm text-muted">{t("shop.noBids")}</p>
       ) : (
         <div className="space-y-2">
           {data.bids.map((l) => (
@@ -129,9 +125,9 @@ function MyMarket() {
           ))}
         </div>
       )}
-      <SectionTitle>Your listings</SectionTitle>
+      <SectionTitle>{t("shop.yourListings")}</SectionTitle>
       {data.listings.length === 0 ? (
-        <p className="text-sm text-muted">Sell a horse from its profile page.</p>
+        <p className="text-sm text-muted">{t("shop.sellHint")}</p>
       ) : (
         <div className="space-y-2">
           {data.listings.map((l) => (
@@ -148,12 +144,12 @@ function SalesRing() {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const buyHorse = async (h: ShopHorseDto) => {
-    if (!window.confirm(`Buy ${h.name} for ${fmt(h.price)} credits?`)) return;
+    if (!window.confirm(t("shop.confirmBuy", { name: h.name, price: fmt(h.price) }))) return;
     setBusy(h.id);
     try {
       await post(`/shop/horses/${h.id}/buy`);
       haptic.success();
-      toast(`${h.name} has arrived at your stable`);
+      toast(t("shop.arrived", { name: h.name }));
       invalidate("/shop", "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
@@ -164,24 +160,23 @@ function SalesRing() {
   };
   return (
     <>
-      <p className="mt-3 text-sm text-muted">
-        House-bred prospects arrive through the day. Prices follow ability, potential, age and rarity.
-      </p>
+      <p className="mt-3 text-sm text-muted">{t("shop.ringIntro")}</p>
       <div className="mt-3 space-y-3">
         {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
         {!horses.data && !horses.error && <Skeleton className="h-40" />}
         {horses.data?.length === 0 && (
-          <EmptyState title="The ring is empty" body="New horses arrive shortly." />
+          <EmptyState title={t("shop.ringEmpty")} body={t("shop.ringEmptyBody")} />
         )}
         {horses.data?.map((h) => (
           <div key={h.id}>
             <HorseCard horse={h} />
             <div className="-mt-2 flex items-center justify-between gap-2 rounded-b-[var(--radius-card)] border border-t-0 border-line/60 bg-surface-2 px-3.5 pb-3 pt-4 text-sm">
               <div className="text-muted">
-                <Stars n={h.potentialStars} /> · ~{fmt(h.optimalDistance)}m · {titleCase(h.favouriteSurface)}
+                <Stars n={h.potentialStars} /> · ~{t("unit.m", { n: fmt(h.optimalDistance) })} ·{" "}
+                {titleCase(h.favouriteSurface)}
               </div>
               <Button className="min-h-10 px-3 text-sm" loading={busy === h.id} onClick={() => buyHorse(h)}>
-                {fmt(h.price)} cr
+                {fmt(h.price)} {t("common.cr")}
               </Button>
             </div>
           </div>
@@ -198,7 +193,7 @@ function Gems() {
   const buyGems = async (p: ProductDto) => {
     const app = tg();
     if (!app?.openInvoice) {
-      toast("Purchases are available inside Telegram", "bad");
+      toast(t("shop.onlyTelegram"), "bad");
       return;
     }
     setBusy(p.id);
@@ -215,12 +210,12 @@ function Gems() {
           const s = await api<PaymentDto>(`/payments/${payment.id}`).catch(() => null);
           if (s?.status === "COMPLETED") {
             haptic.success();
-            toast(`${p.title} added to your wallet`);
+            toast(t("shop.added", { title: productText(p, "title") }));
             invalidate("/wallet");
             setBusy(null);
           } else if (tries++ < 10) setTimeout(check, 1500);
           else {
-            toast("Payment is processing — gems will appear shortly");
+            toast(t("shop.processing"));
             setBusy(null);
           }
         };
@@ -233,22 +228,20 @@ function Gems() {
   };
   return (
     <>
-      <p className="mb-2 mt-3 text-xs text-muted">
-        Gems buy diagnostics and cosmetics — never race wins. Paid with Telegram Stars.
-      </p>
+      <p className="mb-2 mt-3 text-xs text-muted">{t("shop.gemsNote")}</p>
       <div className="grid grid-cols-2 gap-2">
         {products.data?.map((p) => (
           <Card key={p.id} className="flex flex-col">
             <Gem className="size-6 text-gold" aria-hidden />
-            <p className="mt-2 font-semibold">{p.title}</p>
-            <p className="flex-1 text-xs text-muted">{p.description}</p>
+            <p className="mt-2 font-semibold">{productText(p, "title")}</p>
+            <p className="flex-1 text-xs text-muted">{productText(p, "description")}</p>
             <Button
               variant="secondary"
               className="mt-3 text-sm"
               loading={busy === p.id}
               onClick={() => buyGems(p)}
             >
-              {p.priceStars} Stars
+              {t("shop.stars", { n: p.priceStars })}
             </Button>
           </Card>
         ))}

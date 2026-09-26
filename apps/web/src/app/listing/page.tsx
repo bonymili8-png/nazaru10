@@ -9,6 +9,7 @@ import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, Stars, useToas
 import { post } from "@/lib/api";
 import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 export default function ListingPageWrapper() {
@@ -31,7 +32,7 @@ function ListingPage() {
   const toast = useToast();
   const [amount, setAmount] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
-  if (!id) return <ErrorState error={new Error("No listing selected")} />;
+  if (!id) return <ErrorState error={new Error(t("listing.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!l) return <Skeleton className="h-64" />;
 
@@ -61,9 +62,11 @@ function ListingPage() {
       <HorseCard horse={l.horse} href={`/horse/?id=${l.horse.id}`} />
       <Card className="mt-3">
         <div className="flex items-center justify-between">
-          <Badge tone={auction ? "gold" : "neutral"}>{auction ? "Timed auction" : "Buy now"}</Badge>
+          <Badge tone={auction ? "gold" : "neutral"}>
+            {auction ? t("listing.timed") : t("listing.buyNow")}
+          </Badge>
           <Badge tone={open ? "good" : "neutral"}>
-            {open ? `Ends in ${countdown(l.endsAt, now)}` : titleCase(l.status)}
+            {open ? t("listing.endsIn", { t: countdown(l.endsAt, now) }) : titleCase(l.status)}
           </Badge>
         </div>
         <p className="num mt-3 font-display text-4xl font-bold text-gold">
@@ -71,20 +74,20 @@ function ListingPage() {
         </p>
         <p className="text-sm text-muted">
           {l.status === "SOLD"
-            ? "sold for"
+            ? t("listing.soldFor")
             : auction
               ? l.highestBid
-                ? `current bid · ${l.bidCount} bid${l.bidCount === 1 ? "" : "s"}`
-                : "starting price"
-              : "credits"}{" "}
-          · guide value {fmt(l.referenceValue)}
+                ? t("listing.currentBids", { n: l.bidCount })
+                : t("listing.startingPrice")
+              : t("common.credits")}{" "}
+          · {t("listing.guide", { v: fmt(l.referenceValue) })}
         </p>
         <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-muted">Seller</span>
-          <span>{l.sellerName ?? "Owner"}</span>
+          <span className="text-muted">{t("listing.seller")}</span>
+          <span>{l.sellerName ?? t("common.owner")}</span>
         </div>
         <div className="mt-1 flex items-center justify-between text-sm">
-          <span className="text-muted">Potential</span>
+          <span className="text-muted">{t("horse.potential")}</span>
           <Stars n={l.horse.potentialStars} />
         </div>
 
@@ -93,24 +96,28 @@ function ListingPage() {
             className="mt-4 w-full"
             loading={busy === "buy"}
             onClick={() => {
-              if (window.confirm(`Buy ${l.horse.name} for ${fmt(l.price)} credits?`))
-                void act("buy", () => post(`/market/listings/${l.id}/buy`), `${l.horse.name} is yours!`);
+              if (window.confirm(t("shop.confirmBuy", { name: l.horse.name, price: fmt(l.price) })))
+                void act(
+                  "buy",
+                  () => post(`/market/listings/${l.id}/buy`),
+                  t("listing.yoursNow", { name: l.horse.name }),
+                );
             }}
           >
-            Buy for {fmt(l.price)} cr
+            {t("listing.buyFor", { price: fmt(l.price) })}
           </Button>
         )}
         {open && !l.mine && !auction && shortOf(l.price) > 0 && (
           <p className="mt-2 text-sm text-warn" role="status">
-            You have {fmt(balance!)} credits — {fmt(shortOf(l.price))} short.
+            {t("listing.short", { have: fmt(balance!), short: fmt(shortOf(l.price)) })}
           </p>
         )}
 
         {open && !l.mine && auction && (
           <div className="mt-4">
-            {l.iAmLeading && <p className="mb-2 text-sm text-good">You are the highest bidder.</p>}
+            {l.iAmLeading && <p className="mb-2 text-sm text-good">{t("listing.highest")}</p>}
             <label htmlFor="bid" className="text-sm text-muted">
-              Your bid (minimum {fmt(l.minNextBid)})
+              {t("listing.yourBid", { min: fmt(l.minNextBid) })}
             </label>
             <div className="mt-1 flex gap-2">
               <input
@@ -128,23 +135,20 @@ function ListingPage() {
                   act(
                     "bid",
                     () => post(`/market/listings/${l.id}/bids`, { amount: bidValue }),
-                    "Bid placed — held in escrow",
+                    t("listing.bidPlaced"),
                   )
                 }
               >
                 <Gavel className="size-4" aria-hidden />
-                Bid
+                {t("listing.bid")}
               </Button>
             </div>
             {shortOf(bidValue) > 0 && !l.iAmLeading && (
               <p className="mt-2 text-sm text-warn" role="status">
-                You have {fmt(balance!)} credits — {fmt(shortOf(bidValue))} short for this bid.
+                {t("listing.shortBid", { have: fmt(balance!), short: fmt(shortOf(bidValue)) })}
               </p>
             )}
-            <p className="mt-2 text-xs text-muted">
-              Your bid is held in escrow and returned in full if someone outbids you. Late bids extend the
-              auction by 5 minutes.
-            </p>
+            <p className="mt-2 text-xs text-muted">{t("listing.escrow")}</p>
           </div>
         )}
 
@@ -154,26 +158,28 @@ function ListingPage() {
             className="mt-4 w-full"
             disabled={l.bidCount > 0}
             loading={busy === "cancel"}
-            onClick={() => act("cancel", () => post(`/market/listings/${l.id}/cancel`), "Listing cancelled")}
+            onClick={() =>
+              act("cancel", () => post(`/market/listings/${l.id}/cancel`), t("listing.cancelled"))
+            }
           >
-            {l.bidCount > 0 ? "Auctions with bids can't be cancelled" : "Cancel listing"}
+            {l.bidCount > 0 ? t("listing.cantCancel") : t("listing.cancel")}
           </Button>
         )}
       </Card>
 
       {auction && (
         <>
-          <SectionTitle>Bids</SectionTitle>
+          <SectionTitle>{t("listing.bids")}</SectionTitle>
           <Card className="divide-y divide-line/40 p-0">
-            {l.bids.length === 0 && <p className="p-4 text-sm text-muted">No bids yet.</p>}
+            {l.bids.length === 0 && <p className="p-4 text-sm text-muted">{t("listing.noBids")}</p>}
             {l.bids.map((b, i) => (
               <div
                 key={`${b.createdAt}${b.amount}`}
                 className={`flex justify-between px-4 py-2.5 text-sm ${b.mine ? "bg-gold/10" : ""}`}
               >
                 <span className="flex items-center gap-1.5">
-                  {i === 0 && <Crown className="size-3.5 text-gold" aria-label="Leading bid" />}
-                  {b.mine ? "You" : (b.bidderName ?? "Bidder")}
+                  {i === 0 && <Crown className="size-3.5 text-gold" aria-label={t("listing.leading")} />}
+                  {b.mine ? t("listing.you") : (b.bidderName ?? t("listing.bidder"))}
                 </span>
                 <span className="num font-semibold">{fmt(b.amount)}</span>
               </div>
@@ -185,13 +191,12 @@ function ListingPage() {
       <Card className="mt-4 text-xs text-muted">
         <p className="flex items-center gap-1.5 font-medium text-ink">
           <ShieldCheck className="size-4 text-good" aria-hidden />
-          Safe trading
+          {t("listing.safe")}
         </p>
         <p className="mt-1">
-          Payment and the horse change hands in one step on the server. The seller receives the price minus a{" "}
-          {Math.round(l.feeRate * 100)}% market fee.{" "}
+          {t("listing.safeText", { fee: Math.round(l.feeRate * 100) })}{" "}
           <Link href="/shop/" className="text-gold underline">
-            Back to market
+            {t("listing.back")}
           </Link>
         </p>
       </Card>

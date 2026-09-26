@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { countdown, fmt, ordinal } from "@/lib/format";
 import { useApi, useNow } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 
 type Board = "horses" | "owners";
 type By = "rating" | "earnings" | "wins";
@@ -22,13 +23,13 @@ export default function RankingsPage() {
   const [top, setTop] = useState<Top>("season");
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Rankings</h1>
+      <h1 className="font-display text-3xl font-bold">{t("rank.title")}</h1>
       <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1" role="tablist">
         {(
           [
-            ["season", "Season"],
-            ["alltime", "All-time"],
-            ["fame", "Hall of Fame"],
+            ["season", t("rank.season")],
+            ["alltime", t("rank.alltime")],
+            ["fame", t("rank.fame")],
           ] as [Top, string][]
         ).map(([k, label]) => (
           <button
@@ -67,14 +68,14 @@ function SeasonBoard() {
     <>
       <Card className="mt-3 bg-gradient-to-br from-surface to-surface-2">
         <div className="flex items-center justify-between">
-          <p className="font-display text-2xl font-bold">Season {s.season}</p>
-          <p className="num text-sm text-muted">ends in {countdown(s.endsAt, now)}</p>
+          <p className="font-display text-2xl font-bold">{t("rank.seasonN", { n: s.season })}</p>
+          <p className="num text-sm text-muted">{t("rank.endsIn", { t: countdown(s.endsAt, now) })}</p>
         </div>
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[
-            ["Your rank", s.me.rank ? ordinal(s.me.rank) : "—"],
-            ["Points", fmt(s.me.points)],
-            ["Wins", `${s.me.wins}/${s.me.races}`],
+            [t("rank.yourRank"), s.me.rank ? ordinal(s.me.rank) : "—"],
+            [t("rank.points"), fmt(s.me.points)],
+            [t("rank.wins"), `${s.me.wins}/${s.me.races}`],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-bg/40 py-2">
               <dt className="text-[10px] uppercase tracking-wider text-muted">{k}</dt>
@@ -82,10 +83,7 @@ function SeasonBoard() {
             </div>
           ))}
         </dl>
-        <p className="mt-3 text-xs text-muted">
-          Points for top-6 finishes, weighted by class (Maiden ×1 … Class 1 ×6). Top owners share the season
-          prizes.
-        </p>
+        <p className="mt-3 text-xs text-muted">{t("rank.pointsHint")}</p>
       </Card>
       <div className="mt-3 flex gap-2">
         {(["owners", "horses"] as const).map((k) => (
@@ -93,20 +91,15 @@ function SeasonBoard() {
             key={k}
             aria-pressed={kind === k}
             onClick={() => setKind(k)}
-            className={`min-h-9 cursor-pointer rounded-full border px-3.5 text-sm capitalize ${kind === k ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+            className={`min-h-9 cursor-pointer rounded-full border px-3.5 text-sm ${kind === k ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
           >
-            {k}
+            {k === "owners" ? t("rank.owners") : t("rank.horsesTab")}
           </button>
         ))}
       </div>
       <div className="mt-3">
         {!list.data && <Skeleton className="h-40" />}
-        {list.data?.length === 0 && (
-          <EmptyState
-            title="No points yet this season"
-            body="Finish in the top six of any race to get on the board."
-          />
-        )}
+        {list.data?.length === 0 && <EmptyState title={t("rank.noPoints")} body={t("rank.noPointsBody")} />}
         {!!list.data?.length && (
           <Card className="divide-y divide-line/40 p-0">
             {kind === "owners"
@@ -115,7 +108,7 @@ function SeasonBoard() {
                     key={r.userId}
                     rank={r.rank}
                     title={r.name}
-                    sub={`${r.stableName} · ${r.wins} wins`}
+                    sub={`${r.stableName} · ${t("common.wins", { n: r.wins })}`}
                     value={fmt(r.points)}
                     highlight={r.mine}
                   />
@@ -125,7 +118,7 @@ function SeasonBoard() {
                     key={r.horseId}
                     rank={r.rank}
                     title={r.name}
-                    sub={`${r.ownerName ?? ""} · ${r.wins}/${r.races} wins`}
+                    sub={`${r.ownerName ?? ""} · ${t("common.winsOf", { w: r.wins, n: r.races })}`}
                     value={fmt(r.points)}
                     href={`/horse/?id=${r.horseId}`}
                   />
@@ -133,7 +126,7 @@ function SeasonBoard() {
           </Card>
         )}
       </div>
-      <SectionTitle>Season prizes</SectionTitle>
+      <SectionTitle>{t("rank.prizes")}</SectionTitle>
       <Card className="divide-y divide-line/40 p-0 text-sm">
         {s.rewards.map((r) => (
           <div key={r.fromRank} className="flex justify-between px-4 py-2.5">
@@ -141,7 +134,8 @@ function SeasonBoard() {
               {r.fromRank === r.toRank ? ordinal(r.fromRank) : `${ordinal(r.fromRank)}–${ordinal(r.toRank)}`}
             </span>
             <span className="num">
-              {fmt(r.credits)} cr · {r.gems} gems{r.prestige ? ` · ${r.prestige} prestige` : ""}
+              {fmt(r.credits)} {t("common.cr")} · {r.gems} {t("common.gems")}
+              {r.prestige ? ` · ${t("rank.prestige", { n: r.prestige })}` : ""}
             </span>
           </div>
         ))}
@@ -156,7 +150,7 @@ function HallOfFame() {
   if (data.length === 0)
     return (
       <div className="mt-3">
-        <EmptyState title="The Hall of Fame awaits" body="Season champions are enshrined here forever." />
+        <EmptyState title={t("rank.fameEmpty")} body={t("rank.fameBody")} />
       </div>
     );
   const seasons = [...new Set(data.map((d) => d.season))];
@@ -167,12 +161,12 @@ function HallOfFame() {
         const horse = data.find((d) => d.season === n && d.category === "CHAMPION_HORSE");
         return (
           <Card key={n}>
-            <p className="text-xs uppercase tracking-[0.25em] text-gold">Season {n}</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-gold">{t("rank.seasonN", { n })}</p>
             {owner && (
               <p className="mt-2 flex items-center gap-2">
                 <Crown className="size-4 text-gold" aria-hidden />
                 <span className="font-medium">{owner.userName}</span>
-                <span className="num text-sm text-muted">{fmt(owner.value)} pts</span>
+                <span className="num text-sm text-muted">{t("rank.pts", { n: fmt(owner.value) })}</span>
               </p>
             )}
             {horse && (
@@ -181,7 +175,7 @@ function HallOfFame() {
                 <a href={`/horse/?id=${horse.horseId}`} className="font-medium hover:text-gold">
                   {horse.horseName}
                 </a>
-                <span className="num text-sm text-muted">{fmt(horse.value)} pts</span>
+                <span className="num text-sm text-muted">{t("rank.pts", { n: fmt(horse.value) })}</span>
               </p>
             )}
           </Card>
@@ -198,9 +192,9 @@ function AllTime() {
   const owners = useApi<LeaderboardOwnerDto[]>(board === "owners" ? `/leaderboard/owners?by=${by}` : null);
   const active = board === "horses" ? horses : owners;
   const labels: Record<By, string> = {
-    rating: board === "horses" ? "Rating" : "Reputation",
-    earnings: "Earnings",
-    wins: "Wins",
+    rating: board === "horses" ? t("common.rating") : t("rank.reputation"),
+    earnings: t("rank.earnings"),
+    wins: t("rank.wins"),
   };
 
   return (
@@ -212,9 +206,9 @@ function AllTime() {
             role="tab"
             aria-selected={board === b}
             onClick={() => setBoard(b)}
-            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium capitalize ${board === b ? "bg-gold text-bg" : "text-muted"}`}
+            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium ${board === b ? "bg-gold text-bg" : "text-muted"}`}
           >
-            {b}
+            {b === "owners" ? t("rank.owners") : t("rank.horsesTab")}
           </button>
         ))}
       </div>
@@ -234,7 +228,7 @@ function AllTime() {
         {active.error && <ErrorState error={active.error} retry={active.reload} />}
         {!active.data && !active.error && <Skeleton className="h-64" />}
         {active.data?.length === 0 && (
-          <EmptyState title="No ranked entries yet" body="Run a race to get on the board." />
+          <EmptyState title={t("rank.noEntries")} body={t("rank.noEntriesBody")} />
         )}
         {!!active.data?.length && (
           <Card className="divide-y divide-line/40 p-0">
@@ -244,7 +238,7 @@ function AllTime() {
                     key={r.horseId}
                     rank={r.rank}
                     title={r.name}
-                    sub={`${r.ownerName ?? ""} · ${r.wins}/${r.starts} wins`}
+                    sub={`${r.ownerName ?? ""} · ${t("common.winsOf", { w: r.wins, n: r.starts })}`}
                     value={by === "earnings" ? fmt(r.value) : String(r.value)}
                     href={`/horse/?id=${r.horseId}`}
                   />

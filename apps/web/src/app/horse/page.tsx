@@ -36,6 +36,7 @@ import {
   TRAINING_INFO,
 } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
+import { getLocale, t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 export default function HorsePageWrapper() {
@@ -56,7 +57,7 @@ function HorsePage() {
     reload,
   } = useApi<HorseDetailDto>(id ? `/horses/${id}` : null, { refreshMs: 10_000 });
   const [tab, setTab] = useState<Tab>("overview");
-  if (!id) return <ErrorState error={new Error("No horse selected")} />;
+  if (!id) return <ErrorState error={new Error(t("horse.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!h) return <Skeleton className="h-64" />;
   const mine = h.private !== null;
@@ -75,7 +76,8 @@ function HorsePage() {
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-2xl font-bold">{h.name}</h1>
             <p className="text-sm text-muted">
-              {h.age.toFixed(1)}y {titleCase(h.sex)} · {titleCase(h.coat)} · {h.bloodline}
+              {t("horse.ageLine", { age: h.age.toFixed(1), sex: titleCase(h.sex) })} · {titleCase(h.coat)} ·{" "}
+              {h.bloodline}
             </p>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <Badge tone="gold">{titleCase(h.rarity)}</Badge>
@@ -88,10 +90,10 @@ function HorsePage() {
         </div>
         <dl className="mt-4 grid grid-cols-4 gap-2 text-center">
           {[
-            ["Rating", Math.round(h.abilityRating)],
-            ["Mark", h.raceRating],
-            ["Record", `${h.record.wins}-${h.record.seconds}-${h.record.thirds}`],
-            ["Earned", fmt(h.record.earnings)],
+            [t("common.rating"), Math.round(h.abilityRating)],
+            [t("horse.mark"), h.raceRating],
+            [t("horse.record"), `${h.record.wins}-${h.record.seconds}-${h.record.thirds}`],
+            [t("horse.earned"), fmt(h.record.earnings)],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-bg/40 py-2">
               <dt className="text-[10px] uppercase tracking-wider text-muted">{k}</dt>
@@ -103,15 +105,15 @@ function HorsePage() {
 
       {mine && (
         <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1" role="tablist">
-          {(["overview", "train", "history"] as Tab[]).map((t) => (
+          {(["overview", "train", "history"] as Tab[]).map((k) => (
             <button
-              key={t}
+              key={k}
               role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium capitalize transition-colors ${tab === t ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
+              aria-selected={tab === k}
+              onClick={() => setTab(k)}
+              className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium transition-colors ${tab === k ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
             >
-              {t}
+              {t(`horse.tab.${k}`)}
             </button>
           ))}
         </div>
@@ -148,40 +150,40 @@ function Overview({ h }: { h: HorseDetailDto }) {
   const surfaces = Object.entries(p.aptitudes.surface).sort((a, b) => b[1] - a[1]);
   return (
     <>
-      <SectionTitle>Condition</SectionTitle>
+      <SectionTitle>{t("horse.condition")}</SectionTitle>
       <Card>
         <Meter
-          label="Fatigue"
+          label={t("horse.fatigue")}
           value={c.fatigue}
           tone={c.fatigue > 70 ? "bad" : c.fatigue > 40 ? "warn" : "good"}
         />
-        <Meter label="Health" value={c.health} tone={c.health < 60 ? "bad" : "good"} />
+        <Meter label={t("horse.health")} value={c.health} tone={c.health < 60 ? "bad" : "good"} />
         <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-muted">Form</span>
+          <span className="text-muted">{t("horse.form")}</span>
           <span className={c.form > 0.15 ? "text-good" : c.form < -0.15 ? "text-bad" : "text-ink"}>
-            {c.form > 0.15 ? "In form ↑" : c.form < -0.15 ? "Out of form ↓" : "Steady"}
+            {c.form > 0.15 ? t("horse.inForm") : c.form < -0.15 ? t("horse.outOfForm") : t("horse.steady")}
           </span>
         </div>
         <p className="mt-2 flex items-center gap-2 text-sm text-muted">
           <HeartPulse className="size-4" aria-hidden />
           {c.hoursToRaceReady > 0
-            ? `Race-ready in ~${c.hoursToRaceReady.toFixed(1)}h of rest`
-            : "Fresh enough to race"}
+            ? t("horse.readyIn", { h: c.hoursToRaceReady.toFixed(1) })
+            : t("horse.fresh")}
         </p>
         {h.status === "INJURED" && (
           <Button
             variant="danger"
             className="mt-3 w-full"
             loading={busy === "vet"}
-            onClick={() => act("vet", "The vet patched them up")}
+            onClick={() => act("vet", t("horse.vetDone"))}
           >
             <Stethoscope className="size-4" aria-hidden />
-            Call the vet
+            {t("horse.callVet")}
           </Button>
         )}
       </Card>
 
-      <SectionTitle>Attributes</SectionTitle>
+      <SectionTitle>{t("horse.attributes")}</SectionTitle>
       <Card>
         {Object.entries(ATTRIBUTE_LABELS).map(([k, label]) => (
           <Meter
@@ -192,7 +194,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
           />
         ))}
         <p className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-muted">Potential</span>
+          <span className="text-muted">{t("horse.potential")}</span>
           <Stars n={p.potentialStars} />
         </p>
         {!p.diagnostics && (
@@ -200,39 +202,61 @@ function Overview({ h }: { h: HorseDetailDto }) {
             variant="secondary"
             className="mt-3 w-full text-sm"
             loading={busy === "diagnostics"}
-            onClick={() => act("diagnostics", "Diagnostics complete — potential revealed")}
+            onClick={() => act("diagnostics", t("horse.diagDone"))}
           >
             <Microscope className="size-4" aria-hidden />
-            Veterinary diagnostics · 20 gems
+            {t("horse.diagnostics")}
           </Button>
         )}
-        {p.diagnostics && (
-          <p className="mt-2 text-xs text-muted">White markers show each attribute's genetic ceiling.</p>
-        )}
+        {p.diagnostics && <p className="mt-2 text-xs text-muted">{t("horse.ceilingHint")}</p>}
       </Card>
 
       <Sell h={h} />
       <Breeding h={h} />
 
-      <SectionTitle>Profile</SectionTitle>
+      <SectionTitle>{t("horse.profile")}</SectionTitle>
       <Card className="space-y-2 text-sm">
-        <Row k="Best distance" v={`~${fmt(p.aptitudes.optimalDistance)}m`} />
-        <Row k="Favourite surface" v={titleCase(surfaces[0]![0])} />
+        <Row k={t("horse.bestDistance")} v={`~${t("unit.m", { n: fmt(p.aptitudes.optimalDistance) })}`} />
+        <Row k={t("horse.favSurface")} v={titleCase(surfaces[0]![0])} />
         <Row
-          k="Soft/heavy going"
-          v={p.aptitudes.wet > 62 ? "Loves it" : p.aptitudes.wet < 38 ? "Dislikes it" : "Handles it"}
+          k={t("horse.wetGoing")}
+          v={
+            p.aptitudes.wet > 62
+              ? t("horse.lovesIt")
+              : p.aptitudes.wet < 38
+                ? t("horse.dislikesIt")
+                : t("horse.handlesIt")
+          }
         />
         <Row
-          k="Temperament"
-          v={p.traits.temperament > 60 ? "Calm" : p.traits.temperament < 40 ? "Keen / hot" : "Balanced"}
+          k={t("horse.temperament")}
+          v={
+            p.traits.temperament > 60
+              ? t("horse.calm")
+              : p.traits.temperament < 40
+                ? t("horse.hot")
+                : t("horse.balanced")
+          }
         />
         <Row
-          k="Consistency"
-          v={p.traits.consistency > 60 ? "Reliable" : p.traits.consistency < 40 ? "Erratic" : "Average"}
+          k={t("horse.consistency")}
+          v={
+            p.traits.consistency > 60
+              ? t("horse.reliable")
+              : p.traits.consistency < 40
+                ? t("horse.erratic")
+                : t("horse.average")
+          }
         />
         <Row
-          k="Courage"
-          v={p.traits.courage > 60 ? "Battler" : p.traits.courage < 40 ? "Fragile" : "Average"}
+          k={t("horse.courage")}
+          v={
+            p.traits.courage > 60
+              ? t("horse.battler")
+              : p.traits.courage < 40
+                ? t("horse.fragile")
+                : t("horse.average")
+          }
         />
       </Card>
     </>
@@ -269,7 +293,7 @@ function Train({ h }: { h: HorseDetailDto }) {
     try {
       await post<TrainingSessionDto>(`/horses/${h.id}/training`, { type, intensity });
       haptic.success();
-      toast(`${TRAINING_INFO[type]!.label} started`);
+      toast(t("horse.trainingStarted", { name: TRAINING_INFO[type]!.label }));
       invalidate(`/horses/${h.id}`, "/wallet", "/home", "/horses");
     } catch (e) {
       haptic.error();
@@ -284,32 +308,32 @@ function Train({ h }: { h: HorseDetailDto }) {
       <Card className="mt-4 text-center">
         <Activity className="mx-auto size-8 text-gold" aria-hidden />
         <p className="mt-2 font-display text-xl">{TRAINING_INFO[active.type]!.label}</p>
-        <p className="text-sm text-muted">{titleCase(active.intensity)} intensity</p>
+        <p className="text-sm text-muted">{t("horse.intensityOf", { i: titleCase(active.intensity) })}</p>
         <p className="num mt-3 text-3xl font-bold text-gold">{countdown(active.completesAt, now)}</p>
-        <p className="text-xs text-muted">until back in the barn</p>
+        <p className="text-xs text-muted">{t("horse.untilBack")}</p>
       </Card>
     );
   }
 
   return (
     <>
-      <SectionTitle>Session</SectionTitle>
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Training type">
-        {TRAINING_TYPES.map((t) => (
+      <SectionTitle>{t("horse.session")}</SectionTitle>
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("horse.trainingType")}>
+        {TRAINING_TYPES.map((tt) => (
           <button
-            key={t}
+            key={tt}
             role="radio"
-            aria-checked={type === t}
-            onClick={() => setType(t)}
-            className={`min-h-16 cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${type === t ? "border-gold bg-gold/10" : "border-line/60 bg-surface hover:border-line"}`}
+            aria-checked={type === tt}
+            onClick={() => setType(tt)}
+            className={`min-h-16 cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${type === tt ? "border-gold bg-gold/10" : "border-line/60 bg-surface hover:border-line"}`}
           >
-            <p className="text-sm font-semibold">{TRAINING_INFO[t]!.label}</p>
-            <p className="text-xs text-muted">{TRAINING_INFO[t]!.focus}</p>
+            <p className="text-sm font-semibold">{TRAINING_INFO[tt]!.label}</p>
+            <p className="text-xs text-muted">{TRAINING_INFO[tt]!.focus}</p>
           </button>
         ))}
       </div>
-      <SectionTitle>Intensity</SectionTitle>
-      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Intensity">
+      <SectionTitle>{t("horse.intensity")}</SectionTitle>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("horse.intensity")}>
         {(["LIGHT", "NORMAL", "HARD"] as TrainingIntensity[]).map((i) => (
           <button
             key={i}
@@ -324,41 +348,45 @@ function Train({ h }: { h: HorseDetailDto }) {
       </div>
       <Card className="mt-4">
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Cost</span>
-          <span className="num font-semibold">{fmt(cost)} cr</span>
+          <span className="text-muted">{t("horse.cost")}</span>
+          <span className="num font-semibold">
+            {fmt(cost)} {t("common.cr")}
+          </span>
         </div>
         <div className="mt-1 flex justify-between text-sm">
-          <span className="text-muted">Duration</span>
+          <span className="text-muted">{t("horse.duration")}</span>
           <span className="num flex items-center gap-1">
             <Timer className="size-3.5" aria-hidden />
-            {minutes} min
+            {t("horse.minutes", { n: minutes })}
           </span>
         </div>
         <div className="mt-1 flex justify-between gap-2 text-sm">
-          <span className="text-muted">Trainer</span>
+          <span className="text-muted">{t("horse.trainer")}</span>
           {coach ? (
             <span className="truncate text-right">
               {coach.trainer.name}{" "}
               <span className="num text-good">
-                +{Math.round((coach.effect.gainMultiplier - 1) * 1000) / 10}% gains
+                {t("horse.gains", { n: Math.round((coach.effect.gainMultiplier - 1) * 1000) / 10 })}
               </span>
             </span>
           ) : (
             <a href="/staff/" className="text-gold hover:underline">
-              None — hire one
+              {t("horse.hireOne")}
             </a>
           )}
         </div>
         <p className="mt-2 text-xs text-muted">
           {intensity === "HARD"
-            ? "Bigger gains, much more fatigue and injury risk."
+            ? t("horse.hardHint")
             : intensity === "LIGHT"
-              ? "Gentle: small gains, little fatigue."
-              : "Balanced gains and fatigue."}{" "}
-          Gains shrink as a horse nears its genetic ceiling and with repeated sessions in a day.
+              ? t("horse.lightHint")
+              : t("horse.normalHint")}{" "}
+          {t("horse.gainsShrink")}
         </p>
         <Button className="mt-3 w-full" onClick={start} loading={busy} disabled={h.status !== "IDLE"}>
-          {h.status === "IDLE" ? "Start training" : `Unavailable — ${titleCase(h.status)}`}
+          {h.status === "IDLE"
+            ? t("horse.startTraining")
+            : t("horse.unavailable", { status: titleCase(h.status) })}
         </Button>
       </Card>
     </>
@@ -371,8 +399,8 @@ function Pedigree({ id }: { id: string }) {
   if (!data.sire && !data.dam) {
     return (
       <>
-        <SectionTitle>Pedigree</SectionTitle>
-        <p className="text-sm text-muted">Foundation horse of the {data.bloodline} — no recorded ancestry.</p>
+        <SectionTitle>{t("horse.pedigree")}</SectionTitle>
+        <p className="text-sm text-muted">{t("horse.foundationOf", { line: data.bloodline })}</p>
       </>
     );
   }
@@ -384,25 +412,23 @@ function Pedigree({ id }: { id: string }) {
           {n.name}
         </a>
       ) : (
-        <p className="text-sm text-muted">Foundation</p>
+        <p className="text-sm text-muted">{t("horse.foundation")}</p>
       )}
       {n && (
-        <p className="truncate text-[11px] text-muted">
-          {n.wins}/{n.starts} wins
-        </p>
+        <p className="truncate text-[11px] text-muted">{t("common.winsOf", { w: n.wins, n: n.starts })}</p>
       )}
     </div>
   );
   return (
     <>
-      <SectionTitle>Pedigree</SectionTitle>
+      <SectionTitle>{t("horse.pedigree")}</SectionTitle>
       <Card className="grid grid-cols-2 gap-2 text-left">
-        <Node n={data.sire} label="Sire" />
-        <Node n={data.dam} label="Dam" />
-        <Node n={data.sire?.sire ?? null} label="Sire's sire" />
-        <Node n={data.dam?.sire ?? null} label="Dam's sire" />
-        <Node n={data.sire?.dam ?? null} label="Sire's dam" />
-        <Node n={data.dam?.dam ?? null} label="Dam's dam" />
+        <Node n={data.sire} label={t("horse.sire")} />
+        <Node n={data.dam} label={t("horse.dam")} />
+        <Node n={data.sire?.sire ?? null} label={t("horse.sireSire")} />
+        <Node n={data.dam?.sire ?? null} label={t("horse.damSire")} />
+        <Node n={data.sire?.dam ?? null} label={t("horse.sireDam")} />
+        <Node n={data.dam?.dam ?? null} label={t("horse.damDam")} />
         <p className="col-span-2 text-xs text-muted">{data.bloodline}</p>
       </Card>
     </>
@@ -423,9 +449,9 @@ function History({ id }: { id: string }) {
   >(`/horses/${id}/races`);
   return (
     <>
-      <SectionTitle>Race record</SectionTitle>
+      <SectionTitle>{t("horse.raceRecord")}</SectionTitle>
       {!data && <Skeleton className="h-20" />}
-      {data?.length === 0 && <p className="text-sm text-muted">No starts yet.</p>}
+      {data?.length === 0 && <p className="text-sm text-muted">{t("horse.noStarts")}</p>}
       <div className="space-y-2">
         {data?.map((r) => (
           <a
@@ -436,7 +462,8 @@ function History({ id }: { id: string }) {
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{r.name}</p>
               <p className="text-xs text-muted">
-                {r.distance}m · {new Date(r.starts_at).toLocaleDateString()}
+                {t("unit.m", { n: r.distance })} ·{" "}
+                {new Date(r.starts_at).toLocaleDateString(getLocale() === "uk" ? "uk-UA" : "en-US")}
               </p>
             </div>
             <div className="text-right">
@@ -469,9 +496,9 @@ function Sell({ h }: { h: HorseDetailDto }) {
   if (p.listingId) {
     return (
       <Card className="mt-4 flex items-center justify-between">
-        <span className="text-sm text-muted">Listed on the market</span>
+        <span className="text-sm text-muted">{t("horse.listed")}</span>
         <Link href={`/listing/?id=${p.listingId}`} className="text-sm font-medium text-gold underline">
-          View listing
+          {t("horse.viewListing")}
         </Link>
       </Card>
     );
@@ -481,7 +508,11 @@ function Sell({ h }: { h: HorseDetailDto }) {
   const submit = async () => {
     if (
       !window.confirm(
-        `List ${h.name} ${type === "AUCTION" ? `at auction from ${fmt(value)}` : `for ${fmt(value)}`} credits? A ${feePct}% fee applies on sale.`,
+        t(type === "AUCTION" ? "horse.confirmAuction" : "horse.confirmFixed", {
+          name: h.name,
+          price: fmt(value),
+          fee: feePct,
+        }),
       )
     )
       return;
@@ -494,7 +525,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
         durationHours: type === "AUCTION" ? hours : undefined,
       });
       haptic.success();
-      toast(`${h.name} is on the market`);
+      toast(t("horse.onMarket", { name: h.name }));
       invalidate(`/horses/${h.id}`, "/market", "/horses", "/home");
     } catch (e) {
       haptic.error();
@@ -506,26 +537,27 @@ function Sell({ h }: { h: HorseDetailDto }) {
 
   return (
     <>
-      <SectionTitle>Sell</SectionTitle>
+      <SectionTitle>{t("horse.sell")}</SectionTitle>
       <Card>
         <p className="text-sm text-muted">
-          Guide value <span className="num text-ink">{fmt(p.marketValue)}</span> credits
+          {t("horse.guideValue")} <span className="num text-ink">{fmt(p.marketValue)}</span>{" "}
+          {t("common.credits")}
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Sale type">
-          {(["AUCTION", "FIXED"] as const).map((t) => (
+        <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("horse.saleType")}>
+          {(["AUCTION", "FIXED"] as const).map((st) => (
             <button
-              key={t}
+              key={st}
               role="radio"
-              aria-checked={type === t}
-              onClick={() => setType(t)}
-              className={`min-h-11 cursor-pointer rounded-xl border text-sm font-medium ${type === t ? "border-gold bg-gold/10 text-gold" : "border-line/60 text-muted"}`}
+              aria-checked={type === st}
+              onClick={() => setType(st)}
+              className={`min-h-11 cursor-pointer rounded-xl border text-sm font-medium ${type === st ? "border-gold bg-gold/10 text-gold" : "border-line/60 text-muted"}`}
             >
-              {t === "AUCTION" ? "Auction" : "Fixed price"}
+              {st === "AUCTION" ? t("horse.auction") : t("horse.fixedPrice")}
             </button>
           ))}
         </div>
         <label htmlFor="price" className="mt-3 block text-sm text-muted">
-          {type === "AUCTION" ? "Starting price" : "Price"} (credits)
+          {type === "AUCTION" ? t("horse.startingPrice") : t("horse.price")}
         </label>
         <input
           id="price"
@@ -539,13 +571,17 @@ function Sell({ h }: { h: HorseDetailDto }) {
           id="price-help"
           className={`mt-1 text-xs ${value < min || value > max ? "text-bad" : "text-muted"}`}
         >
-          Allowed {fmt(min)}–{fmt(max)}. You receive{" "}
-          {fmt(Math.max(0, value - Math.floor(value * m.saleFeeRate)))} after the {feePct}% fee.
+          {t("horse.priceHelp", {
+            min: fmt(min),
+            max: fmt(max),
+            net: fmt(Math.max(0, value - Math.floor(value * m.saleFeeRate))),
+            fee: feePct,
+          })}
         </p>
         {type === "AUCTION" && (
           <>
             <label htmlFor="hours" className="mt-3 block text-sm text-muted">
-              Duration
+              {t("horse.duration")}
             </label>
             <select
               id="hours"
@@ -555,7 +591,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
             >
               {m.auctionHours.map((n) => (
                 <option key={n} value={n}>
-                  {n} hours
+                  {t("horse.hours", { n })}
                 </option>
               ))}
             </select>
@@ -569,7 +605,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
           onClick={submit}
         >
           <Tag className="size-4" aria-hidden />
-          List on the market
+          {t("horse.listOnMarket")}
         </Button>
       </Card>
     </>
@@ -603,7 +639,7 @@ function Breeding({ h }: { h: HorseDetailDto }) {
 
   return (
     <>
-      <SectionTitle>Breeding</SectionTitle>
+      <SectionTitle>{t("horse.breeding")}</SectionTitle>
       <Card>
         {dam && (
           <Link
@@ -611,18 +647,16 @@ function Breeding({ h }: { h: HorseDetailDto }) {
             className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-gold/50 text-[15px] font-medium text-gold"
           >
             <HeartHandshake className="size-4" aria-hidden />
-            Plan a mating
+            {t("horse.planMating")}
           </Link>
         )}
         {sire && (
           <>
             <p className="text-sm text-muted">
-              {p.studFee !== null
-                ? `Standing at stud for ${fmt(p.studFee)} credits.`
-                : "Let other owners breed their mares to this stallion for a fee."}
+              {p.studFee !== null ? t("horse.standingAt", { fee: fmt(p.studFee) }) : t("horse.studPitch")}
             </p>
             <label htmlFor="studfee" className="mt-3 block text-sm text-muted">
-              Stud fee (credits)
+              {t("horse.studFee")}
             </label>
             <input
               id="studfee"
@@ -632,15 +666,15 @@ function Breeding({ h }: { h: HorseDetailDto }) {
               className="num mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3"
             />
             <p className="mt-1 text-xs text-muted">
-              You receive{" "}
-              {fmt(
-                Math.max(
-                  0,
-                  Number(fee || 0) - Math.floor(Number(fee || 0) * defaultConfig.breeding.studFeeRate),
+              {t("horse.studNet", {
+                net: fmt(
+                  Math.max(
+                    0,
+                    Number(fee || 0) - Math.floor(Number(fee || 0) * defaultConfig.breeding.studFeeRate),
+                  ),
                 ),
-              )}{" "}
-              per cover after the platform cut. Up to {defaultConfig.breeding.sireCoversPerWeek} covers a
-              week.
+                n: defaultConfig.breeding.sireCoversPerWeek,
+              })}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button
@@ -650,28 +684,28 @@ function Breeding({ h }: { h: HorseDetailDto }) {
                 onClick={() =>
                   run(
                     () => post("/breeding/studs", { horseId: h.id, fee: Number(fee || 0) }),
-                    p.studFee !== null ? "Stud fee updated" : "Now standing at stud",
+                    p.studFee !== null ? t("horse.feeUpdated") : t("horse.nowAtStud"),
                   )
                 }
               >
                 <Dna className="size-4" aria-hidden />
-                {p.studFee !== null ? "Update fee" : "Stand at stud"}
+                {p.studFee !== null ? t("horse.updateFee") : t("horse.standAtStud")}
               </Button>
               {p.studFee !== null ? (
                 <Button
                   variant="ghost"
                   className="text-sm"
                   loading={busy}
-                  onClick={() => run(() => del(`/breeding/studs/${h.id}`), "Withdrawn from stud")}
+                  onClick={() => run(() => del(`/breeding/studs/${h.id}`), t("horse.withdrawn"))}
                 >
-                  Withdraw
+                  {t("common.withdraw")}
                 </Button>
               ) : (
                 <Link
                   href={`/breeding/?sire=${h.id}`}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl text-sm text-muted hover:text-ink"
                 >
-                  Breed my mare
+                  {t("horse.breedMyMare")}
                 </Link>
               )}
             </div>

@@ -9,7 +9,8 @@ import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { CLASS_NAMES, countdown, errorMessage, fmt, STRATEGY_INFO, titleCase } from "@/lib/format";
+import { CLASS_NAMES, countdown, errorMessage, fmt, STRATEGY_INFO, titleCase, trackName } from "@/lib/format";
+import { getLocale, t } from "@/lib/i18n";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { appLink, haptic, shareToTelegram } from "@/lib/telegram";
 
@@ -29,7 +30,7 @@ function RacePage() {
     reload,
   } = useApi<RaceDetailDto>(id ? `/races/${id}` : null, { refreshMs: 5000 });
   const now = useNow(1000);
-  if (!id) return <ErrorState error={new Error("No race selected")} />;
+  if (!id) return <ErrorState error={new Error(t("race.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!race) return <Skeleton className="h-64" />;
   const track = trackByCode(race.trackCode);
@@ -42,7 +43,7 @@ function RacePage() {
         <div className="flex items-center gap-2">
           <Badge tone="gold">{CLASS_NAMES[race.class]}</Badge>
           <Badge tone={race.status === "RUNNING" ? "bad" : race.status === "OPEN" ? "good" : "neutral"}>
-            {race.status === "RUNNING" ? "● Live" : titleCase(race.status)}
+            {race.status === "RUNNING" ? t("race.live") : titleCase(race.status)}
           </Badge>
         </div>
         <h1 className="mt-2 font-display text-2xl font-bold">{race.name}</h1>
@@ -51,34 +52,40 @@ function RacePage() {
             href={`/tournament/?id=${race.tournamentId}`}
             className="mt-1 inline-flex items-center gap-1 text-sm text-gold hover:underline"
           >
-            <Trophy className="size-4" aria-hidden /> Tournament bracket
+            <Trophy className="size-4" aria-hidden /> {t("race.bracket")}
           </a>
         )}
         <p className="text-sm text-muted">
-          {track.archetype} · {race.distance}m {titleCase(race.surface)} ·{" "}
+          {trackName(track.archetype)} · {t("unit.m", { n: race.distance })} {titleCase(race.surface)} ·{" "}
           <W className="inline size-4 align-[-3px]" aria-hidden /> {titleCase(race.weather)},{" "}
           {titleCase(race.going)}
         </p>
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <Info k="Purse" v={fmt(race.purse)} />
-          <Info k="Entry" v={fmt(race.entryFee)} />
+          <Info k={t("common.purse")} v={fmt(race.purse)} />
+          <Info k={t("common.entry")} v={fmt(race.entryFee)} />
           <Info
-            k={race.status === "OPEN" ? "Closes" : "Off"}
+            k={race.status === "OPEN" ? t("race.closes") : t("race.off")}
             v={
               race.status === "OPEN"
                 ? countdown(race.locksAt, now)
                 : race.status === "LOCKED"
                   ? countdown(race.startsAt, now)
-                  : new Date(race.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : new Date(race.startsAt).toLocaleTimeString(getLocale() === "uk" ? "uk-UA" : [], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
             }
           />
         </dl>
         {!race.tournamentId && race.eligibility.maidenOnly && (
-          <p className="mt-2 text-xs text-muted">For horses that have never won.</p>
+          <p className="mt-2 text-xs text-muted">{t("race.maidenOnly")}</p>
         )}
         {!race.tournamentId && (race.eligibility.minRating || race.eligibility.maxRating) && (
           <p className="mt-2 text-xs text-muted">
-            Rating band {race.eligibility.minRating ?? "any"}–{race.eligibility.maxRating ?? "any"}.
+            {t("race.band", {
+              min: race.eligibility.minRating ?? t("race.any"),
+              max: race.eligibility.maxRating ?? t("race.any"),
+            })}
           </p>
         )}
       </Card>
@@ -88,13 +95,9 @@ function RacePage() {
 
       {race.status !== "COMPLETED" && (
         <>
-          <SectionTitle>Runners ({race.entryList.length})</SectionTitle>
+          <SectionTitle>{t("race.runnersTitle", { n: race.entryList.length })}</SectionTitle>
           <Card className="divide-y divide-line/40 p-0">
-            {race.entryList.length === 0 && (
-              <p className="p-4 text-sm text-muted">
-                No runners yet — house horses fill the field when entries close.
-              </p>
-            )}
+            {race.entryList.length === 0 && <p className="p-4 text-sm text-muted">{t("race.noRunners")}</p>}
             {race.entryList.map((e) => (
               <div
                 key={e.horseId}
@@ -102,14 +105,18 @@ function RacePage() {
               >
                 <span className="num w-6 text-center text-sm text-muted">{e.gate ?? "–"}</span>
                 {e.silks ? (
-                  <Silk silks={e.silks} size={24} title={`${e.ownerName ?? "Owner"}'s silks`} />
+                  <Silk
+                    silks={e.silks}
+                    size={24}
+                    title={t("race.ownersSilks", { name: e.ownerName ?? t("common.owner") })}
+                  />
                 ) : (
                   <span className="size-6" aria-hidden />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{e.horseName}</p>
                   <p className="truncate text-xs text-muted">
-                    {e.isHouse ? "House" : e.ownerName}
+                    {e.isHouse ? t("common.house") : e.ownerName}
                     {e.jockeyName ? ` · ${e.jockeyName}` : ""}
                     {e.strategy ? ` · ${STRATEGY_INFO[e.strategy]!.label}` : ""}
                   </p>
@@ -132,32 +139,34 @@ function RacePage() {
             const best = mine.reduce((a, b) => ((a.position ?? 99) <= (b.position ?? 99) ? a : b));
             const link = appLink(`race_${race.id}`) ?? window.location.href;
             shareToTelegram(
-              `${best.horseName} finished ${best.position === 1 ? "FIRST" : `#${best.position}`} in the ${race.name}! 🏇`,
+              t(best.position === 1 ? "race.shareFirst" : "race.sharePlace", {
+                horse: best.horseName,
+                n: best.position ?? "",
+                race: race.name,
+              }),
               link,
             );
           }}
         >
           <Share2 className="size-4" aria-hidden />
-          Share result
+          {t("race.share")}
         </Button>
       )}
 
       <Card className="mt-4 text-xs text-muted">
         <p className="flex items-center gap-1.5 font-medium text-ink">
           <ShieldCheck className="size-4 text-good" aria-hidden />
-          Provably fair
+          {t("race.fair")}
         </p>
         <p className="mt-1 break-all">
-          Commitment: <span className="num">{race.seedHash}</span>
+          {t("race.commitment")} <span className="num">{race.seedHash}</span>
         </p>
         {race.seed && (
           <p className="mt-1 break-all">
-            Revealed seed: <span className="num">{race.seed}</span>
+            {t("race.seed")} <span className="num">{race.seed}</span>
           </p>
         )}
-        <p className="mt-1">
-          The result is simulated from a secret seed committed before the race and revealed afterwards.
-        </p>
+        <p className="mt-1">{t("race.fairText")}</p>
       </Card>
     </div>
   );
@@ -179,11 +188,11 @@ function Withdraw({ raceId, horseId }: { raceId: string; horseId: string }) {
       className="min-h-9 px-2 text-xs"
       loading={busy}
       onClick={async () => {
-        if (!window.confirm("Withdraw this horse? The entry fee is refunded.")) return;
+        if (!window.confirm(t("race.confirmWithdraw"))) return;
         setBusy(true);
         try {
           await del(`/races/${raceId}/entries/${horseId}`);
-          toast("Withdrawn — fee refunded");
+          toast(t("race.withdrawn"));
           invalidate(`/races/${raceId}`, "/wallet", "/horses", "/home");
         } catch (e) {
           toast(errorMessage(e), "bad");
@@ -192,7 +201,7 @@ function Withdraw({ raceId, horseId }: { raceId: string; horseId: string }) {
         }
       }}
     >
-      Withdraw
+      {t("common.withdraw")}
     </Button>
   );
 }
@@ -214,7 +223,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
     try {
       await post(`/races/${race.id}/entries`, { horseId: selected, strategy });
       haptic.success();
-      toast("Entered! Good luck.");
+      toast(t("race.entered"));
       invalidate(`/races/${race.id}`, "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
@@ -226,16 +235,14 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
 
   return (
     <>
-      <SectionTitle>Enter a horse</SectionTitle>
+      <SectionTitle>{t("race.enterHorse")}</SectionTitle>
       <Card>
         {available.length === 0 ? (
-          <p className="text-sm text-muted">
-            No eligible horse is free right now. Horses in training, entered elsewhere or injured can't run.
-          </p>
+          <p className="text-sm text-muted">{t("race.noEligible")}</p>
         ) : (
           <>
             <label className="text-sm text-muted" htmlFor="horse">
-              Horse
+              {t("race.horse")}
             </label>
             <select
               id="horse"
@@ -245,12 +252,12 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
             >
               {available.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.name} — rating {Math.round(h.abilityRating)}
+                  {t("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
                 </option>
               ))}
             </select>
             <p className="mt-4 text-sm text-muted" id="tactics">
-              Tactics
+              {t("race.tactics")}
             </p>
             <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="tactics">
               {STRATEGIES.map((s) => (
@@ -267,7 +274,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
               ))}
             </div>
             <Button className="mt-4 w-full" onClick={enter} loading={busy}>
-              Enter · {fmt(race.entryFee)} cr
+              {t("race.enterFee", { fee: fmt(race.entryFee) })}
             </Button>
           </>
         )}

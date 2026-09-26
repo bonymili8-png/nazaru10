@@ -7,6 +7,7 @@ import { RaceCard } from "@/components/RaceCard";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import { CLASS_NAMES } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 
 type Status = "upcoming" | "live" | "recent";
 
@@ -19,19 +20,19 @@ export default function RacesPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-bold">Race card</h1>
+        <h1 className="font-display text-3xl font-bold">{t("races.title")}</h1>
         <Link
           href="/tournaments/"
           className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3.5 text-sm font-medium text-gold"
         >
           <Trophy className="size-4" aria-hidden />
-          Tournaments
+          {t("races.tournaments")}
         </Link>
       </div>
       <div
         className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1"
         role="tablist"
-        aria-label="Race status"
+        aria-label={t("races.status")}
       >
         {(["upcoming", "live", "recent"] as Status[]).map((s) => (
           <button
@@ -39,13 +40,13 @@ export default function RacesPage() {
             role="tab"
             aria-selected={status === s}
             onClick={() => setStatus(s)}
-            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium capitalize transition-colors ${status === s ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
+            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium transition-colors ${status === s ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
           >
-            {s}
+            {t(`races.tab.${s}`)}
           </button>
         ))}
       </div>
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Class filter">
+      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label={t("races.classFilter")}>
         {[null, ...RACE_CLASSES].map((c) => (
           <button
             key={c ?? "all"}
@@ -53,7 +54,7 @@ export default function RacesPage() {
             aria-pressed={cls === c}
             className={`min-h-9 shrink-0 cursor-pointer rounded-full border px-3.5 text-sm transition-colors ${cls === c ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
           >
-            {c ? CLASS_NAMES[c] : "All classes"}
+            {c ? CLASS_NAMES[c] : t("races.allClasses")}
           </button>
         ))}
       </div>
@@ -62,8 +63,8 @@ export default function RacesPage() {
         {!data && !error && [0, 1, 2].map((i) => <Skeleton key={i} className="h-24" />)}
         {data?.length === 0 && (
           <EmptyState
-            title="Nothing here yet"
-            body={status === "upcoming" ? "New races open every few minutes." : "Check back soon."}
+            title={t("races.emptyTitle")}
+            body={status === "upcoming" ? t("races.emptyUpcoming") : t("races.emptyOther")}
           />
         )}
         {data?.map((r) => (

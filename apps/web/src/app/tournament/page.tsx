@@ -22,8 +22,9 @@ import {
   useToast,
 } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { countdown, errorMessage, fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
+import { countdown, errorMessage, fmt, ordinal, STRATEGY_INFO, trackName } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
+import { t as tr } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 export default function TournamentPageWrapper() {
@@ -34,16 +35,13 @@ export default function TournamentPageWrapper() {
   );
 }
 
-const ENTRY_STATUS: Record<
-  TournamentEntryDto["status"],
-  { label: string; tone: "neutral" | "gold" | "good" | "bad" }
-> = {
-  REGISTERED: { label: "Registered", tone: "good" },
-  WITHDRAWN: { label: "Withdrawn", tone: "neutral" },
-  IN_HEAT: { label: "In heat", tone: "neutral" },
-  FINALIST: { label: "Finalist", tone: "gold" },
-  ELIMINATED: { label: "Eliminated", tone: "neutral" },
-  SCRATCHED: { label: "Scratched", tone: "bad" },
+const ENTRY_TONE: Record<TournamentEntryDto["status"], "neutral" | "gold" | "good" | "bad"> = {
+  REGISTERED: "good",
+  WITHDRAWN: "neutral",
+  IN_HEAT: "neutral",
+  FINALIST: "gold",
+  ELIMINATED: "neutral",
+  SCRATCHED: "bad",
 };
 
 function TournamentPage() {
@@ -56,7 +54,7 @@ function TournamentPage() {
     refreshMs: 10_000,
   });
   const now = useNow(1000);
-  if (!id) return <ErrorState error={new Error("No tournament selected")} />;
+  if (!id) return <ErrorState error={new Error(tr("tour.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!t) return <Skeleton className="h-64" />;
   const track = trackByCode(t.trackCode);
@@ -73,13 +71,14 @@ function TournamentPage() {
         </div>
         <h1 className="mt-2 font-display text-2xl font-bold">{t.name}</h1>
         <p className="text-sm text-muted">
-          {track.archetype} · {t.distance}m · {qualificationText(t.qualification)}
+          {trackName(track.archetype)} · {tr("unit.m", { n: t.distance })} ·{" "}
+          {qualificationText(t.qualification)}
         </p>
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <Info k="Purse" v={fmt(t.purse)} />
-          <Info k="Entry" v={fmt(t.entryFee)} />
+          <Info k={tr("common.purse")} v={fmt(t.purse)} />
+          <Info k={tr("common.entry")} v={fmt(t.entryFee)} />
           <Info
-            k={open ? "Closes" : t.status === "HEATS" ? "Final" : "Field"}
+            k={open ? tr("race.closes") : t.status === "HEATS" ? tr("tour.final") : tr("tour.field")}
             v={
               open
                 ? countdown(t.registrationClosesAt, now)
@@ -104,25 +103,25 @@ function TournamentPage() {
 
       {(t.heatRaceIds.length > 0 || t.finalRaceId) && (
         <>
-          <SectionTitle>Races</SectionTitle>
+          <SectionTitle>{tr("tour.races")}</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
             {t.heatRaceIds.map((rid, i) => (
               <LinkButton key={rid} href={`/race/?id=${rid}`}>
-                Heat {i + 1}
+                {tr("tour.heatN", { n: i + 1 })}
               </LinkButton>
             ))}
             {t.finalRaceId && (
               <LinkButton href={`/race/?id=${t.finalRaceId}`} variant="primary">
-                Final
+                {tr("tour.final")}
               </LinkButton>
             )}
           </div>
         </>
       )}
 
-      <SectionTitle>Field ({t.entries.length})</SectionTitle>
+      <SectionTitle>{tr("tour.fieldN", { n: t.entries.length })}</SectionTitle>
       <Card className="divide-y divide-line/40 p-0">
-        {t.entries.length === 0 && <p className="p-4 text-sm text-muted">No entries yet — be the first.</p>}
+        {t.entries.length === 0 && <p className="p-4 text-sm text-muted">{tr("tour.noEntries")}</p>}
         {t.entries.map((e) => (
           <div
             key={e.horseId}
@@ -132,11 +131,11 @@ function TournamentPage() {
               <p className="truncate font-medium">{e.horseName}</p>
               <p className="truncate text-xs text-muted">
                 {e.ownerName}
-                {e.heatPosition ? ` · heat ${ordinal(e.heatPosition)}` : ""}
-                {e.finalPosition ? ` · final ${ordinal(e.finalPosition)}` : ""}
+                {e.heatPosition ? tr("tour.heatPos", { p: ordinal(e.heatPosition) }) : ""}
+                {e.finalPosition ? tr("tour.finalPos", { p: ordinal(e.finalPosition) }) : ""}
               </p>
             </div>
-            <Badge tone={ENTRY_STATUS[e.status].tone}>{ENTRY_STATUS[e.status].label}</Badge>
+            <Badge tone={ENTRY_TONE[e.status]}>{tr(`tentry.${e.status}`)}</Badge>
             {e.mine && open && e.status === "REGISTERED" && <Withdraw id={t.id} horseId={e.horseId} />}
           </div>
         ))}
@@ -161,11 +160,11 @@ function Withdraw({ id, horseId }: { id: string; horseId: string }) {
       className="min-h-9 px-2 text-xs"
       loading={busy}
       onClick={async () => {
-        if (!window.confirm("Withdraw this horse? The entry fee is refunded.")) return;
+        if (!window.confirm(tr("race.confirmWithdraw"))) return;
         setBusy(true);
         try {
           await del(`/tournaments/${id}/entries/${horseId}`);
-          toast("Withdrawn — fee refunded");
+          toast(tr("race.withdrawn"));
           invalidate(`/tournaments`, "/wallet", "/horses", "/home");
         } catch (e) {
           toast(errorMessage(e), "bad");
@@ -174,7 +173,7 @@ function Withdraw({ id, horseId }: { id: string; horseId: string }) {
         }
       }}
     >
-      Withdraw
+      {tr("common.withdraw")}
     </Button>
   );
 }
@@ -194,7 +193,7 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
     try {
       await post(`/tournaments/${t.id}/entries`, { horseId: selected, strategy });
       haptic.success();
-      toast("Registered! The draw is made when registration closes.");
+      toast(tr("tour.registered"));
       invalidate("/tournaments", "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
@@ -206,16 +205,14 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
 
   return (
     <>
-      <SectionTitle>Register a horse</SectionTitle>
+      <SectionTitle>{tr("tour.register")}</SectionTitle>
       <Card>
         {available.length === 0 ? (
-          <p className="text-sm text-muted">
-            No horse is free right now. Horses in training, entered elsewhere or injured can&apos;t register.
-          </p>
+          <p className="text-sm text-muted">{tr("tour.noFree")}</p>
         ) : (
           <>
             <label className="text-sm text-muted" htmlFor="horse">
-              Horse
+              {tr("race.horse")}
             </label>
             <select
               id="horse"
@@ -225,12 +222,12 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
             >
               {available.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.name} — rating {Math.round(h.abilityRating)}
+                  {tr("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
                 </option>
               ))}
             </select>
             <p className="mt-4 text-sm text-muted" id="tactics">
-              Tactics (heats and final)
+              {tr("tour.tactics")}
             </p>
             <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="tactics">
               {STRATEGIES.map((s) => (
@@ -246,12 +243,9 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">
-              The horse is committed until it is eliminated or the final is run — no training or other races
-              meanwhile. Withdraw before the close for a full refund.
-            </p>
+            <p className="mt-3 text-xs text-muted">{tr("tour.commit")}</p>
             <Button className="mt-4 w-full" onClick={register} loading={busy}>
-              Register · {fmt(t.entryFee)} cr
+              {tr("tour.registerFee", { fee: fmt(t.entryFee) })}
             </Button>
           </>
         )}

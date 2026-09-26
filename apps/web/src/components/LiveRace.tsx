@@ -4,7 +4,8 @@ import { trackByCode } from "@thoroughline/engine";
 import { Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { fmt, ordinal } from "@/lib/format";
+import { fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
+import { t as tr } from "@/lib/i18n";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
 import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
@@ -87,7 +88,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
     [race.entryList],
   );
   if (!live?.frames) {
-    return <Card className="mt-4 text-center text-sm text-muted">The field is going behind the gates…</Card>;
+    return <Card className="mt-4 text-center text-sm text-muted">{tr("live.gates")}</Card>;
   }
 
   const frames = live.frames;
@@ -116,19 +117,19 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
           live.status === "COMPLETED" && (
             <Button variant="ghost" className="min-h-9 text-sm" onClick={() => setReplayStart(Date.now())}>
               <Play className="size-4" aria-hidden />
-              Replay
+              {tr("live.replay")}
             </Button>
           )
         }
       >
-        {live.status === "RUNNING" ? "Live" : "Replay"}
+        {live.status === "RUNNING" ? tr("live.live") : tr("live.replay")}
       </SectionTitle>
       <Card className="p-2">
         <svg
           viewBox={`${b.x} ${b.y} ${b.w} ${b.h}`}
           className="w-full"
           role="img"
-          aria-label={`Race track, leader ${order[0] ? names[order[0].id]?.horseName : ""}`}
+          aria-label={tr("live.trackLabel", { name: (order[0] && names[order[0].id]?.horseName) ?? "" })}
         >
           <path d={lanePath(5.5)} fill="none" stroke="#1f3a24" strokeWidth={13 * LANE} />
           <path d={lanePath(-1)} fill="none" stroke="#78716c" strokeWidth={2} />
@@ -169,16 +170,17 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
           })}
         </svg>
         <div className="flex items-center justify-between px-2 pb-1 text-xs text-muted">
-          <span className="num">{playT.toFixed(1)}s</span>
+          <span className="num">{tr("live.sec", { n: playT.toFixed(1) })}</span>
           <span className="num">
-            {Math.round(order[0] ? Math.min(race.distance, pos![order[0].i]![0]) : 0)}m / {race.distance}m
+            {tr("unit.m", { n: Math.round(order[0] ? Math.min(race.distance, pos![order[0].i]![0]) : 0) })} /{" "}
+            {tr("unit.m", { n: race.distance })}
           </span>
         </div>
       </Card>
 
       {!done && (
         <Card className="mt-2 p-3">
-          <ol className="flex gap-2 overflow-x-auto text-xs" aria-label="Running order">
+          <ol className="flex gap-2 overflow-x-auto text-xs" aria-label={tr("live.order")}>
             {order.slice(0, 6).map((o, k) => (
               <li
                 key={o.id}
@@ -203,7 +205,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
 
       {done && live.results && (
         <>
-          <SectionTitle>Result</SectionTitle>
+          <SectionTitle>{tr("race.result")}</SectionTitle>
           <Card className="divide-y divide-line/40 p-0">
             {live.results.map((r) => (
               <div
@@ -218,13 +220,15 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{r.horseName}</p>
                   <p className="truncate text-xs text-muted">
-                    {r.isHouse ? "House" : r.ownerName} · {r.jockeyName} ·{" "}
-                    {r.strategy ? r.strategy.replace("_", " ").toLowerCase() : ""}
+                    {r.isHouse ? tr("common.house") : r.ownerName} · {r.jockeyName} ·{" "}
+                    {r.strategy ? STRATEGY_INFO[r.strategy]!.label : ""}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="num text-sm">
-                    {r.position === 1 ? `${r.finishTime?.toFixed(2)}s` : `+${r.lengthsBehind?.toFixed(1)}L`}
+                    {r.position === 1
+                      ? tr("live.sec", { n: r.finishTime?.toFixed(2) ?? "" })
+                      : tr("live.lengths", { n: r.lengthsBehind?.toFixed(1) ?? "" })}
                   </p>
                   {!!r.prize && !r.isHouse && <p className="num text-xs text-good">+{fmt(r.prize)}</p>}
                 </div>

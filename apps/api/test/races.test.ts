@@ -171,6 +171,14 @@ describe("race lifecycle", () => {
     }
     const recent = (await t.get<RaceSummaryDto[]>("/races?status=recent", alice.token)).body;
     expect(recent.map((r) => r.id)).toContain(race.id);
+    // "My races": only races the viewer has a horse in.
+    const mine = (await t.get<RaceSummaryDto[]>("/races?status=recent&mine=true", alice.token)).body;
+    expect(mine.map((r) => r.id)).toEqual([race.id]);
+    const stranger = await t.login(2999, "Nobody");
+    expect((await t.get<RaceSummaryDto[]>("/races?status=recent&mine=true", stranger.token)).body).toEqual(
+      [],
+    );
+    expect((await t.get("/races?status=recent&mine=maybe", alice.token)).status).toBe(400);
   });
 
   it("shows up on the leaderboards", async () => {

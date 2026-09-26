@@ -14,7 +14,8 @@ type Status = "upcoming" | "live" | "recent";
 export default function RacesPage() {
   const [status, setStatus] = useState<Status>("upcoming");
   const [cls, setCls] = useState<string | null>(null);
-  const path = `/races?status=${status}&limit=30${cls ? `&class=${cls}` : ""}`;
+  const [mine, setMine] = useState(false);
+  const path = `/races?status=${status}&limit=30${cls ? `&class=${cls}` : ""}${mine ? "&mine=true" : ""}`;
   const { data, error, reload } = useApi<RaceSummaryDto[]>(path, { refreshMs: 10_000 });
 
   return (
@@ -46,7 +47,20 @@ export default function RacesPage() {
           </button>
         ))}
       </div>
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label={t("races.classFilter")}>
+      <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("races.scope")}>
+        {[false, true].map((m) => (
+          <button
+            key={String(m)}
+            role="radio"
+            aria-checked={mine === m}
+            onClick={() => setMine(m)}
+            className={`min-h-10 cursor-pointer rounded-full border text-sm transition-colors ${mine === m ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+          >
+            {m ? t("races.scope.mine") : t("races.scope.all")}
+          </button>
+        ))}
+      </div>
+      <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1" aria-label={t("races.classFilter")}>
         {[null, ...RACE_CLASSES].map((c) => (
           <button
             key={c ?? "all"}
@@ -64,7 +78,13 @@ export default function RacesPage() {
         {data?.length === 0 && (
           <EmptyState
             title={t("races.emptyTitle")}
-            body={status === "upcoming" ? t("races.emptyUpcoming") : t("races.emptyOther")}
+            body={
+              mine
+                ? t("races.emptyMine")
+                : status === "upcoming"
+                  ? t("races.emptyUpcoming")
+                  : t("races.emptyOther")
+            }
           />
         )}
         {data?.map((r) => (

@@ -65,6 +65,11 @@ export const RaceListQuery = z.object({
   status: z.enum(["upcoming", "live", "recent"]).default("upcoming"),
   class: z.enum(RACE_CLASSES).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+  /** Only races the viewer has a horse in. */
+  mine: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 export type RaceListQuery = z.infer<typeof RaceListQuery>;
 

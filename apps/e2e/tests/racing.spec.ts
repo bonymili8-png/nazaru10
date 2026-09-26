@@ -20,6 +20,15 @@ test("an owner enters a maiden race and withdraws for a full refund", async ({ p
   await expect(page.getByText("Entered! Good luck.")).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBe(before - fee);
 
+  // "My races" shows only races this owner has a horse in.
+  const raceUrl = page.url();
+  await page.getByRole("link", { name: "Races" }).click();
+  await page.getByRole("radio", { name: "My races" }).click();
+  const cards = page.locator("a[href^='/race/?id=']");
+  await expect(cards).toHaveCount(1);
+  await cards.first().click();
+  await expect(page).toHaveURL(raceUrl);
+
   page.once("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "Withdraw" }).click();
   await expect(page.getByText("Withdrawn — fee refunded")).toBeVisible();

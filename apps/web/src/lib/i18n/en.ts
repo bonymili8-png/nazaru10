@@ -774,6 +774,10 @@ export const en = {
   "ref.SAME_NETWORK": "Not rewarded — review found it's the same player",
   "ref.REVIEW": "Same network as you — being checked",
   "error.INTERNAL": "Something went wrong on our side. Please try again in a moment.",
+  "races.scope": "Whose races",
+  "races.scope.all": "All races",
+  "races.scope.mine": "My races",
+  "races.emptyMine": "None of your horses here yet.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

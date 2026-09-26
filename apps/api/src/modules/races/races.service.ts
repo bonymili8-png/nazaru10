@@ -181,7 +181,7 @@ export class RacesService {
     };
   }
 
-  async list(q: RaceListQuery): Promise<RaceSummaryDto[]> {
+  async list(q: RaceListQuery, viewerId: string | null = null): Promise<RaceSummaryDto[]> {
     const now = this.clock.now();
     const where =
       q.status === "upcoming"
@@ -192,8 +192,11 @@ export class RacesService {
     const order = q.status === "recent" ? "r.starts_at DESC" : "r.starts_at ASC";
     const list = await this.db.query<RaceRow & { n: number }>(
       `SELECT r.*, (SELECT count(*)::int FROM race_entries e WHERE e.race_id = r.id AND e.status IN ('ENTERED','RAN')) AS n
-         FROM races r WHERE ${where} AND ($2::text IS NULL OR r.class = $2) ORDER BY ${order} LIMIT $3`,
-      [now, q.class ?? null, q.limit],
+         FROM races r WHERE ${where} AND ($2::text IS NULL OR r.class = $2)
+          AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM race_entries m
+                WHERE m.race_id = r.id AND m.owner_id = $4 AND m.status IN ('ENTERED','RAN')))
+        ORDER BY ${order} LIMIT $3`,
+      [now, q.class ?? null, q.limit, q.mine && viewerId ? viewerId : null],
     );
     return list.map((r) => this.summary(r, r.n, now));
   }

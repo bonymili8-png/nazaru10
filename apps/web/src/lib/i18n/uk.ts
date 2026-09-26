@@ -777,4 +777,8 @@ export const uk: Record<MessageKey, Msg> = {
   "ref.SAME_NETWORK": "Без нагороди — перевірка показала, що це той самий гравець",
   "ref.REVIEW": "Та сама мережа, що й у вас — на перевірці",
   "error.INTERNAL": "Щось пішло не так на нашому боці. Спробуйте ще раз за мить.",
+  "races.scope": "Чиї забіги",
+  "races.scope.all": "Усі забіги",
+  "races.scope.mine": "Мої забіги",
+  "races.emptyMine": "Тут поки немає ваших коней.",
 };

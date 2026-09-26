@@ -15,8 +15,8 @@ export class RacesController {
   constructor(private readonly races: RacesService) {}
 
   @Get()
-  list(@Query() query: unknown): Promise<RaceSummaryDto[]> {
-    return this.races.list(parse(RaceListQuery, query));
+  list(@CurrentUser() user: AuthUser, @Query() query: unknown): Promise<RaceSummaryDto[]> {
+    return this.races.list(parse(RaceListQuery, query), user.id);
   }
 
   @Get("mine")

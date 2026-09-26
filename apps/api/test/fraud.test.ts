@@ -251,7 +251,7 @@ describe("referral rewards", () => {
     // The referrer's own invitees never make an address look public (no invite farms).
     const farmer = await t.login(9971, "Farmer");
     const farmCode = (await t.get<{ referralCode: string }>("/me", farmer.token)).body.referralCode;
-    const farm = [];
+    const farm: { token: string; userId: string }[] = [];
     for (const id of [9972, 9973, 9974, 9975]) farm.push(await t.login(id, `Farm${id}`, `ref_${farmCode}`));
     for (const u of [farmer, ...farm])
       await t.db.query(

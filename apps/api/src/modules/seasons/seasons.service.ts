@@ -1,5 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import type { HallOfFameDto, SeasonDto, SeasonHorseRowDto, SeasonOwnerRowDto } from "@thoroughline/contracts";
+import {
+  type Crest,
+  DEFAULT_CREST,
+  type HallOfFameDto,
+  type SeasonDto,
+  type SeasonHorseRowDto,
+  type SeasonOwnerRowDto,
+} from "@thoroughline/contracts";
 import { type RaceClass, seasonAt, seasonPoints, seasonReward, seasonWindow } from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
 import { Db, type Queryable, row, rows } from "../../common/db.js";
@@ -103,8 +110,8 @@ export class SeasonsService {
     if (list.length === 0) return [];
     const names = new Map(
       (
-        await this.db.query<{ id: string; name: string; stable_name: string }>(
-          `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name
+        await this.db.query<{ id: string; name: string; stable_name: string; crest: Crest }>(
+          `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest
              FROM users u JOIN stables s ON s.owner_id = u.id WHERE u.id = ANY($1::uuid[])`,
           [list.map((r) => r.owner_id)],
         )
@@ -115,6 +122,7 @@ export class SeasonsService {
       userId: r.owner_id,
       name: names.get(r.owner_id)?.name ?? "Owner",
       stableName: names.get(r.owner_id)?.stable_name ?? "",
+      crest: names.get(r.owner_id)?.crest ?? DEFAULT_CREST,
       points: r.points,
       races: r.races,
       wins: r.wins,

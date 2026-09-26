@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from "@nestjs/common";
 import {
+  type Crest,
   type LeaderboardHorseDto,
   type LeaderboardOwnerDto,
   LeaderboardQuery,
@@ -50,11 +51,12 @@ export class LeaderboardController {
       id: string;
       name: string;
       stable_name: string;
+      crest: Crest;
       reputation: number;
       earnings: number;
       wins: number;
     }>(
-      `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name,
+      `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest,
               COALESCE(a.balance, 0) AS reputation,
               COALESCE(sum(h.earnings), 0)::bigint AS earnings, COALESCE(sum(h.wins), 0)::int AS wins
          FROM users u
@@ -62,7 +64,7 @@ export class LeaderboardController {
          LEFT JOIN accounts a ON a.owner_type = 'USER' AND a.owner_id = u.id AND a.currency = 'REPUTATION'
          LEFT JOIN horses h ON h.owner_id = u.id
         WHERE u.status = 'ACTIVE' AND u.role <> 'SYSTEM'
-        GROUP BY u.id, s.name, a.balance
+        GROUP BY u.id, s.name, s.crest, a.balance
         ORDER BY ${order} DESC, u.id LIMIT $1`,
       [q.limit],
     );
@@ -71,6 +73,7 @@ export class LeaderboardController {
       userId: r.id,
       name: r.name,
       stableName: r.stable_name,
+      crest: r.crest,
       reputation: r.reputation,
       earnings: r.earnings,
       wins: r.wins,

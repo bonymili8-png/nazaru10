@@ -229,10 +229,50 @@ export type SetSilksRequest = z.infer<typeof SetSilksRequest>;
 
 export const SilkPatternParam = z.enum(SILK_PATTERNS);
 
+/** Stable crest: an emblem shown beside the stable name (cosmetic only). */
+export const CREST_SHAPES = ["SHIELD", "ROUND", "DIAMOND", "BANNER"] as const;
+export type CrestShape = (typeof CREST_SHAPES)[number];
+export const CREST_ICONS = [
+  "HORSESHOE",
+  "STAR",
+  "CRESCENT",
+  "CROWN",
+  "LIGHTNING",
+  "CLOVER",
+  "GEM",
+  "LAUREL",
+] as const;
+export type CrestIcon = (typeof CREST_ICONS)[number];
+
+export interface Crest {
+  shape: CrestShape;
+  icon: CrestIcon;
+  /** Field colour. */
+  field: SilkColor;
+  /** Emblem colour. */
+  charge: SilkColor;
+}
+
+export const DEFAULT_CREST: Crest = { shape: "SHIELD", icon: "HORSESHOE", field: "black", charge: "gold" };
+
+export const SetCrestRequest = z
+  .object({
+    shape: z.enum(CREST_SHAPES),
+    icon: z.enum(CREST_ICONS),
+    field: z.enum(SILK_COLOR_NAMES),
+    charge: z.enum(SILK_COLOR_NAMES),
+  })
+  .refine((c) => c.field !== c.charge, "Field and emblem colours must differ");
+export type SetCrestRequest = z.infer<typeof SetCrestRequest>;
+
+export const CrestIconParam = z.enum(CREST_ICONS);
+
 export interface CosmeticsDto {
   silks: Silks;
   /** priceGems is null for Racing Pass exclusives (earned, never sold). */
   patterns: { pattern: SilkPattern; priceGems: number | null; owned: boolean }[];
+  crest: Crest;
+  crestIcons: { icon: CrestIcon; priceGems: number; owned: boolean }[];
   gems: number;
 }
 
@@ -348,6 +388,7 @@ export interface StableDto {
   reputation: number;
   nextUpgradeCost: number | null;
   facilities: FacilityDto[];
+  crest: Crest;
 }
 
 export type FacilityType = "TRAINING_TRACK" | "VET_CLINIC";
@@ -566,6 +607,7 @@ export interface LeaderboardOwnerDto {
   userId: string;
   name: string;
   stableName: string;
+  crest: Crest;
   reputation: number;
   earnings: number;
   wins: number;
@@ -672,6 +714,7 @@ export interface SeasonOwnerRowDto {
   userId: string;
   name: string;
   stableName: string;
+  crest: Crest;
   points: number;
   races: number;
   wins: number;

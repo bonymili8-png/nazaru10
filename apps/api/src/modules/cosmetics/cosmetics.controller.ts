@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
-import { type CosmeticsDto, SetSilksRequest, SilkPatternParam } from "@thoroughline/contracts";
+import {
+  type CosmeticsDto,
+  CrestIconParam,
+  SetCrestRequest,
+  SetSilksRequest,
+  SilkPatternParam,
+} from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { CosmeticsService } from "./cosmetics.service.js";
@@ -21,5 +27,15 @@ export class CosmeticsController {
   @Put("silks")
   setSilks(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<CosmeticsDto> {
     return this.cosmetics.setSilks(user.id, parse(SetSilksRequest, body));
+  }
+
+  @Post("crest/icons/:icon/unlock")
+  unlockCrest(@CurrentUser() user: AuthUser, @Param("icon") icon: string): Promise<CosmeticsDto> {
+    return this.cosmetics.unlockCrestIcon(user.id, parse(CrestIconParam, icon));
+  }
+
+  @Put("crest")
+  setCrest(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<CosmeticsDto> {
+    return this.cosmetics.setCrest(user.id, parse(SetCrestRequest, body));
   }
 }

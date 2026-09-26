@@ -186,6 +186,9 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 * Gems' main sink: racing-silk patterns (Solid free; Hoops 60, Sash 80, Quartered 100, Diamonds
   150, Star 200 gems — config `cosmetics.silkPatternPrices`, admin-tunable). Colours are free.
 * Silks show on race cards and live-race markers; they never touch the simulation.
+* Stable crest (shown beside the stable name on Home and in owner rankings): shapes and colours
+  free; emblems Horseshoe, Star, Crescent free; Crown 60, Lightning 80, Clover 100, Gem 120,
+  Laurel 150 gems (config `cosmetics.crestIconPrices`). Item key `crest:<icon>`.
 * Sink `COSMETICS`; unlocks are idempotent per owner and item (`cosmetic:<user>:silk:<pattern>`).
 
 ## Racing Pass (live)

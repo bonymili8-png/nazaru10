@@ -182,6 +182,8 @@ export interface GameConfig {
   cosmetics: {
     /** Gem price to unlock each racing-silk pattern (0 = free for everyone, -1 = Racing Pass only). */
     silkPatternPrices: Record<string, number>;
+    /** Gem price to unlock each stable-crest emblem (0 = free). Shapes and colours are free. */
+    crestIconPrices: Record<string, number>;
   };
   /** Racing Pass: seasonal track of cosmetic/gem rewards earned by playing (never credits or power). */
   pass: {
@@ -539,6 +541,16 @@ export const defaultConfig: GameConfig = {
       STRIPES: -1,
       CROSS: -1,
       CHECK: -1,
+    },
+    crestIconPrices: {
+      HORSESHOE: 0,
+      STAR: 0,
+      CRESCENT: 0,
+      CROWN: 60,
+      LIGHTNING: 80,
+      CLOVER: 100,
+      GEM: 120,
+      LAUREL: 150,
     },
   },
   pass: {

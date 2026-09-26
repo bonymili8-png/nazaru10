@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { FacilityDto, StableDto } from "@thoroughline/contracts";
+import type { Crest, FacilityDto, StableDto } from "@thoroughline/contracts";
 import {
   FACILITY_TYPES,
   facilityEffect,
@@ -24,6 +24,7 @@ interface StableRow {
   level: number;
   training_track: number;
   vet_clinic: number;
+  crest: Crest;
 }
 
 const COLUMN: Record<FacilityType, "training_track" | "vet_clinic"> = {
@@ -45,7 +46,7 @@ export class StableService {
   async byOwner(c: Queryable, ownerId: string, lock = false): Promise<StableRow> {
     const s = await row<StableRow>(
       c,
-      `SELECT id, owner_id, name, level, training_track, vet_clinic FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
+      `SELECT id, owner_id, name, level, training_track, vet_clinic, crest FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
       [ownerId],
     );
     if (!s) throw notFound("Stable");
@@ -91,6 +92,7 @@ export class StableService {
       reputation: rep?.balance ?? 0,
       nextUpgradeCost: costs[s.level - 1] ?? null,
       facilities: this.facilityDtos(s),
+      crest: s.crest,
     };
   }
 

@@ -1,6 +1,7 @@
 "use client";
 import type { HomeDto, QuestDto, RacingPassDto, WalletDto } from "@thoroughline/contracts";
 import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Store, Ticket } from "lucide-react";
+import { Crest } from "@/components/Crest";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
 import { HorseIcon } from "@/components/icons";
@@ -28,10 +29,17 @@ export default function HomePage() {
   return (
     <div>
       <Card className="bg-gradient-to-br from-surface to-surface-2">
-        <p className="text-xs uppercase tracking-[0.25em] text-gold">
-          {t("home.level", { n: data.stable.level })}
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold">{data.stable.name}</h1>
+        <div className="flex items-center gap-3">
+          <a href="/crest/" aria-label={t("profile.crest")} className="rounded-lg">
+            <Crest crest={data.stable.crest} size={44} />
+          </a>
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.25em] text-gold">
+              {t("home.level", { n: data.stable.level })}
+            </p>
+            <h1 className="mt-1 truncate font-display text-2xl font-bold">{data.stable.name}</h1>
+          </div>
+        </div>
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           <Stat label={t("home.horses")} value={`${data.stable.horseCount}/${data.stable.capacity}`} />
           <Stat label={t("home.reputation")} value={fmt(data.stable.reputation)} />

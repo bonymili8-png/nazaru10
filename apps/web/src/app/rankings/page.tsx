@@ -9,6 +9,7 @@ import type {
 } from "@thoroughline/contracts";
 import { Crown, Trophy } from "lucide-react";
 import { useState } from "react";
+import { Crest } from "@/components/Crest";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { countdown, fmt, ordinal } from "@/lib/format";
 import { useApi, useNow } from "@/lib/hooks";
@@ -107,6 +108,7 @@ function SeasonBoard() {
                   <Row
                     key={r.userId}
                     rank={r.rank}
+                    crest={<Crest crest={r.crest} size={26} />}
                     title={r.name}
                     sub={`${r.stableName} · ${t("common.wins", { n: r.wins })}`}
                     value={fmt(r.points)}
@@ -247,6 +249,7 @@ function AllTime() {
                   <Row
                     key={r.userId}
                     rank={r.rank}
+                    crest={<Crest crest={r.crest} size={26} />}
                     title={r.name}
                     sub={r.stableName}
                     value={
@@ -268,8 +271,10 @@ function Row({
   value,
   href,
   highlight,
+  crest,
 }: {
   rank: number;
+  crest?: React.ReactNode;
   title: string;
   sub: string;
   value: string;
@@ -281,6 +286,7 @@ function Row({
       <span className={`num w-8 font-display text-lg font-bold ${rank <= 3 ? "text-gold" : "text-muted"}`}>
         {rank}
       </span>
+      {crest}
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{title}</p>
         <p className="truncate text-xs text-muted">{sub}</p>

@@ -187,6 +187,14 @@ export interface GameConfig {
     /** Gem price to unlock each saddle-cloth pattern for the whole stable (0 = free). */
     clothPatternPrices: Record<string, number>;
   };
+  /** Clubs: player groups ranked by their members' season points. */
+  clubs: {
+    /** Credits to found a club (sink). */
+    createCost: number;
+    maxMembers: number;
+    /** Hours before a player who left a club can join another (stops club hopping). */
+    rejoinCooldownHours: number;
+  };
   /** Racing Pass: seasonal track of cosmetic/gem rewards earned by playing (never credits or power). */
   pass: {
     tiers: number;
@@ -556,6 +564,7 @@ export const defaultConfig: GameConfig = {
     },
     clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
   },
+  clubs: { createCost: 5000, maxMembers: 20, rejoinCooldownHours: 24 },
   pass: {
     tiers: 20,
     xpPerTier: 80,

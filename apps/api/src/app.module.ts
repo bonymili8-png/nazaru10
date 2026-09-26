@@ -8,6 +8,8 @@ import { GameConfigService } from "./common/game-config.js";
 import { LOGGER, type Logger } from "./common/logger.js";
 import { RateLimitGuard } from "./common/rate-limit.js";
 import { ReferralsService } from "./modules/users/referrals.service.js";
+import { ClubsController } from "./modules/clubs/clubs.controller.js";
+import { ClubsService } from "./modules/clubs/clubs.service.js";
 import { ENV, type Env } from "./config/env.js";
 import { AdminController } from "./modules/admin/admin.controller.js";
 import { AuthController } from "./modules/auth/auth.controller.js";
@@ -99,6 +101,7 @@ export class AppModule {
         FraudController,
         CosmeticsController,
         PassController,
+        ClubsController,
         LeaderboardController,
         QuestsController,
         PaymentsController,
@@ -120,6 +123,7 @@ export class AppModule {
         HouseService,
         RaceRunnerService,
         ReferralsService,
+        ClubsService,
         RacesService,
         ShopService,
         MarketService,

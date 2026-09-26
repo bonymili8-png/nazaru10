@@ -8,7 +8,8 @@ import type {
   SeasonOwnerRowDto,
 } from "@thoroughline/contracts";
 import { Crown, Trophy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ClubsBoard } from "@/components/ClubsBoard";
 import { Crest } from "@/components/Crest";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { countdown, fmt, ordinal } from "@/lib/format";
@@ -18,19 +19,24 @@ import { t } from "@/lib/i18n";
 type Board = "horses" | "owners";
 type By = "rating" | "earnings" | "wins";
 
-type Top = "season" | "alltime" | "fame";
+type Top = "season" | "alltime" | "fame" | "clubs";
 
 export default function RankingsPage() {
   const [top, setTop] = useState<Top>("season");
+  // Deep link to a tab (e.g. back to Clubs after leaving one).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "clubs") setTop("clubs");
+  }, []);
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{t("rank.title")}</h1>
-      <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1" role="tablist">
+      <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-surface p-1" role="tablist">
         {(
           [
             ["season", t("rank.season")],
             ["alltime", t("rank.alltime")],
             ["fame", t("rank.fame")],
+            ["clubs", t("rank.clubs")],
           ] as [Top, string][]
         ).map(([k, label]) => (
           <button
@@ -38,7 +44,7 @@ export default function RankingsPage() {
             role="tab"
             aria-selected={top === k}
             onClick={() => setTop(k)}
-            className={`min-h-10 cursor-pointer rounded-lg text-sm font-medium ${top === k ? "bg-gold text-bg" : "text-muted"}`}
+            className={`min-h-10 cursor-pointer rounded-lg px-1 text-[13px] font-medium leading-tight ${top === k ? "bg-gold text-bg" : "text-muted"}`}
           >
             {label}
           </button>
@@ -47,6 +53,7 @@ export default function RankingsPage() {
       {top === "season" && <SeasonBoard />}
       {top === "alltime" && <AllTime />}
       {top === "fame" && <HallOfFame />}
+      {top === "clubs" && <ClubsBoard />}
     </div>
   );
 }

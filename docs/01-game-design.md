@@ -280,3 +280,13 @@ Wet, Night, Elite Stadium, Country, Experimental Synthetic) each with surface, t
 fraction, straight length, elevation, going sensitivity, prestige.
 Weather: SUNNY, CLOUDY, RAIN, HEAVY_RAIN, WIND, FOG, HEAT, COLD — rain moves the going
 softer; wind taxes leaders; heat increases drain; fog increases positioning noise.
+
+## Clubs (Phase 3, v1)
+
+Players found a club (5,000 credits, sink `CLUBS`) with a unique name and a 2–4 character tag,
+or join an open club (up to 20 members, one club per player). Clubs are ranked by the sum of
+their current members' season points (Rankings → Clubs). Leaving starts a 24-hour cooldown
+before joining another club (no hopping); owners can remove members (audited, no cooldown for
+the removed player). When the owner leaves, the longest-serving member takes over; the last
+member out disbands the club and frees its name. Config: `clubs.createCost`, `maxMembers`,
+`rejoinCooldownHours`. No club rewards yet — to be added with a live-data economy review.

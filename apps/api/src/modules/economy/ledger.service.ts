@@ -31,6 +31,7 @@ export type SystemAccount =
   | "STAFF_SALARY"
   | "FACILITIES"
   | "COSMETICS"
+  | "CLUBS"
   | "RACING_PASS"
   | "PASS_REWARDS";
 

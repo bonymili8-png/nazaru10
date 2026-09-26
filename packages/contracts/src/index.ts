@@ -373,6 +373,71 @@ export const UpdateSettingsRequest = z
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
 
+/* ───────────────────────────── clubs ───────────────────────────── */
+
+export const CreateClubRequest = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3)
+    .max(24)
+    .regex(/^[\p{L}\p{N} '&.-]+$/u, "Letters, digits, spaces and ' & . - only"),
+  tag: z
+    .string()
+    .trim()
+    .min(2)
+    .max(4)
+    .regex(/^[\p{L}\p{N}]+$/u, "Letters and digits only")
+    .transform((s) => s.toUpperCase()),
+  description: z.string().trim().max(140).default(""),
+});
+export type CreateClubRequest = z.infer<typeof CreateClubRequest>;
+
+export const ClubListQuery = z.object({
+  q: z.string().trim().max(24).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(30),
+});
+
+export type ClubRole = "OWNER" | "MEMBER";
+
+export interface ClubSummaryDto {
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  members: number;
+  maxMembers: number;
+  /** Sum of current members' points this season. */
+  points: number;
+  /** Rank this season among clubs with points (null without points). */
+  rank: number | null;
+}
+
+export interface ClubMemberDto {
+  userId: string;
+  name: string;
+  stableName: string;
+  crest: Crest;
+  role: ClubRole;
+  points: number;
+  joinedAt: string;
+}
+
+export interface ClubDetailDto extends ClubSummaryDto {
+  season: number;
+  memberList: ClubMemberDto[];
+  myRole: ClubRole | null;
+  /** Why the viewer cannot join right now (null = can join, or already a member). */
+  joinBlocked: null | "IN_CLUB" | "FULL" | "COOLDOWN";
+  cooldownUntil: string | null;
+}
+
+export interface MyClubDto {
+  clubId: string | null;
+  createCost: number;
+  cooldownUntil: string | null;
+}
+
 export interface ReferralDto {
   /** The invitee's first name (nothing more is shared). */
   name: string;

@@ -1,5 +1,6 @@
 import { SILK_COLORS, type Silks } from "@thoroughline/contracts";
 import { useId } from "react";
+import { t } from "@/lib/i18n";
 
 /**
  * Racing-silk marks drawn inside a circle (cx, cy, r). Used for the live-race markers and the
@@ -145,7 +146,7 @@ export function Silk({ silks, size = 28, title }: { silks: Silks; size?: number;
       width={size}
       height={size}
       role="img"
-      aria-label={title ?? "Racing silks"}
+      aria-label={title ?? t("silks.title")}
       className="shrink-0"
     >
       <SilkMarks silks={silks} cx={50} cy={50} r={r - 4} clipId={`silk-${id}`} />

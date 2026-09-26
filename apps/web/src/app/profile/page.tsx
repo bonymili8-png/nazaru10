@@ -1,9 +1,11 @@
 "use client";
 import type { LedgerLineDto, UserDto, WalletDto } from "@thoroughline/contracts";
-import { Copy, LifeBuoy, Share2, ShieldCheck, Shirt } from "lucide-react";
+import { Copy, Languages, LifeBuoy, Share2, ShieldCheck, Shirt } from "lucide-react";
 import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
-import { fmt, titleCase } from "@/lib/format";
-import { useApi } from "@/lib/hooks";
+import { put } from "@/lib/api";
+import { errorMessage, fmt, has, titleCase } from "@/lib/format";
+import { invalidate, useApi } from "@/lib/hooks";
+import { getLocale, LOCALES, t, useLocale } from "@/lib/i18n";
 import { appLink, shareToTelegram } from "@/lib/telegram";
 
 export default function ProfilePage() {
@@ -11,22 +13,23 @@ export default function ProfilePage() {
   const wallet = useApi<WalletDto>("/wallet");
   const tx = useApi<{ items: LedgerLineDto[] }>("/wallet/transactions?limit=30");
   const toast = useToast();
+  const { locale, setLocale } = useLocale();
   const b = wallet.data?.balances;
   const link = me.data ? (appLink(`ref_${me.data.referralCode}`) ?? me.data.referralCode) : "";
 
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">
-        {me.data?.firstName ?? me.data?.username ?? "Owner"}
+        {me.data?.firstName ?? me.data?.username ?? t("common.owner")}
       </h1>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {b ? (
           (
             [
-              ["Credits", b.CREDITS],
-              ["Gems", b.GEMS],
-              ["Reputation", b.REPUTATION],
-              ["Prestige", b.PRESTIGE],
+              [t("profile.credits"), b.CREDITS],
+              [t("profile.gems"), b.GEMS],
+              [t("profile.reputation"), b.REPUTATION],
+              [t("profile.prestige"), b.PRESTIGE],
             ] as const
           ).map(([k, v]) => (
             <Card key={k} className="p-3">
@@ -41,21 +44,69 @@ export default function ProfilePage() {
 
       <LinkButton href="/silks/" variant="secondary" className="mt-3 w-full">
         <Shirt className="size-4" aria-hidden />
-        Racing silks
+        {t("profile.silks")}
       </LinkButton>
 
       {me.data && me.data.role !== "PLAYER" && (
         <LinkButton href="/admin/" variant="secondary" className="mt-3 w-full">
           <ShieldCheck className="size-4" aria-hidden />
-          Admin console · {titleCase(me.data.role)}
+          {t("profile.admin", { role: titleCase(me.data.role) })}
         </LinkButton>
       )}
 
-      <SectionTitle>Invite friends</SectionTitle>
+      <SectionTitle>{t("profile.language")}</SectionTitle>
+      <div
+        className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1"
+        role="radiogroup"
+        aria-label={t("profile.language")}
+      >
+        {LOCALES.map((l) => (
+          <button
+            key={l.id}
+            role="radio"
+            aria-checked={locale === l.id}
+            lang={l.id}
+            onClick={() => {
+              setLocale(l.id);
+              // Remembered on the server too, so the bot writes in the same language.
+              void put("/me/settings", { locale: l.id }).catch(() => undefined);
+            }}
+            className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg text-sm font-medium ${locale === l.id ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
+          >
+            <Languages className="size-4" aria-hidden />
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      {me.data && (
+        <Card className="mt-2 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium" id="notif-label">
+              {t("profile.notifications")}
+            </p>
+            <p className="text-xs text-muted">{t("profile.notificationsHint")}</p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={me.data.settings.notifications}
+            aria-labelledby="notif-label"
+            onClick={async () => {
+              const next = !me.data!.settings.notifications;
+              await put("/me/settings", { notifications: next })
+                .then(() => invalidate("/me"))
+                .catch((e: unknown) => toast(errorMessage(e), "bad"));
+            }}
+            className={`min-h-11 shrink-0 cursor-pointer rounded-full px-4 text-sm font-medium ${me.data.settings.notifications ? "bg-gold text-bg" : "bg-surface-2 text-muted"}`}
+          >
+            {me.data.settings.notifications ? t("profile.on") : t("profile.off")}
+          </button>
+        </Card>
+      )}
+
+      <SectionTitle>{t("profile.invite")}</SectionTitle>
       <Card>
-        <p className="text-sm text-muted">
-          When a friend you invite runs their first race, you both get 500 credits.
-        </p>
+        <p className="text-sm text-muted">{t("profile.inviteText")}</p>
         <p className="num mt-2 break-all rounded-lg bg-surface-2 px-3 py-2 text-sm">{link || "…"}</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button
@@ -63,53 +114,58 @@ export default function ProfilePage() {
             className="text-sm"
             onClick={async () => {
               await navigator.clipboard?.writeText(link).catch(() => undefined);
-              toast("Copied");
+              toast(t("profile.copied"));
             }}
           >
             <Copy className="size-4" aria-hidden />
-            Copy
+            {t("profile.copy")}
           </Button>
-          <Button
-            className="text-sm"
-            onClick={() => shareToTelegram("Join my racing stable on Thoroughline 🏇", link)}
-          >
+          <Button className="text-sm" onClick={() => shareToTelegram(t("profile.shareText"), link)}>
             <Share2 className="size-4" aria-hidden />
-            Share
+            {t("profile.share")}
           </Button>
         </div>
       </Card>
 
-      <SectionTitle>Wallet history</SectionTitle>
+      <SectionTitle>{t("profile.history")}</SectionTitle>
       <Card className="divide-y divide-line/40 p-0">
         {!tx.data && <Skeleton className="h-32" />}
         {tx.data?.items.map((l) => (
           <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
             <div className="min-w-0">
-              <p className="truncate text-sm">{l.reason ?? titleCase(l.type)}</p>
+              <p className="truncate text-sm">{ledgerText(l)}</p>
               <p className="text-xs text-muted">
-                {new Date(l.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
+                {new Date(l.createdAt).toLocaleString(getLocale() === "uk" ? "uk-UA" : [], {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
               </p>
             </div>
             <span className={`num shrink-0 text-sm font-semibold ${l.amount > 0 ? "text-good" : "text-ink"}`}>
               {l.amount > 0 ? "+" : ""}
-              {fmt(l.amount)} {l.currency === "CREDITS" ? "cr" : l.currency.toLowerCase()}
+              {fmt(l.amount)}{" "}
+              {l.currency === "CREDITS" ? t("common.cr") : titleCase(l.currency).toLowerCase()}
             </span>
           </div>
         ))}
       </Card>
 
-      <SectionTitle>Help</SectionTitle>
+      <SectionTitle>{t("profile.help")}</SectionTitle>
       <Card className="text-sm text-muted">
         <p className="flex items-center gap-2 font-medium text-ink">
           <LifeBuoy className="size-4" aria-hidden />
-          Support
+          {t("profile.support")}
         </p>
-        <p className="mt-1">
-          Payment problems? Send <span className="text-ink">/paysupport</span> to the bot with your order
-          details. For anything else use <span className="text-ink">/help</span>.
-        </p>
-        <p className="mt-2">Credits and gems are virtual items with no cash value and cannot be withdrawn.</p>
+        <p className="mt-1">{t("profile.supportText", { pay: "/paysupport", help: "/help" })}</p>
+        <p className="mt-2">{t("profile.virtual")}</p>
       </Card>
     </div>
   );
 }
+
+/** Server reasons are English; in other languages the ledger type reads better. */
+const ledgerText = (l: LedgerLineDto) => {
+  const k = `ledger.${l.type}`;
+  if (getLocale() !== "en" && has(k)) return t(k);
+  return l.reason ?? (has(k) ? t(k) : titleCase(l.type));
+};

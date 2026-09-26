@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import { row } from "../../common/db.js";
 import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
+import { type Lang, langOf } from "../../common/i18n.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
 import { recordOwnership } from "../horses/horse.repo.js";
@@ -28,16 +29,19 @@ export interface UserRow {
   status: string;
   referral_code: string;
   created_at: Date;
+  language_code: string | null;
+  settings: { locale?: string; notifications?: boolean };
 }
 
 const referralCode = () =>
   randomBytes(6).toString("base64url").replace(/[-_]/g, "x").slice(0, 8).toUpperCase();
 
-const stableName = (first: string | null) => {
+const stableName = (first: string | null, lang: Lang) => {
   const clean = (first ?? "")
     .replace(/[^\p{L}\p{N} '&.-]/gu, "")
     .trim()
     .slice(0, 28);
+  if (lang === "uk") return clean.length >= 2 ? `Стайня ${clean}` : "Нова стайня";
   return clean.length >= 2 ? `${clean}'s Stable` : "New Stable";
 };
 
@@ -69,7 +73,8 @@ export class OnboardingService {
            ON CONFLICT (telegram_id) DO UPDATE SET username = EXCLUDED.username, first_name = EXCLUDED.first_name,
              last_name = EXCLUDED.last_name, language_code = EXCLUDED.language_code, is_premium = EXCLUDED.is_premium,
              photo_url = EXCLUDED.photo_url, last_seen_at = EXCLUDED.last_seen_at, updated_at = EXCLUDED.last_seen_at
-           RETURNING id, telegram_id, username, first_name, role, status, referral_code, created_at, (xmax = 0) AS inserted`,
+           RETURNING id, telegram_id, username, first_name, role, status, referral_code, created_at, language_code,
+                     settings, (xmax = 0) AS inserted`,
           [
             p.telegramId,
             p.username,
@@ -113,7 +118,7 @@ export class OnboardingService {
     const stable = await row<{ id: string }>(
       c,
       "INSERT INTO stables (owner_id, name) VALUES ($1, $2) RETURNING id",
-      [user.id, stableName(p.firstName)],
+      [user.id, stableName(p.firstName, langOf(p.languageCode))],
     );
     await this.ledger.credit(c, {
       userId: user.id,

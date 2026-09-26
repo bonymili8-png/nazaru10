@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { getToken, loginDev, loginWithTelegram, onUnauthorized } from "@/lib/api";
 import { errorMessage, fmt } from "@/lib/format";
-import { type MessageKey, t, useLocale } from "@/lib/i18n";
+import { getLocale, type MessageKey, t, useLocale } from "@/lib/i18n";
 import { useApi } from "@/lib/hooks";
 import { initTelegram, tg } from "@/lib/telegram";
 import { HorseIcon } from "./icons";
@@ -35,14 +35,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>("booting");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { locale } = useLocale();
+  const { locale, setLocale } = useLocale();
 
   const boot = useCallback(async () => {
     initTelegram();
     const app = tg();
     try {
       if (app) {
-        await loginWithTelegram(app.initData);
+        const { user } = await loginWithTelegram(app.initData);
+        // A language chosen in the app (on any device) wins over the Telegram language.
+        if (user.settings.locale && user.settings.locale !== getLocale()) setLocale(user.settings.locale);
         setPhase("ready");
         const target = routeForStartParam(app.initDataUnsafe.start_param);
         if (target) router.replace(target);
@@ -52,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       setError(errorMessage(e));
       setPhase("error");
     }
-  }, [router]);
+  }, [router, setLocale]);
 
   useEffect(() => {
     void boot();
@@ -158,7 +160,7 @@ function Chrome({ children }: { children: ReactNode }) {
             aria-label={t("shell.walletProfile")}
           >
             <span className="num font-semibold text-ink">{b ? fmt(b.CREDITS) : "—"}</span>
-            <span className="text-xs text-muted">cr</span>
+            <span className="text-xs text-muted">{t("common.cr")}</span>
             <span className="h-3 w-px bg-line" aria-hidden />
             <Gem className="size-3.5 text-gold" aria-hidden />
             <span className="num font-semibold text-ink">{b ? fmt(b.GEMS) : "—"}</span>

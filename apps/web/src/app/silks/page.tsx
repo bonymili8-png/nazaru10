@@ -13,6 +13,7 @@ import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast 
 import { post, put } from "@/lib/api";
 import { errorMessage, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
+import { t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 const COLORS = Object.keys(SILK_COLORS) as SilkColor[];
@@ -29,12 +30,12 @@ export default function SilksPage() {
   const changed = JSON.stringify(silks) !== JSON.stringify(data.silks);
 
   const unlock = async (pattern: SilkPattern, price: number) => {
-    if (!window.confirm(`Unlock ${titleCase(pattern)} silks for ${price} gems?`)) return;
+    if (!window.confirm(t("silks.confirmUnlock", { name: titleCase(pattern), n: price }))) return;
     setBusy(pattern);
     try {
       await post(`/cosmetics/silks/patterns/${pattern}/unlock`);
       haptic.success();
-      toast(`${titleCase(pattern)} unlocked`);
+      toast(t("silks.unlocked", { name: titleCase(pattern) }));
       setDraft({ ...silks, pattern });
       invalidate("/cosmetics", "/wallet");
     } catch (e) {
@@ -50,7 +51,7 @@ export default function SilksPage() {
     try {
       await put("/cosmetics/silks", silks);
       haptic.success();
-      toast("Silks saved — they'll show on your next race cards");
+      toast(t("silks.saved"));
       setDraft(null);
       invalidate("/cosmetics");
     } catch (e) {
@@ -63,16 +64,14 @@ export default function SilksPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Racing silks</h1>
+      <h1 className="font-display text-3xl font-bold">{t("silks.title")}</h1>
       <Card className="mt-3 flex flex-col items-center gap-3 bg-gradient-to-br from-surface to-surface-2 py-6">
-        <Silk silks={silks} size={120} title="Your silks preview" />
-        <p className="text-sm text-muted">
-          Your colours on race cards and in the live viewer. Purely cosmetic — silks never affect results.
-        </p>
+        <Silk silks={silks} size={120} title={t("silks.preview")} />
+        <p className="text-sm text-muted">{t("silks.intro")}</p>
       </Card>
 
-      <SectionTitle>Pattern</SectionTitle>
-      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Pattern">
+      <SectionTitle>{t("silks.pattern")}</SectionTitle>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("silks.pattern")}>
         {data.patterns.map((p) => {
           const isOwned = owned.has(p.pattern);
           const selected = silks.pattern === p.pattern;
@@ -96,7 +95,7 @@ export default function SilksPage() {
               {!isOwned && p.priceGems === null && (
                 <span className="flex items-center gap-1 text-[11px] text-gold">
                   <Ticket className="size-3" aria-hidden />
-                  Racing Pass
+                  {t("pass.title")}
                 </span>
               )}
               {!isOwned && p.priceGems !== null && (
@@ -111,16 +110,20 @@ export default function SilksPage() {
         })}
       </div>
       <p className="mt-2 text-right text-xs text-muted">
-        You have <span className="num text-ink">{data.gems}</span> gems ·{" "}
+        {t("common.youHaveGems", { n: data.gems })} ·{" "}
         <a href="/shop/" className="text-gold hover:underline">
-          get more
+          {t("common.getMore")}
         </a>
       </p>
 
       {(["primary", "secondary"] as const).map((slot) => (
         <div key={slot}>
-          <SectionTitle>{slot === "primary" ? "Body colour" : "Pattern colour"}</SectionTitle>
-          <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-label={`${slot} colour`}>
+          <SectionTitle>{slot === "primary" ? t("silks.body") : t("silks.patternColour")}</SectionTitle>
+          <div
+            className="grid grid-cols-6 gap-2"
+            role="radiogroup"
+            aria-label={slot === "primary" ? t("silks.body") : t("silks.patternColour")}
+          >
             {COLORS.map((c) => {
               const other = slot === "primary" ? silks.secondary : silks.primary;
               return (
@@ -141,9 +144,9 @@ export default function SilksPage() {
       ))}
 
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <LinkButton href="/profile/">Back</LinkButton>
+        <LinkButton href="/profile/">{t("common.back")}</LinkButton>
         <Button onClick={save} disabled={!changed} loading={busy === "save"}>
-          Save silks
+          {t("silks.save")}
         </Button>
       </div>
     </div>

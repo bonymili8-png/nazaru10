@@ -171,3 +171,11 @@ through `LedgerService.post`; every critical mutation is transactional and idemp
 * Screens: Home, Horses, Horse profile (tabs), Training, Races (lobby), Race live/replay
   (canvas animation from frames), Rankings, Profile/Wallet, Shop.
 * Performance: static assets, code-split per route, no heavy 3D in MVP (SVG/canvas).
+* Localisation (English, Ukrainian): `apps/web/src/lib/i18n` — `en.ts` is the source dictionary
+  and `uk.ts` must cover every key (enforced by the type). `t(key, vars)` works outside React;
+  plurals are functions (`ukPlural`). Language order: in-app choice (stored in `localStorage` and
+  in `users.settings.locale` via `PUT /me/settings`) → Telegram `language_code` → English. Server
+  error codes are translated on the client (`error.<CODE>`, falling back to the server message);
+  quest and product texts are translated by code with the server text as fallback. Bot replies,
+  the command menu and notifications are localised server-side (`apps/api/src/common/i18n.ts`).
+  The admin console stays English. Race commentary is still generated in English.

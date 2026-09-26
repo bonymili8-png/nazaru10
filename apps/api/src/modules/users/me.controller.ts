@@ -1,9 +1,10 @@
-import { Controller, Get } from "@nestjs/common";
-import type { HomeDto, UserDto } from "@thoroughline/contracts";
+import { Body, Controller, Get, Put } from "@nestjs/common";
+import { type HomeDto, UpdateSettingsRequest, type UserDto } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
 import { notFound } from "../../common/errors.js";
+import { parse } from "../../common/http.js";
 import { toUserDto } from "../auth/auth.service.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { horsesByOwner } from "../horses/horse.repo.js";
@@ -35,6 +36,20 @@ export class MeController {
 
   @Get("me")
   me(@CurrentUser() user: AuthUser): Promise<UserDto> {
+    return this.user(user.id);
+  }
+
+  /** Personal preferences (language, notifications). A null locale means "follow Telegram". */
+  @Put("me/settings")
+  async updateSettings(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<UserDto> {
+    const req = parse(UpdateSettingsRequest, body);
+    const patch: Record<string, unknown> = {};
+    if (req.notifications !== undefined) patch.notifications = req.notifications;
+    if (req.locale !== undefined) patch.locale = req.locale;
+    await this.db.query(
+      `UPDATE users SET settings = jsonb_strip_nulls(settings || $2::jsonb), updated_at = $3 WHERE id = $1`,
+      [user.id, JSON.stringify(patch), this.clock.now()],
+    );
     return this.user(user.id);
   }
 

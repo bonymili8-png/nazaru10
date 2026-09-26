@@ -19,7 +19,7 @@ export interface BotApi {
   answerPreCheckoutQuery(id: string, ok: boolean, errorMessage?: string): Promise<void>;
   sendMessage(chatId: number, text: string, buttons?: InlineWebAppButton[][]): Promise<void>;
   refundStarPayment(userTelegramId: number, chargeId: string): Promise<void>;
-  setMyCommands(commands: { command: string; description: string }[]): Promise<void>;
+  setMyCommands(commands: { command: string; description: string }[], languageCode?: string): Promise<void>;
 }
 
 export const BOT_API = Symbol("BOT_API");
@@ -72,8 +72,11 @@ export class HttpBotApi implements BotApi {
     });
   }
 
-  async setMyCommands(commands: { command: string; description: string }[]): Promise<void> {
-    await this.call("setMyCommands", { commands });
+  async setMyCommands(
+    commands: { command: string; description: string }[],
+    languageCode?: string,
+  ): Promise<void> {
+    await this.call("setMyCommands", { commands, ...(languageCode ? { language_code: languageCode } : {}) });
   }
 
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
@@ -95,8 +98,11 @@ export class FakeBotApi implements BotApi {
   async sendMessage(chatId: number, text: string, buttons?: InlineWebAppButton[][]): Promise<void> {
     this.calls.push({ method: "sendMessage", args: [chatId, text, buttons] });
   }
-  async setMyCommands(commands: { command: string; description: string }[]): Promise<void> {
-    this.calls.push({ method: "setMyCommands", args: [commands] });
+  async setMyCommands(
+    commands: { command: string; description: string }[],
+    languageCode?: string,
+  ): Promise<void> {
+    this.calls.push({ method: "setMyCommands", args: [commands, languageCode] });
   }
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
     this.calls.push({ method: "refundStarPayment", args: [userTelegramId, chargeId] });

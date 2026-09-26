@@ -9,7 +9,32 @@ import { Badge, Button, Card, EmptyState, SectionTitle, Skeleton, Stars, useToas
 import { post } from "@/lib/api";
 import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
+import { type MessageKey, t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
+
+/** Eligibility reasons come from the server in English; translate the known shapes. */
+const REASONS: [RegExp, MessageKey][] = [
+  [/^A horse cannot be bred with itself$/, "breed.r.self"],
+  [/^You can only breed your own mare$/, "breed.r.ownMare"],
+  [/^This stallion is not standing at stud$/, "breed.r.notAtStud"],
+  [/^(?<name>.+) is not a stallion$/, "breed.r.notStallion"],
+  [/^(?<name>.+) is not a mare$/, "breed.r.notMare"],
+  [/^(?<name>.+) is too young \(minimum age (?<n>\d+)\)$/, "breed.r.young"],
+  [/^(?<name>.+) is resting after her last foal$/, "breed.r.resting"],
+  [/^(?<name>.+) has no covers left this week$/, "breed.r.noCovers"],
+  [/^No free box for the foal$/, "breed.r.noBox"],
+  [/^(?<name>.+) is (?<status>in foal|[a-z_]+)$/, "breed.r.busy"],
+];
+const reasonText = (r: string) => {
+  for (const [re, key] of REASONS) {
+    const m = re.exec(r);
+    if (!m) continue;
+    const v = { ...m.groups };
+    if (v.status) v.status = v.status === "in foal" ? t("breed.r.inFoal") : titleCase(v.status);
+    return t(key, v);
+  }
+  return r;
+};
 
 export default function BreedingWrapper() {
   return (
@@ -52,7 +77,7 @@ function BreedingPage() {
     if (!dam || !sire || !preview.data) return;
     if (
       !window.confirm(
-        `Cover for ${fmt(preview.data.cost.total)} credits? The foal arrives in ${preview.data.gestationHours}h.`,
+        t("breed.confirm", { cost: fmt(preview.data.cost.total), h: preview.data.gestationHours }),
       )
     )
       return;
@@ -60,7 +85,7 @@ function BreedingPage() {
     try {
       await post("/breeding", { sireId: sire, damId: dam });
       haptic.success();
-      toast("Covered — the foal is on its way");
+      toast(t("breed.covered"));
       invalidate("/breeding", "/horses", "/wallet", "/home");
     } catch (e) {
       haptic.error();
@@ -72,15 +97,12 @@ function BreedingPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Breeding</h1>
-      <p className="mt-1 text-sm text-muted">
-        Pair a mare with a stallion from your stable or one standing at stud. Foals inherit their parents'
-        genetics — with a little luck.
-      </p>
+      <h1 className="font-display text-3xl font-bold">{t("breed.title")}</h1>
+      <p className="mt-1 text-sm text-muted">{t("breed.intro")}</p>
 
       {pending.length > 0 && (
         <>
-          <SectionTitle>In foal</SectionTitle>
+          <SectionTitle>{t("breed.inFoal")}</SectionTitle>
           <div className="space-y-2">
             {pending.map((e) => (
               <Card key={e.id} className="flex items-center justify-between gap-3">
@@ -89,7 +111,9 @@ function BreedingPage() {
                     {e.dam.name} × {e.sire.name}
                   </p>
                   <p className="text-xs text-muted">
-                    {e.inbreeding > 0 ? `Inbreeding ${(e.inbreeding * 100).toFixed(1)}%` : "Outcross"}
+                    {e.inbreeding > 0
+                      ? t("breed.inbreedingPct", { p: (e.inbreeding * 100).toFixed(1) })
+                      : t("breed.outcross")}
                   </p>
                 </div>
                 <Badge tone="gold">
@@ -102,23 +126,23 @@ function BreedingPage() {
         </>
       )}
 
-      <SectionTitle>Plan a mating</SectionTitle>
+      <SectionTitle>{t("horse.planMating")}</SectionTitle>
       {!horses.data ? (
         <Skeleton className="h-40" />
       ) : mares.length === 0 ? (
         <EmptyState
-          title="No mares of breeding age"
-          body={`Mares and fillies can be bred from age ${MIN_AGE}. Find one on the market.`}
+          title={t("breed.noMares")}
+          body={t("breed.noMaresBody", { n: MIN_AGE })}
           action={
             <Link href="/shop/" className="text-gold underline">
-              Go to market
+              {t("breed.goMarket")}
             </Link>
           }
         />
       ) : (
         <Card>
           <label htmlFor="dam" className="text-sm text-muted">
-            Mare
+            {t("breed.mare")}
           </label>
           <select
             id="dam"
@@ -133,7 +157,7 @@ function BreedingPage() {
             ))}
           </select>
           <label htmlFor="sire" className="mt-3 block text-sm text-muted">
-            Stallion
+            {t("breed.stallion")}
           </label>
           <select
             id="sire"
@@ -142,19 +166,19 @@ function BreedingPage() {
             className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3"
           >
             {ownSires.length > 0 && (
-              <optgroup label="Your stallions">
+              <optgroup label={t("breed.yourStallions")}>
                 {ownSires.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name} — rating {Math.round(h.abilityRating)}
+                    {t("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
                   </option>
                 ))}
               </optgroup>
             )}
             {outsideStuds.length > 0 && (
-              <optgroup label="Standing at stud">
+              <optgroup label={t("breed.atStud")}>
                 {outsideStuds.map((s) => (
                   <option key={s.horse.id} value={s.horse.id}>
-                    {s.horse.name} — fee {fmt(s.fee)}
+                    {t("breed.feeOption", { name: s.horse.name, fee: fmt(s.fee) })}
                   </option>
                 ))}
               </optgroup>
@@ -164,57 +188,53 @@ function BreedingPage() {
           {preview.data && (
             <div className="mt-4 rounded-xl bg-surface-2 p-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">Expected potential</span>
+                <span className="text-muted">{t("breed.expected")}</span>
                 <Stars n={preview.data.expectedStars} />
               </div>
               <div className="mt-1 flex justify-between">
-                <span className="text-muted">Inbreeding</span>
+                <span className="text-muted">{t("breed.inbreeding")}</span>
                 <span className={preview.data.inbreeding > 0.06 ? "text-warn" : ""}>
                   {(preview.data.inbreeding * 100).toFixed(1)}%
                 </span>
               </div>
               <div className="mt-1 flex justify-between">
-                <span className="text-muted">Breeding fee</span>
+                <span className="text-muted">{t("breed.breedingFee")}</span>
                 <span className="num">{fmt(preview.data.cost.breedingFee)}</span>
               </div>
               {preview.data.cost.studFee > 0 && (
                 <div className="mt-1 flex justify-between">
-                  <span className="text-muted">Stud fee</span>
+                  <span className="text-muted">{t("breed.studFee")}</span>
                   <span className="num">{fmt(preview.data.cost.studFee)}</span>
                 </div>
               )}
               <div className="mt-1 flex justify-between font-semibold">
-                <span>Total</span>
-                <span className="num text-gold">{fmt(preview.data.cost.total)} cr</span>
+                <span>{t("breed.total")}</span>
+                <span className="num text-gold">
+                  {fmt(preview.data.cost.total)} {t("common.cr")}
+                </span>
               </div>
               {preview.data.reasons.length > 0 && (
                 <ul className="mt-2 list-disc pl-5 text-warn" role="status">
                   {preview.data.reasons.map((r) => (
-                    <li key={r}>{r}</li>
+                    <li key={r}>{reasonText(r)}</li>
                   ))}
                 </ul>
               )}
               {preview.data.inbreeding > 0.06 && (
-                <p className="mt-2 text-xs text-warn">
-                  Close relatives: expect lower potential and a higher injury risk.
-                </p>
+                <p className="mt-2 text-xs text-warn">{t("breed.relatives")}</p>
               )}
             </div>
           )}
           <Button className="mt-4 w-full" loading={busy} disabled={!preview.data?.eligible} onClick={cover}>
             <HeartHandshake className="size-4" aria-hidden />
-            Cover
+            {t("breed.cover")}
           </Button>
         </Card>
       )}
 
-      <SectionTitle>Standing at stud</SectionTitle>
+      <SectionTitle>{t("breed.atStud")}</SectionTitle>
       {!studs.data && <Skeleton className="h-24" />}
-      {studs.data?.length === 0 && (
-        <p className="text-sm text-muted">
-          No stallions are standing at stud yet. Offer yours from its horse page.
-        </p>
-      )}
+      {studs.data?.length === 0 && <p className="text-sm text-muted">{t("breed.noStuds")}</p>}
       <div className="space-y-2">
         {studs.data?.map((s) => (
           <Card key={s.horse.id} className="flex items-center gap-3">
@@ -224,8 +244,9 @@ function BreedingPage() {
                 {s.horse.name}
               </Link>
               <p className="text-xs text-muted">
-                {s.mine ? "Your stallion" : s.ownerName} · {s.horse.record.wins}/{s.horse.record.starts} wins
-                · {s.coversThisWeek}/{s.coversPerWeek} covers this week
+                {s.mine ? t("breed.yourStallion") : s.ownerName} ·{" "}
+                {t("common.winsOf", { w: s.horse.record.wins, n: s.horse.record.starts })} ·{" "}
+                {t("breed.covers", { n: s.coversThisWeek, max: s.coversPerWeek })}
               </p>
               <Stars n={s.horse.potentialStars} />
             </div>
@@ -236,7 +257,7 @@ function BreedingPage() {
                   className="min-h-9 cursor-pointer text-xs text-gold underline"
                   onClick={() => setSireId(s.horse.id)}
                 >
-                  Select
+                  {t("breed.select")}
                 </button>
               )}
             </div>
@@ -246,7 +267,7 @@ function BreedingPage() {
 
       {delivered.length > 0 && (
         <>
-          <SectionTitle>Recent foals</SectionTitle>
+          <SectionTitle>{t("breed.recentFoals")}</SectionTitle>
           <Card className="divide-y divide-line/40 p-0">
             {delivered.map((e) => (
               <Link

@@ -19,6 +19,10 @@ export const toUserDto = (u: UserRow): UserDto => ({
   role: u.role,
   referralCode: u.referral_code,
   createdAt: u.created_at.toISOString(),
+  settings: {
+    locale: u.settings.locale === "en" || u.settings.locale === "uk" ? u.settings.locale : null,
+    notifications: u.settings.notifications !== false,
+  },
 });
 
 @Injectable()

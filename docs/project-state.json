@@ -69,20 +69,16 @@
     "22.1.1-cosmetics-silks",
     "0.5.1-production-deploy",
     "22.2.1-racing-pass",
-    "20.4.1-tournaments-in-economy-sim"
+    "20.4.1-tournaments-in-economy-sim",
+    "23.1.1-localisation-uk"
   ],
   "active_tasks": [],
-  "blocked_tasks": [
-    {
-      "id": "15.x",
-      "reason": "Needs a real bot token, webhook URL and hosting to validate on Telegram clients (owner action)"
-    }
-  ],
+  "blocked_tasks": [],
   "failed_tasks": [],
   "test_status": {
     "engine": "57/57",
-    "api": "121/121 (real Postgres)",
-    "web": "Playwright E2E: 13 journeys — CI job",
+    "api": "127/127 (real Postgres)",
+    "web": "Playwright E2E: 14 journeys (incl. Ukrainian UI) — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); XFF trust fixed; referral hardening; fraud signals + review queue",
@@ -92,5 +88,5 @@
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "More cosmetics (horse coats, stable themes); Redis rate limiter before scaling out; localisation (uk)"
+  "next_action": "More cosmetics (horse coats, stable themes); Redis rate limiter before scaling out; translate server-generated race commentary; remove the blocked 15.x once validated on real clients"
 }

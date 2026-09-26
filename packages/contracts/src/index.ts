@@ -291,6 +291,21 @@ export interface ApiError {
   error: { code: string; message: string; details?: unknown };
 }
 
+export const LOCALES = ["en", "uk"] as const;
+export type Locale = (typeof LOCALES)[number];
+
+export interface UserSettingsDto {
+  /** Explicit choice; null means "follow the Telegram language". */
+  locale: Locale | null;
+  notifications: boolean;
+}
+
+export const UpdateSettingsRequest = z
+  .object({ locale: z.enum(LOCALES).nullable().optional(), notifications: z.boolean().optional() })
+  .strict()
+  .refine((s) => Object.keys(s).length > 0, "Nothing to update");
+export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;
+
 export interface UserDto {
   id: string;
   firstName: string | null;
@@ -298,6 +313,7 @@ export interface UserDto {
   role: string;
   referralCode: string;
   createdAt: string;
+  settings: UserSettingsDto;
 }
 
 export interface AuthResponse {

@@ -20,15 +20,15 @@ export const ordinal = (n: number) => {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 };
 
-const has = (key: string): key is MessageKey => {
+export const has = (key: string): key is MessageKey => {
   const v = t(key as MessageKey);
   return v !== key;
 };
 
-/** Human label for an enum value: the dictionary entry when there is one, else Title Case. */
 /** Track archetypes ("Urban Track") share the enum dictionary. */
 export const trackName = (archetype: string) => titleCase(archetype.replace(/ /g, "_"));
 
+/** Human label for an enum value: the dictionary entry when there is one, else Title Case. */
 export const titleCase = (s: string) =>
   has(`enum.${s.toUpperCase()}`)
     ? t(`enum.${s.toUpperCase()}` as MessageKey)
@@ -55,8 +55,11 @@ export const ATTRIBUTE_LABELS = lookup((k) => t(`attr.${k}` as MessageKey));
 
 /** Localised message for an API error (by code), falling back to the server text. */
 export const errorMessage = (e: unknown): string => {
-  const err = e as { code?: string; message?: string };
+  const err = e as { code?: string; message?: string; details?: { currency?: string } };
   if (err?.code === "NETWORK") return t("error.network");
+  // Some codes have a more specific variant, e.g. INSUFFICIENT_FUNDS for a given currency.
+  const specific = `error.${err?.code ?? ""}.${err?.details?.currency ?? ""}`;
+  if (err?.details?.currency && has(specific)) return t(specific);
   const key = `error.${err?.code ?? ""}`;
   return err?.code && has(key) ? t(key as MessageKey) : (err?.message ?? t("state.error"));
 };

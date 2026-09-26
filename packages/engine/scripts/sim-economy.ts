@@ -246,6 +246,144 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   if (pos === 1) stats.byClass[cls]![1]++;
 }
 
+/** A house runner generated for a class and distance, as the API's fillers are. */
+function houseEntrant(rng: Rng, cls: RaceClass, distance: number, id: string): RaceEntrant {
+  const cc = cfg.race.classes[cls];
+  const e = randomEntrant(rng, id, rng.float(...cc.houseQuality), cfg);
+  const g = generateGenome(rng, { quality: rng.float(...cc.houseQuality) }, cfg);
+  e.attributes = initialAttributes(g, rng.float(...cc.houseAge), rng);
+  e.traits = g.traits;
+  e.aptitudes = { ...g.aptitudes, optimalDistance: Math.round(distance * Math.exp(rng.normal(0, 0.15))) };
+  e.jockey.skill = rng.float(...cc.houseJockeySkill);
+  return e;
+}
+
+interface Runner {
+  p: Player;
+  h: SimHorse;
+}
+
+/**
+ * One tournament race (heat or final) with house fillers up to the target field. Applies prizes,
+ * Elo and aftermath like any race; returns player finishing positions (best first).
+ */
+function tournamentRace(rng: Rng, runners: Runner[], cls: RaceClass, purse: number, nowH: number): Runner[] {
+  const track = rng.pick(TRACKS);
+  const distance = rng.pick(track.distances);
+  const weather = rollWeather(track, rng);
+  const byId = new Map<string, Runner>();
+  const field: RaceEntrant[] = runners.map((r, i) => {
+    const id = `p${i}`;
+    byId.set(id, r);
+    return {
+      id,
+      name: id,
+      attributes: r.h.attributes,
+      traits: r.h.genome.traits,
+      aptitudes: r.h.genome.aptitudes,
+      raceIntelligence: r.h.genome.hidden.raceIntelligence,
+      condition: condition(r.h, nowH),
+      strategy: "MID_PACK",
+      jockey: {
+        id: `j${i}`,
+        name: "j",
+        skill: r.p.jockey?.skill ?? rng.float(...cfg.race.classes[cls].houseJockeySkill),
+      },
+    };
+  });
+  for (let i = field.length; i < Math.max(cfg.race.schedule.targetField, runners.length); i++)
+    field.push(houseEntrant(rng, cls, distance, `h${i}`));
+  const res = simulateRace(
+    rng.shuffle(field),
+    { distance, track, weather, wetness: rollWetness(track, weather, rng) },
+    `${rng.nextUint32()}`,
+    cfg,
+  );
+  const prizes = splitPurse(
+    purse,
+    res.results.map((r) => ({ id: r.entrantId, position: r.position })),
+    cfg.race.prizeSplit,
+  );
+  const order: Runner[] = [];
+  for (const r of res.results) {
+    const runner = byId.get(r.entrantId);
+    if (!runner) continue;
+    order.push(runner);
+    const prize = prizes.get(r.entrantId) ?? 0;
+    if (prize > 0) earn(runner.p, "TOURNAMENT_PURSE", prize);
+    const h = runner.h;
+    h.starts++;
+    if (r.position === 1) h.wins++;
+    const after = raceAftermath(
+      condition(h, nowH),
+      {
+        distance,
+        position: r.position,
+        expectedPosition: 4,
+        fieldSize: field.length,
+        endurance: h.attributes.endurance,
+        susceptibility: h.genome.hidden.injurySusceptibility,
+        strategy: "MID_PACK",
+      },
+      rng,
+      cfg,
+    );
+    h.cond = after.condition;
+    h.condAt = nowH + 0.05;
+    if (after.injury) h.injuredUntil = nowH + after.injury.hours;
+  }
+  return order;
+}
+
+/** A tournament day: registration by owner policy, snake-seeded heats, final with the purse. */
+function tournament(rng: Rng, tier: "LOCAL" | "REGIONAL", nowH: number): void {
+  const t = cfg.tournaments.tiers[tier];
+  const entrants: Runner[] = [];
+  for (const p of rng.shuffle([...players])) {
+    if (entrants.length >= t.maxEntrants) break;
+    if (p.credits < t.entryFee + 1500 || !rng.chance(0.35)) continue;
+    const h = [...p.horses]
+      .filter((x) => {
+        const cond = condition(x, nowH);
+        return (
+          nowH >= x.injuredUntil &&
+          nowH >= x.nextRaceAt &&
+          yearsHours(nowH - x.birthHours) >= cfg.lifecycle.minRacingAge &&
+          cond.fatigue <= cfg.condition.maxFatigueToRace &&
+          cond.health >= cfg.condition.minHealthToRace &&
+          (t.minRating === null || x.rating >= t.minRating)
+        );
+      })
+      .sort((a, b) => b.rating - a.rating)[0];
+    if (!h || !spend(p, "TOURNAMENT_FEES", t.entryFee)) continue;
+    h.nextRaceAt = nowH + 40; // committed: no other race until it has recovered
+    entrants.push({ p, h });
+  }
+  stats.tournamentEntries += entrants.length;
+  if (entrants.length < 2) {
+    for (const e of entrants) earn(e.p, "TOURNAMENT_REFUND", t.entryFee);
+    return;
+  }
+  let finalists = entrants;
+  if (entrants.length > t.playersPerHeat) {
+    const heats = Math.ceil(entrants.length / t.playersPerHeat);
+    const buckets: Runner[][] = Array.from({ length: heats }, () => []);
+    [...entrants]
+      .sort((a, b) => b.h.rating - a.h.rating)
+      .forEach((e, i) => {
+        const pass = Math.floor(i / heats);
+        buckets[pass % 2 === 0 ? i % heats : heats - 1 - (i % heats)]!.push(e);
+      });
+    finalists = buckets.flatMap((b) =>
+      tournamentRace(rng, b, t.raceClass, 0, nowH).slice(0, t.qualifiersPerHeat),
+    );
+    // A finalist injured in its heat is scratched, as in the game.
+    finalists = finalists.filter((f) => nowH + 0.5 >= f.h.injuredUntil);
+  }
+  if (finalists.length > 0) tournamentRace(rng, finalists, t.raceClass, t.purse, nowH + 0.5);
+  stats.tournaments++;
+}
+
 const stats = {
   races: 0,
   trainings: 0,
@@ -253,6 +391,8 @@ const stats = {
   purchases: 0,
   upgrades: 0,
   hires: 0,
+  tournaments: 0,
+  tournamentEntries: 0,
   jockeys: 0,
   facilities: 0,
   vet: 0,
@@ -415,7 +555,14 @@ for (let day = 0; day < DAYS; day++) {
     for (const h of p.horses) h.trainedToday = 0;
     if (p.credits < cfg.economy.allowance.threshold) earn(p, "DAILY_ALLOWANCE", cfg.economy.allowance.amount);
   }
-  for (const hour of SESSIONS) for (const p of players) session(rng, p, day * 24 + hour);
+  for (const hour of SESSIONS) {
+    for (const p of players) session(rng, p, day * 24 + hour);
+    // Tournament heats run in the evening, between the two play sessions.
+    if (hour === SESSIONS[0]) {
+      tournament(rng, "LOCAL", day * 24 + 18);
+      if (day % 3 === 1) tournament(rng, "REGIONAL", day * 24 + 19);
+    }
+  }
   if ([0, 6, 13, 20, 27].includes(day) || day === DAYS - 1) {
     const w = players.map((p) => p.credits);
     snapshots.push({
@@ -437,7 +584,7 @@ const perPlayerDay = (m: Map<string, number>, excludeOneOff: boolean) => {
 };
 const fmt = (n: number) => Math.round(n).toLocaleString("en");
 console.log(
-  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} jockeys=${stats.jockeys} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
+  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} tournaments=${stats.tournaments}/${stats.tournamentEntries} jockeys=${stats.jockeys} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
 );
 console.log(
   "sources per player-day:",
@@ -484,6 +631,14 @@ const building =
 console.log(`owners with a facility at season end ${(building * 100).toFixed(1)}%`);
 const riding = players.filter((p) => p.jockey).length / PLAYERS;
 console.log(`retaining a jockey at season end ${(riding * 100).toFixed(1)}%`);
+const tournamentNet =
+  ((ledger.sources.get("TOURNAMENT_PURSE") ?? 0) -
+    (ledger.sinks.get("TOURNAMENT_FEES") ?? 0) +
+    (ledger.sources.get("TOURNAMENT_REFUND") ?? 0)) /
+  (PLAYERS * DAYS);
+console.log(
+  `tournaments net ${fmt(tournamentNet)} per player-day (${((tournamentNet / Math.max(1, income)) * 100).toFixed(1)}% of income)`,
+);
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
 const salaryShare = (ledger.sinks.get("STAFF_SALARY") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
@@ -509,6 +664,8 @@ const checks: [string, boolean][] = [
   ["salaries are 3–25% of recurring income", salaryShare >= 0.03 && salaryShare <= 0.25],
   // Facilities are a mid-game goal: gated by stable level, so a minority builds in season one.
   ["5–40% of owners build a facility within a season", building >= 0.05 && building <= 0.4],
+  // Tournaments are aspirational: a visible but minor share of the economy.
+  ["tournaments' net mint is below 20% of recurring income", tournamentNet < 0.2 * income],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

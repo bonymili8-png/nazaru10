@@ -68,7 +68,8 @@
     "21.1.1-bot-paysupport-terms",
     "22.1.1-cosmetics-silks",
     "0.5.1-production-deploy",
-    "22.2.1-racing-pass"
+    "22.2.1-racing-pass",
+    "20.4.1-tournaments-in-economy-sim"
   ],
   "active_tasks": [],
   "blocked_tasks": [
@@ -89,8 +90,7 @@
   "known_bugs": [],
   "technical_debt": [
     "Rate limiter is in-memory (single node); move to Redis before >1 API replica",
-    "Tournaments are not yet part of the economy cohort simulation",
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Tournaments in the economy sim; more cosmetics (horse coats, stable themes); Redis rate limiter before scaling out"
+  "next_action": "More cosmetics (horse coats, stable themes); Redis rate limiter before scaling out; localisation (uk)"
 }

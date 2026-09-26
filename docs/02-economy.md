@@ -156,12 +156,17 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 
 ## Tournaments (Phase 2)
 
-* Faucet: one final purse per tournament (Local 6 000 daily … Elite 100 000 fortnightly),
+* Faucet: one final purse per tournament (Local 8 000 daily … Elite 100 000 fortnightly),
   paid through the normal race prize split; champion prestige/reputation from
   `TOURNAMENT_PRIZE`.
-* Sink: entry fees (`TOURNAMENT_FEES`). A full Local Cup (36 × 200 = 7 200) burns more than
-  it mints; a thin one mints — acceptable at this scale and visible on the economy dashboard
-  per source/sink. Refunds go through `TOURNAMENT_REFUND` so the fee sink stays honest.
+* Sink: entry fees (`TOURNAMENT_FEES`). Refunds go through `TOURNAMENT_REFUND` so the fee sink
+  stays honest.
+* Simulated (cohort sim, Local daily + Regional every 3 days, owners register their best free
+  horse with a 35 % chance when they keep a reserve): ≈ 19 Local entrants a day. With the first
+  purse (6 000 < 36 × 200 fees) a Local Cup was a losing bet on average and pulled income toward
+  the floor, so the Local purse is 8 000; tournaments now net ≈ 0.7 % of recurring income (gate:
+  < 20 %). Regional cups rarely fill in the simulation (it tracks Elo but not season points),
+  so higher tiers are validated by the API tests, not the cohort sim.
 * Heats pay no purse: a tournament horse spends one committed day for a chance at a purse
   worth ≈ 30× the entry fee, which keeps tournaments aspirational without inflating income.
 

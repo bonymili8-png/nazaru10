@@ -229,7 +229,7 @@ reserved for a larger player base):
 
 | Tier | Every | Entry | Final purse | Qualification (either) | Heat/final class | Champion bonus |
 |---|---|---|---|---|---|---|
-| Local | 24 h (18:00 UTC) | 200 | 6 000 | open | Class 5 | +30 reputation |
+| Local | 24 h (18:00 UTC) | 200 | 8 000 | open | Class 5 | +30 reputation |
 | Regional | 72 h | 500 | 15 000 | 20 season pts or rating 1100+ | Class 4 | +1 prestige, +60 rep |
 | National | 7 days | 1 200 | 40 000 | 60 season pts or rating 1200+ | Class 3 | +2 prestige, +120 rep |
 | Elite | 14 days | 3 000 | 100 000 | 150 season pts or rating 1300+ | Class 2 | +5 prestige, +250 rep |

@@ -6,7 +6,19 @@ import { AuditService } from "../../common/events.js";
 
 const DAY = 86_400_000;
 
-export type FraudKind = "SHARED_IP" | "CIRCULAR_TRADE" | "TRADE_FUNNEL" | "REFERRAL_CLUSTER" | "INCOME_SPIKE";
+export type FraudKind =
+  | "SHARED_IP"
+  | "CIRCULAR_TRADE"
+  | "TRADE_FUNNEL"
+  | "REFERRAL_CLUSTER"
+  | "INCOME_SPIKE"
+  | "REFERRAL_SHARED_IP";
+
+/**
+ * An address used by at least this many accounts unrelated to an invite is a public gateway
+ * (mobile carrier CGNAT, campus, café) and says nothing about who is behind it.
+ */
+const PUBLIC_GATEWAY_USERS = 3;
 
 interface Finding {
   userId: string;
@@ -33,13 +45,22 @@ export class FraudService {
     private readonly clock: Clock,
   ) {}
 
-  /** Accounts that signed in from the same (hashed) address as `userId` within the window. */
-  async sharesIp(c: Queryable, a: string, b: string, days = 30): Promise<boolean> {
+  /**
+   * Whether an invitee shares a private sign-in address with their referrer: an address both
+   * used within the window that fewer than PUBLIC_GATEWAY_USERS unrelated accounts also used
+   * (the referrer's other invitees don't count as unrelated, so an invite farm stays visible).
+   */
+  async sharesPrivateNetwork(c: Queryable, referee: string, referrer: string, days = 30): Promise<boolean> {
+    const since = new Date(this.clock.now().getTime() - days * DAY);
     const r = await row<{ n: number }>(
       c,
-      `SELECT count(*)::int AS n FROM login_ips x JOIN login_ips y ON y.ip_hash = x.ip_hash
-        WHERE x.user_id = $1 AND y.user_id = $2 AND x.last_seen > $3 AND y.last_seen > $3`,
-      [a, b, new Date(this.clock.now().getTime() - days * DAY)],
+      `SELECT count(*)::int AS n
+         FROM login_ips x JOIN login_ips y ON y.ip_hash = x.ip_hash
+        WHERE x.user_id = $1 AND y.user_id = $2 AND x.last_seen > $3 AND y.last_seen > $3
+          AND (SELECT count(DISTINCT o.user_id) FROM login_ips o JOIN users ou ON ou.id = o.user_id
+                WHERE o.ip_hash = x.ip_hash AND o.last_seen > $3
+                  AND o.user_id NOT IN ($1, $2) AND ou.referred_by IS DISTINCT FROM $2) < $4`,
+      [referee, referrer, since, PUBLIC_GATEWAY_USERS],
     );
     return r!.n > 0;
   }
@@ -191,14 +212,19 @@ export class FraudService {
   async review(actorId: string, id: number, decision: "DISMISSED" | "CONFIRMED", note: string, ip: string) {
     const now = this.clock.now();
     const userId = await this.db.tx(async (c) => {
-      const f = await row<{ id: number; user_id: string; status: string; kind: string }>(
-        c,
-        "SELECT id, user_id, status, kind FROM fraud_flags WHERE id = $1 FOR UPDATE",
-        [id],
-      );
+      const f = await row<{
+        id: number;
+        user_id: string;
+        status: string;
+        kind: string;
+        details: { referrer?: string };
+      }>(c, "SELECT id, user_id, status, kind, details FROM fraud_flags WHERE id = $1 FOR UPDATE", [id]);
       if (!f) throw notFound("Flag");
       if (f.status !== "OPEN") throw conflict("ALREADY_REVIEWED", `Flag is ${f.status.toLowerCase()}`);
       if (f.user_id === actorId) throw conflict("SELF_ACTION", "You cannot review your own flag");
+      // Approving an invite pays the referrer, so they must not be the one who decides.
+      if (f.details.referrer === actorId)
+        throw conflict("SELF_ACTION", "You cannot review an invite that would reward you");
       await c.query(
         "UPDATE fraud_flags SET status = $2, reviewed_by = $3, reviewed_at = $4, review_note = $5 WHERE id = $1",
         [id, decision, actorId, now, note],

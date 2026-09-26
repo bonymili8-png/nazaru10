@@ -723,7 +723,7 @@ export const en = {
   "profile.language": "Language",
   "profile.invite": "Invite friends",
   "profile.inviteText":
-    "Invite a friend with your link. Once they have run a race and their account is a day old, you both get 500 credits. Friends playing from your own network don't count.",
+    "Invite a friend with your link. Once they have run a race and their account is a day old, you both get 500 credits. Invites from your own home network are checked by our team first.",
   "profile.copied": "Copied",
   "profile.copy": "Copy",
   "profile.shareText": "Join my racing stable on Thoroughline 🏇",
@@ -771,7 +771,8 @@ export const en = {
   "ref.WAITING_RACE": "Waiting for their first race",
   "ref.WAITING_DAY": "Reward in {t}",
   "ref.PROCESSING": "Reward on its way",
-  "ref.SAME_NETWORK": "Same network as you — no reward",
+  "ref.SAME_NETWORK": "Not rewarded — review found it's the same player",
+  "ref.REVIEW": "Same network as you — being checked",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

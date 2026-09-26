@@ -184,6 +184,7 @@ function Referrals() {
     PROCESSING: "text-gold",
     WAITING_DAY: "text-gold",
     WAITING_RACE: "text-muted",
+    REVIEW: "text-gold",
     SAME_NETWORK: "text-bad",
   };
   return (

@@ -43,8 +43,11 @@ grants for the app role in production; trigger blocks mutation).
 * **Referral abuse:** reward only after the referred user reaches first race + 24 h
   account age; daily cap per referrer; clustered accounts excluded. *Implemented:* checked on
   each settled race and by a background sweep (every 30 s, invitees up to 30 days old), so a
-  race on day one pays out once the invitee is a day old; invitees that signed in from the
-  referrer's address never earn it; referrers with trust < 30 get no referrer reward; a
+  race on day one pays out once the invitee is a day old; an invitee sharing a *private*
+  address with the referrer (fewer than 3 unrelated accounts on it — carrier CGNAT and other
+  public gateways don't count; the referrer's other invitees are not "unrelated") is held as a
+  `REFERRAL_SHARED_IP` flag: dismissed → paid by the sweep, confirmed → never; the referrer can
+  never review their own invite; referrers with trust < 30 get no referrer reward; a
   referrer over the daily cap is paid on a later day. Invites that reach the bot's `/start`
   are kept (7 days) and applied at the first sign-in. Owners see each invite's status
   (`GET /me/referrals`).

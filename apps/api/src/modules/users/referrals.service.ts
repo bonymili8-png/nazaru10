@@ -14,12 +14,16 @@ const MIN_TRUST = 30;
 const SWEEP_WINDOW_MS = 30 * 86_400_000;
 
 const refereeKey = (id: string) => `referral:${id}:referee`;
+/** Review flag for an invite that shares a private network with its referrer. */
+const reviewKey = (referrer: string) => `refnet:${referrer}`;
+type Review = "NONE" | "OPEN" | "DISMISSED" | "CONFIRMED";
 const referrerKey = (id: string) => `referral:${id}:referrer`;
 
 /**
  * Invite rewards: both sides get credits once the invitee has run a race and their account is a
- * day old (anti-abuse). Accounts that share the referrer's network never qualify. Checked when a
- * race settles and by a background sweep, so a race run on day one still pays out the next day.
+ * day old (anti-abuse). An invitee on the referrer's private network (not a public carrier
+ * gateway) is held for an analyst's review instead of being paid or refused automatically.
+ * Checked when a race settles and by a background sweep, so a race on day one pays out later.
  */
 @Injectable()
 export class ReferralsService {
@@ -40,7 +44,20 @@ export class ReferralsService {
     if (!u?.referred_by) return;
     if (now.getTime() - u.created_at.getTime() < MIN_AGE_MS) return;
     if (!(await this.hasRaced(c, userId))) return;
-    if (await this.fraud.sharesIp(c, userId, u.referred_by)) return;
+    const review = await this.review(c, userId, u.referred_by);
+    if (review === "OPEN" || review === "CONFIRMED") return;
+    if (review === "NONE" && (await this.fraud.sharesPrivateNetwork(c, userId, u.referred_by))) {
+      await c.query(
+        `INSERT INTO fraud_flags (user_id, kind, severity, dedupe_key, details)
+         VALUES ($1, 'REFERRAL_SHARED_IP', 1, $2, $3) ON CONFLICT (user_id, dedupe_key) DO NOTHING`,
+        [
+          userId,
+          reviewKey(u.referred_by),
+          JSON.stringify({ referrer: u.referred_by, reward: REFERRAL_REWARD }),
+        ],
+      );
+      return;
+    }
     const meta = { referrer: u.referred_by, referee: userId };
     await this.ledger.credit(c, {
       userId,
@@ -125,15 +142,18 @@ export class ReferralsService {
     const out: ReferralDto[] = [];
     for (const r of rows) {
       const readyAt = new Date(r.created_at.getTime() + MIN_AGE_MS);
+      const review = r.paid ? "DISMISSED" : await this.review(this.db.pool, r.id, referrerId);
       const status: ReferralDto["status"] = r.paid
         ? "PAID"
-        : (await this.fraud.sharesIp(this.db.pool, r.id, referrerId))
+        : review === "CONFIRMED"
           ? "SAME_NETWORK"
-          : !r.raced
-            ? "WAITING_RACE"
-            : readyAt > now
-              ? "WAITING_DAY"
-              : "PROCESSING";
+          : review === "OPEN"
+            ? "REVIEW"
+            : !r.raced
+              ? "WAITING_RACE"
+              : readyAt > now
+                ? "WAITING_DAY"
+                : "PROCESSING";
       out.push({
         name: r.name,
         joinedAt: r.created_at.toISOString(),
@@ -142,6 +162,15 @@ export class ReferralsService {
       });
     }
     return out;
+  }
+
+  private async review(c: Queryable, referee: string, referrer: string): Promise<Review> {
+    const f = await row<{ status: Review }>(
+      c,
+      "SELECT status FROM fraud_flags WHERE user_id = $1 AND dedupe_key = $2",
+      [referee, reviewKey(referrer)],
+    );
+    return f?.status ?? "NONE";
   }
 
   private async hasRaced(c: Queryable, userId: string): Promise<boolean> {

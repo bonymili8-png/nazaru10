@@ -1,0 +1,4 @@
+DELETE FROM fraud_flags WHERE kind = 'REFERRAL_SHARED_IP';
+ALTER TABLE fraud_flags DROP CONSTRAINT fraud_flags_kind_check;
+ALTER TABLE fraud_flags ADD CONSTRAINT fraud_flags_kind_check
+  CHECK (kind IN ('SHARED_IP','CIRCULAR_TRADE','TRADE_FUNNEL','REFERRAL_CLUSTER','INCOME_SPIKE'));

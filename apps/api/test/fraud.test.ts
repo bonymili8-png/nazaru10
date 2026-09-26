@@ -151,7 +151,7 @@ describe("referral rewards", () => {
     t.clock.advance(2 * DAY);
   };
 
-  it("waits a day, skips same-address invitees, then pays both sides once", async () => {
+  it("waits a day, holds same-network invites for review, then pays both sides once", async () => {
     const referrer = await t.login(9951, "Host");
     const code = (await t.get<{ referralCode: string }>("/me", referrer.token)).body.referralCode;
     const young = await t.login(9952, "Newbie", `ref_${code}`);
@@ -186,7 +186,7 @@ describe("referral rewards", () => {
     ]);
     expect(tx).toHaveLength(1);
 
-    // Same address as the referrer: never rewarded, even once old enough.
+    // Same private address as the referrer: held for review, not paid and not refused.
     await t.db.query("UPDATE users SET created_at = $2 WHERE id = $1", [
       sameIp.userId,
       new Date(t.clock.now().getTime() - 3 * DAY),
@@ -195,15 +195,70 @@ describe("referral rewards", () => {
     await raceOnce(sameIp);
     await t.service(ReferralsService).sweep();
     expect(await credits(referrer)).toBe(hostBefore);
-    const list = (await t.get<ReferralDto[]>("/me/referrals", referrer.token)).body;
-    expect(list.map((r) => [r.name, r.status])).toEqual([
-      ["Sock", "SAME_NETWORK"],
-      ["Newbie", "PAID"],
-    ]);
-    const none = await t.db.query("SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1", [
-      `referral:${sameIp.userId}:referee`,
-    ]);
-    expect(none).toHaveLength(0);
+    const status = async () =>
+      Object.fromEntries(
+        (await t.get<ReferralDto[]>("/me/referrals", referrer.token)).body.map((r) => [r.name, r.status]),
+      );
+    expect(await status()).toEqual({ Sock: "REVIEW", Newbie: "PAID" });
+    const flag = await t.db.one<{ id: number }>(
+      "SELECT id FROM fraud_flags WHERE user_id = $1 AND kind = 'REFERRAL_SHARED_IP' AND status = 'OPEN'",
+      [sameIp.userId],
+    );
+    expect(flag).not.toBeNull();
+
+    // The referrer may not approve their own invite, even as an admin.
+    await t.db.query("UPDATE users SET role = 'SUPER_ADMIN' WHERE id = $1", [referrer.userId]);
+    const self = await t.post<{ error: { code: string } }>(
+      `/admin/fraud/flags/${flag!.id}/review`,
+      { decision: "DISMISSED", note: "that's my friend" },
+      referrer.token,
+    );
+    expect(self.status).toBe(409);
+    expect(self.body.error.code).toBe("SELF_ACTION");
+
+    // Another analyst confirms they are different people: the sweep pays both sides.
+    const analyst = await t.login(9954, "Checker");
+    await t.db.query("UPDATE users SET role = 'FRAUD_ANALYST' WHERE id = $1", [analyst.userId]);
+    const ok = await t.post(
+      `/admin/fraud/flags/${flag!.id}/review`,
+      { decision: "DISMISSED", note: "Different phones on the same mobile carrier" },
+      analyst.token,
+    );
+    expect(ok.status).toBe(201);
+    expect(await t.service(ReferralsService).sweep()).toBe(1);
+    expect(await credits(referrer)).toBe(hostBefore + 500);
+    expect((await status()).Sock).toBe("PAID");
+  });
+
+  it("ignores addresses shared with unrelated players (mobile carrier gateways)", async () => {
+    const referrer = await t.login(9961, "Carrier");
+    const code = (await t.get<{ referralCode: string }>("/me", referrer.token)).body.referralCode;
+    const friend = await t.login(9962, "Mate", `ref_${code}`);
+    const gateway = "carrier-gateway";
+    const onGateway = (userId: string) =>
+      t.db.query(
+        "INSERT INTO login_ips (user_id, ip_hash, first_seen, last_seen) VALUES ($1,$2,$3,$3) ON CONFLICT DO NOTHING",
+        [userId, gateway, t.clock.now()],
+      );
+    await onGateway(referrer.userId);
+    await onGateway(friend.userId);
+    const svc = t.service(FraudService);
+    const shares = () => t.db.tx((c) => svc.sharesPrivateNetwork(c, friend.userId, referrer.userId));
+    expect(await shares()).toBe(true);
+    // Three unrelated subscribers behind the same address make it a public gateway.
+    for (const id of [9963, 9964, 9965]) await onGateway((await t.login(id, `Stranger${id}`)).userId);
+    expect(await shares()).toBe(false);
+    // The referrer's own invitees never make an address look public (no invite farms).
+    const farmer = await t.login(9971, "Farmer");
+    const farmCode = (await t.get<{ referralCode: string }>("/me", farmer.token)).body.referralCode;
+    const farm = [];
+    for (const id of [9972, 9973, 9974, 9975]) farm.push(await t.login(id, `Farm${id}`, `ref_${farmCode}`));
+    for (const u of [farmer, ...farm])
+      await t.db.query(
+        "INSERT INTO login_ips (user_id, ip_hash, first_seen, last_seen) VALUES ($1,'farm',$2,$2)",
+        [u.userId, t.clock.now()],
+      );
+    expect(await t.db.tx((c) => svc.sharesPrivateNetwork(c, farm[0]!.userId, farmer.userId))).toBe(true);
   });
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));

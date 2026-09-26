@@ -989,6 +989,8 @@ const FLAG_INFO: Record<string, string> = {
   TRADE_FUNNEL: "Three or more sales to the same buyer in a week",
   REFERRAL_CLUSTER: "Invitees sign in from the referrer's address",
   INCOME_SPIKE: "Yesterday's income above 10× the 90th percentile",
+  REFERRAL_SHARED_IP:
+    "Invitee signs in from the referrer's private network; invite reward held. Dismiss = genuine friend (both get paid), confirm = same person (no reward)",
 };
 
 function Fraud() {

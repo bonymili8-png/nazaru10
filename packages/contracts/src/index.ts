@@ -353,9 +353,10 @@ export interface ReferralDto {
   /**
    * PAID — both rewards credited; WAITING_RACE — they have not run a race yet;
    * WAITING_DAY — raced, reward due once their account is a day old (readyAt);
-   * PROCESSING — due now, credited within minutes; SAME_NETWORK — plays from your network, never rewarded.
+   * PROCESSING — due now, credited within minutes; REVIEW — signs in from your network, held
+   * until an admin checks it; SAME_NETWORK — review found it is not a separate player (no reward).
    */
-  status: "PAID" | "WAITING_RACE" | "WAITING_DAY" | "PROCESSING" | "SAME_NETWORK";
+  status: "PAID" | "WAITING_RACE" | "WAITING_DAY" | "PROCESSING" | "REVIEW" | "SAME_NETWORK";
   readyAt: string | null;
 }
 

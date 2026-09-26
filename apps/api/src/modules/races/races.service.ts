@@ -188,7 +188,7 @@ export class RacesService {
         ? "r.status = 'OPEN' AND r.locks_at > $1 AND r.tournament_id IS NULL"
         : q.status === "live"
           ? "(r.status IN ('LOCKED','RUNNING') OR (r.status = 'OPEN' AND r.locks_at <= $1))"
-          : "r.status = 'COMPLETED'";
+          : "r.status = 'COMPLETED' AND r.starts_at <= $1";
     const order = q.status === "recent" ? "r.starts_at DESC" : "r.starts_at ASC";
     const list = await this.db.query<RaceRow & { n: number }>(
       `SELECT r.*, (SELECT count(*)::int FROM race_entries e WHERE e.race_id = r.id AND e.status IN ('ENTERED','RAN')) AS n

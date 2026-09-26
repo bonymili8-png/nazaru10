@@ -162,6 +162,17 @@ describe("race lifecycle", () => {
     expect(prizes!.n).toBeLessThanOrEqual(1);
   });
 
+  it("lists upcoming, live and recent races (every race-card tab)", async () => {
+    for (const status of ["upcoming", "live", "recent"]) {
+      const r = await t.get<RaceSummaryDto[]>(`/races?status=${status}&limit=30`, alice.token);
+      expect(r.status, status).toBe(200);
+      const byClass = await t.get<RaceSummaryDto[]>(`/races?status=${status}&class=MAIDEN`, alice.token);
+      expect(byClass.status, status).toBe(200);
+    }
+    const recent = (await t.get<RaceSummaryDto[]>("/races?status=recent", alice.token)).body;
+    expect(recent.map((r) => r.id)).toContain(race.id);
+  });
+
   it("shows up on the leaderboards", async () => {
     const board = await t.get<{ horseId: string }[]>("/leaderboard/horses?by=rating", alice.token);
     expect(board.body.map((b) => b.horseId)).toContain(aliceHorse);

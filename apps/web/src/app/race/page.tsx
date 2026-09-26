@@ -9,7 +9,7 @@ import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { CLASS_NAMES, countdown, fmt, STRATEGY_INFO, titleCase } from "@/lib/format";
+import { CLASS_NAMES, countdown, errorMessage, fmt, STRATEGY_INFO, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { appLink, haptic, shareToTelegram } from "@/lib/telegram";
 
@@ -186,7 +186,7 @@ function Withdraw({ raceId, horseId }: { raceId: string; horseId: string }) {
           toast("Withdrawn — fee refunded");
           invalidate(`/races/${raceId}`, "/wallet", "/horses", "/home");
         } catch (e) {
-          toast((e as Error).message, "bad");
+          toast(errorMessage(e), "bad");
         } finally {
           setBusy(false);
         }
@@ -218,7 +218,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
       invalidate(`/races/${race.id}`, "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }

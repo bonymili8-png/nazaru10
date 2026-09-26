@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Silk } from "@/components/Silk";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post, put } from "@/lib/api";
-import { titleCase } from "@/lib/format";
+import { errorMessage, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -39,7 +39,7 @@ export default function SilksPage() {
       invalidate("/cosmetics", "/wallet");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }
@@ -55,7 +55,7 @@ export default function SilksPage() {
       invalidate("/cosmetics");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }

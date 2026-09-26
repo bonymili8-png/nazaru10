@@ -1,7 +1,10 @@
 /** Minimal typed wrapper over the Telegram Mini App SDK (telegram-web-app.js). */
 interface TelegramWebApp {
   initData: string;
-  initDataUnsafe: { start_param?: string; user?: { id: number; first_name?: string } };
+  initDataUnsafe: {
+    start_param?: string;
+    user?: { id: number; first_name?: string; language_code?: string };
+  };
   version: string;
   platform: string;
   colorScheme: "light" | "dark";

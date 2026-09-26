@@ -22,7 +22,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { countdown, fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
+import { countdown, errorMessage, fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -168,7 +168,7 @@ function Withdraw({ id, horseId }: { id: string; horseId: string }) {
           toast("Withdrawn — fee refunded");
           invalidate(`/tournaments`, "/wallet", "/horses", "/home");
         } catch (e) {
-          toast((e as Error).message, "bad");
+          toast(errorMessage(e), "bad");
         } finally {
           setBusy(false);
         }
@@ -198,7 +198,7 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
       invalidate("/tournaments", "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }

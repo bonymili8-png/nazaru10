@@ -22,7 +22,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { api, post } from "@/lib/api";
-import { fmt, titleCase } from "@/lib/format";
+import { errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 import { haptic, tg } from "@/lib/telegram";
 
@@ -157,7 +157,7 @@ function SalesRing() {
       invalidate("/shop", "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }
@@ -227,7 +227,7 @@ function Gems() {
         void check();
       });
     } catch (e) {
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
       setBusy(null);
     }
   };

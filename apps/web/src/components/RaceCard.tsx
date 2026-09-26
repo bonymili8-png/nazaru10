@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CLASS_NAMES, countdown, fmt, titleCase } from "@/lib/format";
 import { useNow } from "@/lib/hooks";
 import { Badge } from "./ui";
+import { t } from "@/lib/i18n";
 
 export const WEATHER_ICON = {
   SUNNY: Sun,
@@ -30,8 +31,8 @@ export function RaceCard({ race }: { race: RaceSummaryDto }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Badge tone="gold">{CLASS_NAMES[race.class]}</Badge>
-            {race.status === "RUNNING" && <Badge tone="bad">● Live</Badge>}
-            {race.status === "COMPLETED" && <Badge>Result</Badge>}
+            {race.status === "RUNNING" && <Badge tone="bad">{t("race.live")}</Badge>}
+            {race.status === "COMPLETED" && <Badge>{t("race.result")}</Badge>}
           </div>
           <p className="mt-1.5 truncate font-semibold">{race.trackName}</p>
           <p className="text-sm text-muted">
@@ -42,18 +43,16 @@ export function RaceCard({ race }: { race: RaceSummaryDto }) {
         </div>
         <div className="shrink-0 text-right">
           <p className="num font-semibold text-gold">{fmt(race.purse)}</p>
-          <p className="text-[11px] text-muted">purse · fee {fmt(race.entryFee)}</p>
+          <p className="text-[11px] text-muted">{t("race.purseFee", { fee: fmt(race.entryFee) })}</p>
         </div>
       </div>
       <div className="mt-2 flex justify-between text-xs text-muted">
-        <span className="num">
-          {race.entries}/{race.maxField} runners
-        </span>
+        <span className="num">{t("race.runners", { n: race.entries, max: race.maxField })}</span>
         <span className="num">
           {opens
-            ? `Closes in ${countdown(race.locksAt, now)}`
+            ? t("race.closesIn", { t: countdown(race.locksAt, now) })
             : race.status === "LOCKED"
-              ? `Off in ${countdown(race.startsAt, now)}`
+              ? t("race.offIn", { t: countdown(race.startsAt, now) })
               : new Date(race.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>

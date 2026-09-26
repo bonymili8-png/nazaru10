@@ -7,7 +7,7 @@ import { Suspense, useState } from "react";
 import { HorseCard } from "@/components/HorseCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, Stars, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
-import { countdown, fmt, titleCase } from "@/lib/format";
+import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -50,7 +50,7 @@ function ListingPage() {
       invalidate(`/market`, "/wallet", "/horses", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }

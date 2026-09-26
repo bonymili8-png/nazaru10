@@ -1,66 +1,59 @@
-export const fmt = (n: number) => new Intl.NumberFormat("en").format(Math.round(n));
+import { getLocale, type MessageKey, t } from "./i18n";
+
+export const fmt = (n: number) =>
+  new Intl.NumberFormat(getLocale() === "uk" ? "uk-UA" : "en").format(Math.round(n));
 
 export function countdown(targetIso: string, now: number): string {
   const s = Math.max(0, Math.round((new Date(targetIso).getTime() - now) / 1000));
-  if (s >= 2 * 86400) return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
-  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
-  if (s >= 60) return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
-  return `${s}s`;
+  const [d, h, m, sec] = [t("time.d"), t("time.h"), t("time.m"), t("time.s")];
+  const sp = getLocale() === "uk" ? " " : "";
+  if (s >= 2 * 86400) return `${Math.floor(s / 86400)}${sp}${d} ${Math.floor((s % 86400) / 3600)}${sp}${h}`;
+  if (s >= 3600) return `${Math.floor(s / 3600)}${sp}${h} ${Math.floor((s % 3600) / 60)}${sp}${m}`;
+  if (s >= 60) return `${Math.floor(s / 60)}${sp}${m} ${String(s % 60).padStart(2, "0")}${sp}${sec}`;
+  return `${s}${sp}${sec}`;
 }
 
 export const ordinal = (n: number) => {
+  if (getLocale() === "uk") return `${n}-й`;
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 };
 
+const has = (key: string): key is MessageKey => {
+  const v = t(key as MessageKey);
+  return v !== key;
+};
+
+/** Human label for an enum value: the dictionary entry when there is one, else Title Case. */
 export const titleCase = (s: string) =>
-  s
-    .toLowerCase()
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  has(`enum.${s.toUpperCase()}`)
+    ? t(`enum.${s.toUpperCase()}` as MessageKey)
+    : s
+        .toLowerCase()
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
 
-export const CLASS_NAMES: Record<string, string> = {
-  MAIDEN: "Maiden",
-  CLASS_5: "Class 5",
-  CLASS_4: "Class 4",
-  CLASS_3: "Class 3",
-  CLASS_2: "Class 2",
-  CLASS_1: "Class 1",
-};
+/** Label maps resolved in the active locale at read time (same shape as before i18n). */
+const lookup = <T>(make: (k: string) => T) =>
+  new Proxy({} as Record<string, T>, { get: (_, k) => make(String(k)) });
 
-export const STRATEGY_INFO: Record<string, { label: string; hint: string }> = {
-  FRONT_RUNNER: { label: "Front runner", hint: "Go for the lead early. Suits keen, fast starters." },
-  PACE_SETTER: { label: "Pace setter", hint: "Sit just behind the leaders and press." },
-  MID_PACK: { label: "Mid pack", hint: "Even pace in the middle. Reliable default." },
-  CLOSER: { label: "Closer", hint: "Save energy, finish fast. Needs a strong kick." },
-  CONSERVATIVE: { label: "Conservative", hint: "Hold back a reserve. Safer, fewer wins." },
-  AGGRESSIVE: { label: "Aggressive", hint: "Push hard all race. High risk of tiring." },
-};
+export const CLASS_NAMES = lookup((k) => t(`class.${k}` as MessageKey));
+export const STRATEGY_INFO = lookup((k) => ({
+  label: t(`strategy.${k}` as MessageKey),
+  hint: t(`strategy.${k}.hint` as MessageKey),
+}));
+export const TRAINING_INFO = lookup((k) => ({
+  label: t(`training.${k}` as MessageKey),
+  focus: t(`training.${k}.focus` as MessageKey),
+}));
+export const ATTRIBUTE_LABELS = lookup((k) => t(`attr.${k}` as MessageKey));
 
-export const TRAINING_INFO: Record<string, { label: string; focus: string }> = {
-  SPEED: { label: "Speed work", focus: "Speed · Acceleration" },
-  ACCELERATION: { label: "Acceleration", focus: "Acceleration · Start" },
-  STAMINA: { label: "Stamina", focus: "Stamina · Endurance" },
-  STRENGTH: { label: "Strength", focus: "Strength" },
-  AGILITY: { label: "Agility", focus: "Agility · Cornering" },
-  STARTS: { label: "Gate practice", focus: "Start · Focus" },
-  FINISHING: { label: "Finishing", focus: "Final kick" },
-  MENTAL: { label: "Mental", focus: "Focus" },
-  TACTICAL: { label: "Tactical", focus: "Cornering · Focus" },
-  RECOVERY: { label: "Recovery", focus: "Reduces fatigue, restores health" },
-};
-
-export const ATTRIBUTE_LABELS: Record<string, string> = {
-  speed: "Speed",
-  acceleration: "Acceleration",
-  stamina: "Stamina",
-  endurance: "Endurance",
-  strength: "Strength",
-  agility: "Agility",
-  start: "Start",
-  cornering: "Cornering",
-  finalKick: "Final kick",
-  focus: "Focus",
+/** Localised message for an API error (by code), falling back to the server text. */
+export const errorMessage = (e: unknown): string => {
+  const err = e as { code?: string; message?: string };
+  if (err?.code === "NETWORK") return t("error.network");
+  const key = `error.${err?.code ?? ""}`;
+  return err?.code && has(key) ? t(key as MessageKey) : (err?.message ?? t("state.error"));
 };

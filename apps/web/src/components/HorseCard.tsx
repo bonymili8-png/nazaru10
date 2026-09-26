@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { fmt, titleCase } from "@/lib/format";
 import { Badge } from "./ui";
+import { t } from "@/lib/i18n";
 
 const RARITY_TONE: Record<string, "neutral" | "gold" | "good" | "warn"> = {
   COMMON: "neutral",
@@ -57,21 +58,27 @@ export function HorseCard({
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{horse.name}</p>
         <p className="mt-0.5 text-sm text-muted">
-          {horse.age.toFixed(1)}y {titleCase(horse.sex)} · {horse.record.starts} starts · {horse.record.wins}{" "}
-          wins
+          {t("horse.card", {
+            age: horse.age.toFixed(1),
+            sex: titleCase(horse.sex),
+            starts: horse.record.starts,
+            wins: horse.record.wins,
+          })}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <Badge tone={STATUS_TONE[horse.status]}>{titleCase(horse.status)}</Badge>
           <Badge tone={RARITY_TONE[horse.rarity]}>{titleCase(horse.rarity)}</Badge>
           {horse.record.earnings > 0 && (
-            <span className="num text-xs text-muted">{fmt(horse.record.earnings)} cr earned</span>
+            <span className="num text-xs text-muted">
+              {t("horse.earned", { amount: fmt(horse.record.earnings) })}
+            </span>
           )}
           {extra}
         </div>
       </div>
       <div className="text-right">
         <p className="num font-display text-2xl font-bold text-gold">{Math.round(horse.abilityRating)}</p>
-        <p className="text-[11px] uppercase tracking-wider text-muted">Rating</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted">{t("common.rating")}</p>
       </div>
       {href && <ChevronRight className="size-5 text-muted" aria-hidden />}
     </div>

@@ -13,7 +13,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { countdown, fmt, TRAINING_INFO } from "@/lib/format";
+import { countdown, errorMessage, fmt, TRAINING_INFO } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -157,7 +157,7 @@ function Hire({ t, disabled }: { t: TrainerDto; disabled: boolean }) {
           invalidate("/staff", "/wallet", "/home");
         } catch (e) {
           haptic.error();
-          toast((e as Error).message, "bad");
+          toast(errorMessage(e), "bad");
         } finally {
           setBusy(false);
         }
@@ -184,7 +184,7 @@ function Dismiss({ contractId, name }: { contractId: string; name: string }) {
           toast(`${name} has left`);
           invalidate("/staff");
         } catch (e) {
-          toast((e as Error).message, "bad");
+          toast(errorMessage(e), "bad");
         } finally {
           setBusy(false);
         }
@@ -287,7 +287,7 @@ function Retain({ j, disabled }: { j: JockeyDto; disabled: boolean }) {
           invalidate("/staff", "/wallet", "/home");
         } catch (e) {
           haptic.error();
-          toast((e as Error).message, "bad");
+          toast(errorMessage(e), "bad");
         } finally {
           setBusy(false);
         }

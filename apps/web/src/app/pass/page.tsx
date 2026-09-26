@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Silk } from "@/components/Silk";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
-import { countdown, titleCase } from "@/lib/format";
+import { countdown, errorMessage, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -27,7 +27,7 @@ export default function PassPage() {
       invalidate("/pass", "/wallet", "/cosmetics");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }

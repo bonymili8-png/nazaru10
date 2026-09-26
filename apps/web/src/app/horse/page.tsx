@@ -26,7 +26,15 @@ import {
   useToast,
 } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { ATTRIBUTE_LABELS, countdown, fmt, ordinal, titleCase, TRAINING_INFO } from "@/lib/format";
+import {
+  ATTRIBUTE_LABELS,
+  countdown,
+  errorMessage,
+  fmt,
+  ordinal,
+  titleCase,
+  TRAINING_INFO,
+} from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -131,7 +139,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
       invalidate(`/horses/${h.id}`, "/wallet", "/home", "/horses");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }
@@ -265,7 +273,7 @@ function Train({ h }: { h: HorseDetailDto }) {
       invalidate(`/horses/${h.id}`, "/wallet", "/home", "/horses");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }
@@ -490,7 +498,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
       invalidate(`/horses/${h.id}`, "/market", "/horses", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }
@@ -587,7 +595,7 @@ function Breeding({ h }: { h: HorseDetailDto }) {
       invalidate(`/horses/${h.id}`, "/breeding");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }

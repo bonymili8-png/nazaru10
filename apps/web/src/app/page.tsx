@@ -6,7 +6,8 @@ import { RaceCard } from "@/components/RaceCard";
 import { HorseIcon } from "@/components/icons";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
-import { fmt } from "@/lib/format";
+import { errorMessage, fmt } from "@/lib/format";
+import { type MessageKey, t } from "@/lib/i18n";
 import { invalidate, useApi } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 import { useState } from "react";
@@ -27,25 +28,27 @@ export default function HomePage() {
   return (
     <div>
       <Card className="bg-gradient-to-br from-surface to-surface-2">
-        <p className="text-xs uppercase tracking-[0.25em] text-gold">Level {data.stable.level} stable</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-gold">
+          {t("home.level", { n: data.stable.level })}
+        </p>
         <h1 className="mt-1 font-display text-2xl font-bold">{data.stable.name}</h1>
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <Stat label="Horses" value={`${data.stable.horseCount}/${data.stable.capacity}`} />
-          <Stat label="Reputation" value={fmt(data.stable.reputation)} />
-          <Stat label="Ready" value={String(idle)} />
+          <Stat label={t("home.horses")} value={`${data.stable.horseCount}/${data.stable.capacity}`} />
+          <Stat label={t("home.reputation")} value={fmt(data.stable.reputation)} />
+          <Stat label={t("home.ready")} value={String(idle)} />
         </dl>
         <div className="mt-4 grid grid-cols-3 gap-2">
           <LinkButton href="/horses/" className="text-sm">
             <HorseIcon className="size-4" />
-            Train
+            {t("home.train")}
           </LinkButton>
           <LinkButton href="/races/" variant="primary" className="text-sm">
             <Flag className="size-4" />
-            Race
+            {t("home.race")}
           </LinkButton>
           <LinkButton href="/shop/" className="text-sm">
             <Store className="size-4" />
-            Buy
+            {t("home.buy")}
           </LinkButton>
         </div>
       </Card>
@@ -58,7 +61,7 @@ export default function HomePage() {
 
       {data.myUpcomingRaces.length > 0 && (
         <>
-          <SectionTitle>Your races</SectionTitle>
+          <SectionTitle>{t("home.yourRaces")}</SectionTitle>
           <div className="space-y-2">
             {data.myUpcomingRaces.map((r) => (
               <RaceCard key={r.id} race={r} />
@@ -70,11 +73,11 @@ export default function HomePage() {
       <SectionTitle
         action={
           <LinkButton href="/horses/" variant="ghost" className="min-h-9 text-sm">
-            All
+            {t("common.all")}
           </LinkButton>
         }
       >
-        Your string
+        {t("home.yourString")}
       </SectionTitle>
       <div className="space-y-2">
         {data.horses.map((h) => (
@@ -104,35 +107,35 @@ function Quests({ quests }: { quests: QuestDto[] }) {
     try {
       await post(`/quests/${q.code}/claim`);
       haptic.success();
-      toast(`Reward claimed: ${q.title}`);
+      toast(t("home.rewardClaimed", { title: questTitle(q) }));
       invalidate("/home", "/wallet");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }
   };
   return (
     <>
-      <SectionTitle>Career path</SectionTitle>
+      <SectionTitle>{t("home.careerPath")}</SectionTitle>
       <Card className="divide-y divide-line/40 p-0">
         {open.map((q) => (
           <div key={q.code} className="flex items-center gap-3 px-4 py-3">
             {q.completed ? (
-              <CheckCircle2 className="size-5 shrink-0 text-good" aria-label="Completed" />
+              <CheckCircle2 className="size-5 shrink-0 text-good" aria-label={t("home.completed")} />
             ) : (
-              <Circle className="size-5 shrink-0 text-line" aria-label="Not completed" />
+              <Circle className="size-5 shrink-0 text-line" aria-label={t("home.notCompleted")} />
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-medium">{q.title}</p>
+              <p className="font-medium">{questTitle(q)}</p>
               <p className="text-sm text-muted">
-                {q.description} ·{" "}
+                {questText(q)} ·{" "}
                 <span className="num text-gold">
                   {[
-                    q.reward.credits && `${fmt(q.reward.credits)} cr`,
-                    q.reward.gems && `${q.reward.gems} gems`,
-                    q.reward.reputation && `${q.reward.reputation} rep`,
+                    q.reward.credits && `${fmt(q.reward.credits)} ${t("common.cr")}`,
+                    q.reward.gems && `${q.reward.gems} ${t("common.gems")}`,
+                    q.reward.reputation && `${q.reward.reputation} ${t("home.rep")}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -144,10 +147,10 @@ function Quests({ quests }: { quests: QuestDto[] }) {
                 onClick={() => claim(q)}
                 loading={busy === q.code}
                 className="min-h-9 px-3 text-sm"
-                aria-label={`Claim ${q.title}`}
+                aria-label={t("home.claimQuest", { title: questTitle(q) })}
               >
                 <Gift className="size-4" aria-hidden />
-                Claim
+                {t("common.claim")}
               </Button>
             )}
           </div>
@@ -165,10 +168,7 @@ function Allowance() {
   if (!a?.eligible) return null;
   return (
     <Card className="mt-4 flex items-center justify-between gap-3 border-gold/40">
-      <p className="text-sm">
-        Running low? Claim today&apos;s <span className="num text-gold">{fmt(a.amount)} cr</span> stable
-        allowance.
-      </p>
+      <p className="text-sm">{t("home.allowance", { amount: `${fmt(a.amount)} ${t("common.cr")}` })}</p>
       <Button
         className="min-h-10 shrink-0 px-3 text-sm"
         loading={busy}
@@ -177,16 +177,16 @@ function Allowance() {
           try {
             await post("/wallet/allowance");
             haptic.success();
-            toast("Allowance added to your wallet");
+            toast(t("home.allowanceAdded"));
             invalidate("/wallet", "/home");
           } catch (e) {
-            toast((e as Error).message, "bad");
+            toast(errorMessage(e), "bad");
           } finally {
             setBusy(false);
           }
         }}
       >
-        Claim
+        {t("common.claim")}
       </Button>
     </Card>
   );
@@ -209,10 +209,10 @@ function PassTeaser() {
         <Ticket className="size-5 text-gold" aria-hidden />
         <div className="min-w-0 flex-1">
           <p className="font-medium">
-            Racing Pass · tier {data.tier}/{data.maxTier}
+            {t("home.passTier", { tier: data.tier, max: data.maxTier })}
             {open > 0 && (
               <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-xs font-semibold text-bg">
-                {open} to claim
+                {t("home.toClaim", { n: open })}
               </span>
             )}
           </p>
@@ -228,3 +228,13 @@ function PassTeaser() {
     </a>
   );
 }
+
+/** Quest texts are translated by code; the server's English text is the fallback. */
+const questTitle = (q: QuestDto) => {
+  const k = `quest.${q.code}.title` as MessageKey;
+  return t(k) === k ? q.title : t(k);
+};
+const questText = (q: QuestDto) => {
+  const k = `quest.${q.code}.description` as MessageKey;
+  return t(k) === k ? q.description : t(k);
+};

@@ -13,10 +13,11 @@ import {
   useToast,
 } from "@/components/ui";
 import { post } from "@/lib/api";
-import { fmt } from "@/lib/format";
+import { errorMessage, fmt } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 
 export default function HorsesPage() {
   const horses = useApi<HorseSummaryDto[]>("/horses", { refreshMs: 15_000 });
@@ -29,11 +30,11 @@ export default function HorsesPage() {
     try {
       await post("/stable/upgrade");
       haptic.success();
-      toast("Stable upgraded — more boxes available");
+      toast(t("horses.upgraded"));
       invalidate("/stable", "/wallet", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }
@@ -42,40 +43,40 @@ export default function HorsesPage() {
   return (
     <div>
       <div className="flex items-end justify-between">
-        <h1 className="font-display text-3xl font-bold">Your horses</h1>
+        <h1 className="font-display text-3xl font-bold">{t("horses.title")}</h1>
         <div className="flex gap-2">
           <LinkButton href="/staff/" variant="secondary" className="min-h-10 text-sm">
-            Staff
+            {t("horses.staff")}
           </LinkButton>
           <LinkButton href="/breeding/" variant="secondary" className="min-h-10 text-sm">
-            Breeding
+            {t("horses.breeding")}
           </LinkButton>
         </div>
       </div>
       {stable.data && (
         <Card className="mt-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-muted">Stable level {stable.data.level}</p>
+            <p className="text-sm text-muted">{t("horses.stableLevel", { n: stable.data.level })}</p>
             <p className="num font-semibold">
-              {stable.data.horseCount} / {stable.data.capacity} boxes used
+              {t("horses.boxes", { used: stable.data.horseCount, cap: stable.data.capacity })}
             </p>
           </div>
           {stable.data.nextUpgradeCost !== null && (
             <Button variant="secondary" onClick={upgrade} loading={busy} className="text-sm">
-              Upgrade · {fmt(stable.data.nextUpgradeCost)} cr
+              {t("horses.upgrade", { cost: fmt(stable.data.nextUpgradeCost) })}
             </Button>
           )}
         </Card>
       )}
       {stable.data && <Facilities stable={stable.data} />}
-      <SectionTitle>String</SectionTitle>
+      <SectionTitle>{t("horses.string")}</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}
       {horses.data?.length === 0 && (
         <EmptyState
-          title="No horses yet"
-          body="Visit the sales ring to buy your first prospect."
-          action={<LinkButton href="/shop/">Sales ring</LinkButton>}
+          title={t("horses.emptyTitle")}
+          body={t("horses.emptyBody")}
+          action={<LinkButton href="/shop/">{t("horses.salesRing")}</LinkButton>}
         />
       )}
       <div className="space-y-2">
@@ -87,10 +88,15 @@ export default function HorsesPage() {
   );
 }
 
-const FACILITY_INFO: Record<FacilityDto["type"], { label: string; icon: typeof Dumbbell; effect: string }> = {
-  TRAINING_TRACK: { label: "Training track", icon: Dumbbell, effect: "+4% training gains per level" },
-  VET_CLINIC: { label: "Vet clinic", icon: Stethoscope, effect: "−10% training injury risk per level" },
+const FACILITY_ICON: Record<FacilityDto["type"], typeof Dumbbell> = {
+  TRAINING_TRACK: Dumbbell,
+  VET_CLINIC: Stethoscope,
 };
+const facilityInfo = (type: FacilityDto["type"]) => ({
+  label: t(`facility.${type}`),
+  effect: t(`facility.${type}.effect`),
+  icon: FACILITY_ICON[type],
+});
 
 function Facilities({ stable }: { stable: StableDto }) {
   const toast = useToast();
@@ -100,21 +106,21 @@ function Facilities({ stable }: { stable: StableDto }) {
     try {
       await post(`/stable/facilities/${f.type}`);
       haptic.success();
-      toast(`${FACILITY_INFO[f.type].label} level ${f.level + 1} built`);
+      toast(t("facility.built", { name: facilityInfo(f.type).label, n: f.level + 1 }));
       invalidate("/stable", "/wallet", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(null);
     }
   };
   return (
     <>
-      <SectionTitle>Facilities</SectionTitle>
+      <SectionTitle>{t("facility.title")}</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
         {stable.facilities.map((f) => {
-          const info = FACILITY_INFO[f.type];
+          const info = facilityInfo(f.type);
           const Icon = info.icon;
           const locked = f.requiresStableLevel !== null && stable.level < f.requiresStableLevel;
           return (
@@ -124,15 +130,17 @@ function Facilities({ stable }: { stable: StableDto }) {
                 <p className="text-sm font-semibold">{info.label}</p>
               </div>
               <p className="num mt-1 text-xs text-muted">
-                Level {f.level}/{f.maxLevel}
+                {t("facility.level", { n: f.level, max: f.maxLevel })}
                 {f.level > 0 &&
-                  ` · ${f.gainPct ? `+${f.gainPct}% gains` : `−${f.injuryReductionPct}% injuries`}`}
+                  ` · ${f.gainPct ? t("facility.gains", { n: f.gainPct }) : t("facility.injuries", { n: f.injuryReductionPct })}`}
               </p>
               <p className="mt-1 flex-1 text-xs text-muted">{info.effect}</p>
               {f.nextCost === null ? (
-                <p className="mt-2 text-xs font-medium text-good">Fully built</p>
+                <p className="mt-2 text-xs font-medium text-good">{t("facility.full")}</p>
               ) : locked ? (
-                <p className="mt-2 text-xs text-muted">Needs stable level {f.requiresStableLevel}</p>
+                <p className="mt-2 text-xs text-muted">
+                  {t("facility.needs", { n: f.requiresStableLevel ?? 0 })}
+                </p>
               ) : (
                 <Button
                   variant="secondary"
@@ -140,7 +148,7 @@ function Facilities({ stable }: { stable: StableDto }) {
                   loading={busy === f.type}
                   onClick={() => build(f)}
                 >
-                  Build · {fmt(f.nextCost)} cr
+                  {t("facility.build", { cost: fmt(f.nextCost) })}
                 </Button>
               )}
             </Card>

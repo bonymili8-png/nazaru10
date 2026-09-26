@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { Badge, Button, Card, EmptyState, SectionTitle, Skeleton, Stars, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
-import { countdown, fmt, titleCase } from "@/lib/format";
+import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 
@@ -64,7 +64,7 @@ function BreedingPage() {
       invalidate("/breeding", "/horses", "/wallet", "/home");
     } catch (e) {
       haptic.error();
-      toast((e as Error).message, "bad");
+      toast(errorMessage(e), "bad");
     } finally {
       setBusy(false);
     }

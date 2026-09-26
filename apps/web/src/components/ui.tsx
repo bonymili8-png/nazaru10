@@ -2,6 +2,8 @@
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { errorMessage } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 export function Card({
   children,
@@ -185,11 +187,11 @@ export function ErrorState({ error, retry }: { error: Error; retry?: () => void 
   return (
     <Card className="border-bad/40">
       <p className="text-sm text-bad" role="alert">
-        {error.message}
+        {errorMessage(error)}
       </p>
       {retry && (
         <Button variant="ghost" onClick={retry} className="mt-2">
-          Try again
+          {t("common.tryAgain")}
         </Button>
       )}
     </Card>
@@ -198,7 +200,7 @@ export function ErrorState({ error, retry }: { error: Error; retry?: () => void 
 
 export function Stars({ n }: { n: number }) {
   return (
-    <span className="text-gold" aria-label={`${n} of 5 stars`}>
+    <span className="text-gold" aria-label={`${n}/5`}>
       {"★".repeat(n)}
       <span className="text-line">{"★".repeat(5 - n)}</span>
     </span>

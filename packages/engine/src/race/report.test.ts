@@ -49,6 +49,7 @@ describe("race report", () => {
       distance,
       fatigueAtStart: 45,
       optimalDistance: 2400,
+      position: 1,
     });
     expect(rep.insights).toContain("RAN_TIRED");
     expect(rep.insights).toContain("OFF_DISTANCE");

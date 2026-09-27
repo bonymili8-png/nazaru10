@@ -14,9 +14,9 @@ test("an owner sees which race classes a horse can enter and why", async ({ page
   await expect(page.getByText("Maiden", { exact: true }).first()).toBeVisible();
 
   // Trainer's advice: a next session and races that suit the horse.
-  await expect(page.getByRole("heading", { name: "Trainer's advice" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Trainer's advice", exact: true })).toBeVisible();
   await expect(page.getByText(/^Next session: /)).toBeVisible();
-  await page.getByRole("heading", { name: "Trainer's advice" }).scrollIntoViewIfNeeded();
+  await page.getByRole("heading", { name: "Trainer's advice", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "/tmp/claude-0/shots/advice.png" });
 
   // The races page explains every class's race-rating band, with no overlaps.

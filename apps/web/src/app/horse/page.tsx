@@ -44,6 +44,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
+import { ExpertAdvice } from "@/components/ExpertAdvice";
 import { ColorPicker } from "@/components/ColorPicker";
 import { MakeOffer } from "@/components/Offers";
 import { RaceCard } from "@/components/RaceCard";
@@ -267,6 +268,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
       </Card>
 
       <AdviceCard h={h} />
+      <ExpertAdvice horseId={h.id} horseName={h.name} />
       <FeedCard h={h} />
 
       <SectionTitle>{t("horse.attributes")}</SectionTitle>

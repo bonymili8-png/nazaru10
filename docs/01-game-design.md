@@ -348,6 +348,16 @@ Players follow any active owned horse (star on its page, up to 100 follows; hous
 followers (not its owner) get a bot message (`followed_win`, capped at 1 000 per win). Follower
 counts are public on the horse page.
 
+### Expert trainer's advice (gems, per horse)
+
+Bought once per horse (60 gems, sink `ANALYTICS`) and kept while the buyer owns it: the two best
+tactics with reasons (early speed vs finish, staying power, temperament, courage, drive), the ideal
+distance window (wider for flexible horses), going preference and surface ranking, gear whose trade
+suits the horse's trip, a three-step training plan (weighted gaps; with diagnostics, weighted by the
+room left under each ceiling — hidden ceilings are never used otherwise), character notes, and the
+horse's own record by tactics, surface and trip. Transparent rules from owner-visible data, no race
+simulation, so it explains the horse rather than selling predicted results.
+
 ## Comeback nudges
 
 A player away for 2 days (but less than 14) gets one bot message naming their best horse, with a

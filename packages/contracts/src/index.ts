@@ -756,6 +756,35 @@ export interface HorseAdviceDto {
   races: RaceSummaryDto[];
 }
 
+/** Results of a horse's past runs grouped by one key (tactics, surface or trip). */
+export interface RunStatsDto {
+  key: string;
+  runs: number;
+  wins: number;
+  top3: number;
+  avgPosition: number;
+}
+
+/** Expert trainer's advice (bought per horse with gems). */
+export interface ExpertAdviceDto {
+  horseId: string;
+  locked: boolean;
+  priceGems: number;
+  /** Whether diagnostics are done (ceilings sharpen the training plan). */
+  diagnosed: boolean;
+  advice: {
+    profile: "SPRINTER" | "MILER" | "STAYER";
+    tactics: { strategy: Strategy; reasons: string[] }[];
+    distance: { best: number; min: number; max: number };
+    going: "SOFT" | "FIRM" | "ANY";
+    surfaces: { surface: Surface; affinity: number }[];
+    gear: { item: GearItem; helps: keyof Attributes }[];
+    training: { type: TrainingType; attribute: keyof Attributes; headroom: number | null }[];
+    traits: string[];
+    history: { byStrategy: RunStatsDto[]; bySurface: RunStatsDto[]; byTrip: RunStatsDto[] };
+  } | null;
+}
+
 export interface FeedDto {
   plan: FeedPlan;
   /** End of the paid week (null on the free standard plan). */

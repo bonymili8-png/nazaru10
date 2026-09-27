@@ -205,6 +205,8 @@ export interface GameConfig {
     raceReportGems: number;
     /** Gems to rename a horse / the stable (Latin letters only; visibility, no power). */
     renameHorseGems: number;
+    /** Gems for the expert trainer's advice on one horse (kept while you own it). */
+    expertAdviceGems: number;
     renameStableGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
@@ -612,6 +614,7 @@ export const defaultConfig: GameConfig = {
     diagnosticsCostGems: 20,
     raceReportGems: 10,
     renameHorseGems: 50,
+    expertAdviceGems: 60,
     renameStableGems: 80,
     allowance: { threshold: 400, amount: 250 },
   },

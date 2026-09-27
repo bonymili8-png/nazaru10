@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import {
+  type ExpertAdviceDto,
   type HorseAdviceDto,
   type HorseOfferDto,
   MakeOfferRequest,
@@ -23,6 +24,7 @@ import { trainingAdvice } from "@thoroughline/engine";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
 import { NutritionService } from "./nutrition.service.js";
+import { ExpertAdviceService } from "./expert-advice.service.js";
 import { OffersService } from "../market/offers.service.js";
 
 @Controller("horses")
@@ -36,6 +38,7 @@ export class HorsesController {
     private readonly clock: Clock,
     private readonly config: GameConfigService,
     private readonly offers: OffersService,
+    private readonly expert: ExpertAdviceService,
   ) {}
 
   @Get()
@@ -117,6 +120,23 @@ export class HorsesController {
       restHours: this.horses.conditionDto(h, this.clock.now()).hoursToRaceReady,
       races: await this.races.suggestFor(h),
     };
+  }
+
+  /** Expert trainer's advice (locked until bought for this horse). */
+  @Get(":id/advice/expert")
+  expertAdvice(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ExpertAdviceDto> {
+    return this.expert.get(user.id, id);
+  }
+
+  @Post(":id/advice/expert/unlock")
+  unlockExpertAdvice(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ExpertAdviceDto> {
+    return this.expert.unlock(user.id, id);
   }
 
   /** Race record: the last 20 starts, or up to 100 for Owners' Circle members. */

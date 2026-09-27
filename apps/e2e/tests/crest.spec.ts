@@ -13,6 +13,7 @@ test("an owner designs a stable crest that appears on the home screen", async ({
 
   await page.getByRole("radiogroup", { name: "Shape" }).getByRole("radio", { name: "Diamond" }).click();
   await page.getByRole("radiogroup", { name: "Emblem" }).getByRole("radio", { name: /Star/ }).click();
+  await page.getByRole("button", { name: /^Field colour:/ }).click();
   await page.getByRole("radiogroup", { name: "Field colour" }).getByRole("radio", { name: "Navy" }).click();
   await page.getByRole("button", { name: "Save crest" }).click();
   await expect(page.getByText("Crest saved")).toBeVisible();

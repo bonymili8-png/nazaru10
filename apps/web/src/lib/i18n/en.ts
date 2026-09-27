@@ -1095,6 +1095,8 @@ export const en = {
   "rename.confirm": "Rename to “{name}” for {n} gems?",
   "error.NAME_TAKEN": "That name is already taken.",
   "error.NAME_UNCHANGED": "That is already the current name.",
+  "color.choose": "Choose colour",
+  "silks.colours": "Colours",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

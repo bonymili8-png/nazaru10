@@ -9,6 +9,7 @@ import {
 } from "@thoroughline/contracts";
 import { Gem, Lock } from "lucide-react";
 import { useState } from "react";
+import { ColorPicker } from "@/components/ColorPicker";
 import { Crest } from "@/components/Crest";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post, put } from "@/lib/api";
@@ -122,33 +123,18 @@ export default function CrestPage() {
         </a>
       </p>
 
-      {(["field", "charge"] as const).map((slot) => {
-        const label = slot === "field" ? t("crest.fieldColour") : t("crest.emblemColour");
-        const other = slot === "field" ? crest.charge : crest.field;
-        return (
-          <div key={slot}>
-            <SectionTitle>{label}</SectionTitle>
-            <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-label={label}>
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  role="radio"
-                  aria-checked={crest[slot] === c}
-                  aria-label={
-                    memberLocked(c, data.member)
-                      ? `${titleCase(c)} · ${t("circle.memberColour")}`
-                      : titleCase(c)
-                  }
-                  disabled={c === other || memberLocked(c, data.member)}
-                  onClick={() => setDraft({ ...crest, [slot]: c })}
-                  className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 transition-transform disabled:cursor-not-allowed disabled:opacity-30 ${crest[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
-                  style={{ background: SILK_COLORS[c] }}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      <SectionTitle>{t("silks.colours")}</SectionTitle>
+      {(["field", "charge"] as const).map((slot) => (
+        <ColorPicker
+          key={slot}
+          label={slot === "field" ? t("crest.fieldColour") : t("crest.emblemColour")}
+          value={crest[slot]}
+          colors={COLORS}
+          onChange={(c) => setDraft({ ...crest, [slot]: c })}
+          blocked={(c) => c === (slot === "field" ? crest.charge : crest.field)}
+          lockedLabel={(c) => (memberLocked(c, data.member) ? t("circle.memberColour") : null)}
+        />
+      ))}
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <LinkButton href="/profile/">{t("common.back")}</LinkButton>

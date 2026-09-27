@@ -9,6 +9,7 @@ import {
 } from "@thoroughline/contracts";
 import { Gem, Lock, Play, Ticket } from "lucide-react";
 import { useState } from "react";
+import { ColorPicker } from "@/components/ColorPicker";
 import { FinishEffect } from "@/components/FinishEffect";
 import { Silk } from "@/components/Silk";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -119,35 +120,17 @@ export default function SilksPage() {
         </a>
       </p>
 
+      <SectionTitle>{t("silks.colours")}</SectionTitle>
       {(["primary", "secondary"] as const).map((slot) => (
-        <div key={slot}>
-          <SectionTitle>{slot === "primary" ? t("silks.body") : t("silks.patternColour")}</SectionTitle>
-          <div
-            className="grid grid-cols-6 gap-2"
-            role="radiogroup"
-            aria-label={slot === "primary" ? t("silks.body") : t("silks.patternColour")}
-          >
-            {COLORS.map((c) => {
-              const other = slot === "primary" ? silks.secondary : silks.primary;
-              return (
-                <button
-                  key={c}
-                  role="radio"
-                  aria-checked={silks[slot] === c}
-                  aria-label={
-                    memberLocked(c, data.member)
-                      ? `${titleCase(c)} · ${t("circle.memberColour")}`
-                      : titleCase(c)
-                  }
-                  disabled={c === other || memberLocked(c, data.member)}
-                  onClick={() => setDraft({ ...silks, [slot]: c })}
-                  className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 transition-transform disabled:cursor-not-allowed disabled:opacity-30 ${silks[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
-                  style={{ background: SILK_COLORS[c] }}
-                />
-              );
-            })}
-          </div>
-        </div>
+        <ColorPicker
+          key={slot}
+          label={slot === "primary" ? t("silks.body") : t("silks.patternColour")}
+          value={silks[slot]}
+          colors={COLORS}
+          onChange={(c) => setDraft({ ...silks, [slot]: c })}
+          blocked={(c) => c === (slot === "primary" ? silks.secondary : silks.primary)}
+          lockedLabel={(c) => (memberLocked(c, data.member) ? t("circle.memberColour") : null)}
+        />
       ))}
 
       <FinishEffects data={data} />

@@ -43,6 +43,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
+import { ColorPicker } from "@/components/ColorPicker";
 import { RaceCard } from "@/components/RaceCard";
 import { RenameForm } from "@/components/RenameForm";
 import { coatColor } from "@/components/HorseCard";
@@ -841,25 +842,14 @@ function ClothEditor({ h }: { h: HorseDetailDto }) {
     }
   };
   const swatches = (slot: "color" | "trim", label: string) => (
-    <div className="mt-3">
-      <p className="text-xs text-muted">{label}</p>
-      <div className="mt-1 grid grid-cols-6 gap-2" role="radiogroup" aria-label={label}>
-        {CLOTH_COLORS.map((c) => (
-          <button
-            key={c}
-            role="radio"
-            aria-checked={cloth[slot] === c}
-            aria-label={
-              memberLocked(c, data.member) ? `${titleCase(c)} · ${t("circle.memberColour")}` : titleCase(c)
-            }
-            disabled={c === (slot === "color" ? cloth.trim : cloth.color) || memberLocked(c, data.member)}
-            onClick={() => setDraft({ ...cloth, [slot]: c })}
-            className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 disabled:cursor-not-allowed disabled:opacity-30 ${cloth[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
-            style={{ background: SILK_COLORS[c] }}
-          />
-        ))}
-      </div>
-    </div>
+    <ColorPicker
+      label={label}
+      value={cloth[slot]}
+      colors={CLOTH_COLORS}
+      onChange={(c) => setDraft({ ...cloth, [slot]: c })}
+      blocked={(c) => c === (slot === "color" ? cloth.trim : cloth.color)}
+      lockedLabel={(c) => (memberLocked(c, data.member) ? t("circle.memberColour") : null)}
+    />
   );
 
   return (

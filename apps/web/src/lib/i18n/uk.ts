@@ -1096,4 +1096,6 @@ export const uk: Record<MessageKey, Msg> = {
   "rename.confirm": "Перейменувати на «{name}» за {n} самоцвітів?",
   "error.NAME_TAKEN": "Ця назва вже зайнята.",
   "error.NAME_UNCHANGED": "Це й так поточна назва.",
+  "color.choose": "Обрати колір",
+  "silks.colours": "Кольори",
 };

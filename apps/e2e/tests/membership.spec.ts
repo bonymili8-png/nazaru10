@@ -15,6 +15,7 @@ test("the Owners' Circle is offered with its perks; member colours stay locked",
   await expect(page.getByText("Purchases are available inside Telegram")).toBeVisible();
 
   await page.goto("/silks/");
+  await page.getByRole("button", { name: /^Body colour:/ }).click();
   const platinum = page
     .getByRole("radiogroup", { name: "Body colour" })
     .getByRole("radio", { name: "Platinum · Owners' Circle colour" });

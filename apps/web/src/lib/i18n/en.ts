@@ -1074,6 +1074,15 @@ export const en = {
   "horse.share": "Share",
   "horse.shareText": "Meet {name}, my racehorse on Thoroughline 🏇",
   "horse.shareOther": "Look at {name} on Thoroughline 🏇",
+  "advice.title": "Trainer's advice",
+  "advice.profile.SPRINTER": "A sprinter: best up to 1,400 m.",
+  "advice.profile.MILER": "A miler: best between 1,400 and 2,000 m.",
+  "advice.profile.STAYER": "A stayer: best from 2,000 m.",
+  "advice.train": "Next session: {type} — its {attr} holds it back most for its trip.",
+  "advice.ready": "Rested and ready to race.",
+  "advice.rest": "Needs about {h} h of rest before it can race.",
+  "advice.races": "Races that suit it",
+  "advice.noRaces": "No suitable race opens in the next few hours.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

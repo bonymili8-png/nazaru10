@@ -12,6 +12,7 @@ import type {
 import {
   assertTransition,
   canRaceAtAge,
+  raceFit,
   round,
   type GearItem,
   type Strategy,
@@ -23,6 +24,7 @@ import { conflict, notFound } from "../../common/errors.js";
 import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "../economy/ledger.service.js";
+import type { HorseRow } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { TrainingService } from "../training/training.service.js";
 import type { EntryRow, RaceRow, ResultRow } from "./race.types.js";
@@ -180,6 +182,43 @@ export class RacesService {
     if (r.status === "RUNNING" || (r.status === "COMPLETED" && r.results_at && r.results_at > now))
       return "RUNNING";
     return r.status;
+  }
+
+  /**
+   * Open races (next few hours) a horse may enter, ranked by distance and surface fit. Mirrors the
+   * entry checks (class band, maiden, age) so every suggestion can actually be entered.
+   */
+  async suggestFor(h: HorseRow, limit = 3): Promise<RaceSummaryDto[]> {
+    const now = this.clock.now();
+    const cfg = this.config.get();
+    const open = await this.db.query<RaceRow & { n: number }>(
+      `SELECT r.*, (SELECT count(*)::int FROM race_entries e WHERE e.race_id = r.id AND e.status = 'ENTERED') AS n
+         FROM races r
+        WHERE r.status = 'OPEN' AND r.tournament_id IS NULL AND r.locks_at > $1 AND r.starts_at < $2
+          AND ($3::boolean OR NOT r.maiden_only)
+          AND (r.min_rating IS NULL OR $4 >= r.min_rating) AND (r.max_rating IS NULL OR $4 <= r.max_rating)
+          AND NOT EXISTS (SELECT 1 FROM race_entries x WHERE x.race_id = r.id AND x.horse_id = $5 AND x.status = 'ENTERED')
+        ORDER BY r.starts_at LIMIT 60`,
+      [
+        new Date(now.getTime() + 60_000),
+        new Date(now.getTime() + 3 * 3_600_000),
+        h.wins === 0,
+        h.race_rating,
+        h.id,
+      ],
+    );
+    return open
+      .filter((r) => r.n < r.max_field && canRaceAtAge(this.horses.age(h, r.starts_at), cfg))
+      .map((r) => ({
+        r,
+        fit: raceFit(h.genome.aptitudes, {
+          distance: r.distance,
+          surface: trackByCode(r.track_code).surface,
+        }),
+      }))
+      .sort((a, b) => a.fit - b.fit || a.r.starts_at.getTime() - b.r.starts_at.getTime())
+      .slice(0, limit)
+      .map(({ r }) => this.summary(r, r.n, now));
   }
 
   private summary(r: RaceRow, entries: number, now: Date): RaceSummaryDto {

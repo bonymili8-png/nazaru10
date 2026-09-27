@@ -2,6 +2,7 @@
 import {
   type CosmeticsDto,
   type FeedPlan,
+  type HorseAdviceDto,
   type HorseDetailDto,
   type SaddleCloth as Cloth,
   SILK_COLORS,
@@ -39,6 +40,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
+import { RaceCard } from "@/components/RaceCard";
 import { coatColor } from "@/components/HorseCard";
 import { SaddleCloth } from "@/components/SaddleCloth";
 import { Syndicate } from "@/components/Syndicate";
@@ -232,6 +234,7 @@ function Overview({ h }: { h: HorseDetailDto }) {
         )}
       </Card>
 
+      <AdviceCard h={h} />
       <FeedCard h={h} />
 
       <SectionTitle>{t("horse.attributes")}</SectionTitle>
@@ -989,6 +992,41 @@ function FeedCard({ h }: { h: HorseDetailDto }) {
           </div>
         )}
       </Card>
+    </>
+  );
+}
+
+/** Trainer's advice: rest, the next session and open races that suit the horse. */
+function AdviceCard({ h }: { h: HorseDetailDto }) {
+  const { data } = useApi<HorseAdviceDto>(`/horses/${h.id}/advice`, { refreshMs: 60_000 });
+  if (!data) return null;
+  return (
+    <>
+      <SectionTitle>{t("advice.title")}</SectionTitle>
+      <Card className="space-y-1.5 text-sm">
+        <p className="text-muted">{t(`advice.profile.${data.profile}` as MessageKey)}</p>
+        <p>{data.restHours > 0 ? t("advice.rest", { h: Math.ceil(data.restHours) }) : t("advice.ready")}</p>
+        <p>
+          {t("advice.train", {
+            type: TRAINING_INFO[data.training.type]!.label,
+            attr: ATTRIBUTE_LABELS[data.training.attribute]!.toLowerCase(),
+          })}
+        </p>
+      </Card>
+      {data.restHours === 0 && (
+        <>
+          <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted">{t("advice.races")}</p>
+          {data.races.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">{t("advice.noRaces")}</p>
+          ) : (
+            <div className="mt-1 space-y-2">
+              {data.races.map((r) => (
+                <RaceCard key={r.id} race={r} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

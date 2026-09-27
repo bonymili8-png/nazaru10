@@ -331,6 +331,14 @@ Shared race and horse links carry the sharer's referral code (`race_<uuid>_r<COD
 recorded as that owner's referral exactly like a `ref_<CODE>` invite (same 24-hour activity check
 and fraud rules). The web app routes on the `kind_uuid` prefix and ignores the suffix.
 
+## Trainer's advice (rule-based)
+
+Free for owners on each horse page: rest needed before racing, the next training session
+(the attribute with the largest weighted gap for the horse's trip — sprinter ≤ 1 400 m, miler,
+stayer ≥ 2 000 m) and up to three open races in the next three hours the horse can enter (same class,
+maiden and age checks as entry), ranked by distance and surface fit. Uses only owner-visible data
+(current attributes, aptitudes); hidden genes and ceilings are never used. No language model.
+
 ## Comeback nudges
 
 A player away for 2 days (but less than 14) gets one bot message naming their best horse, with a

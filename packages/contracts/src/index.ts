@@ -669,6 +669,16 @@ export interface ConditionDto {
   hoursToRaceReady: number;
 }
 
+/** Trainer's advice for one of the owner's horses (from owner-visible data only). */
+export interface HorseAdviceDto {
+  profile: "SPRINTER" | "MILER" | "STAYER";
+  training: { type: TrainingType; attribute: keyof Attributes };
+  /** Hours until rested enough to race (0 = ready). */
+  restHours: number;
+  /** Open races the horse may enter, best fit first. */
+  races: RaceSummaryDto[];
+}
+
 export interface FeedDto {
   plan: FeedPlan;
   /** End of the paid week (null on the free standard plan). */

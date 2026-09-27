@@ -1075,4 +1075,13 @@ export const uk: Record<MessageKey, Msg> = {
   "horse.share": "Поділитися",
   "horse.shareText": "Знайомтеся: {name}, мій скакун у Thoroughline 🏇",
   "horse.shareOther": "Подивіться на {name} у Thoroughline 🏇",
+  "advice.title": "Поради тренера",
+  "advice.profile.SPRINTER": "Спринтер: найкраще до 1400 м.",
+  "advice.profile.MILER": "Середня дистанція: найкраще від 1400 до 2000 м.",
+  "advice.profile.STAYER": "Стаєр: найкраще від 2000 м.",
+  "advice.train": "Наступне тренування: {type} — для його дистанції найбільше гальмує {attr}.",
+  "advice.ready": "Відпочив і готовий до забігу.",
+  "advice.rest": "Потрібно ще близько {h} год відпочинку перед забігом.",
+  "advice.races": "Забіги, що йому підходять",
+  "advice.noRaces": "У найближчі години немає відповідного забігу.",
 };

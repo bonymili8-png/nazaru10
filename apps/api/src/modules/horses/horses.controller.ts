@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import {
+  type HorseAdviceDto,
   type HorseDetailDto,
   type HorseSummaryDto,
   SetFeedRequest,
@@ -9,10 +10,13 @@ import {
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
+import { forbidden } from "../../common/errors.js";
+import { GameConfigService } from "../../common/game-config.js";
 import { memberSql } from "../../common/membership.js";
 import { parse } from "../../common/http.js";
 import { RacesService } from "../races/races.service.js";
 import { TrainingService } from "../training/training.service.js";
+import { trainingAdvice } from "@thoroughline/engine";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
 import { NutritionService } from "./nutrition.service.js";
@@ -26,6 +30,7 @@ export class HorsesController {
     private readonly training: TrainingService,
     private readonly races: RacesService,
     private readonly clock: Clock,
+    private readonly config: GameConfigService,
   ) {}
 
   @Get()
@@ -65,6 +70,24 @@ export class HorsesController {
       listing?.id ?? null,
       stud?.fee ?? null,
     );
+  }
+
+  /** Trainer's advice: rest, the next training session and open races that suit the horse. */
+  @Get(":id/advice")
+  async advice(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<HorseAdviceDto> {
+    const h = await getHorse(this.db.pool, id);
+    if (h.owner_id !== user.id) throw forbidden("You do not own this horse");
+    const cfg = this.config.get();
+    const training = trainingAdvice(h.attributes, h.genome.aptitudes, cfg);
+    return {
+      profile: training.profile,
+      training: { type: training.type, attribute: training.attribute },
+      restHours: this.horses.conditionDto(h, this.clock.now()).hoursToRaceReady,
+      races: await this.races.suggestFor(h),
+    };
   }
 
   /** Race record: the last 20 starts, or up to 100 for Owners' Circle members. */

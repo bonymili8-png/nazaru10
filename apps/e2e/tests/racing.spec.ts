@@ -20,6 +20,10 @@ test("an owner enters a maiden race and withdraws for a full refund", async ({ p
   await expect(page.getByText("Entered! Good luck.")).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBe(before - fee);
 
+  // The owner's only horse is now listed with the reason it can't be entered again.
+  await expect(page.getByText("None of your horses can run in this race:")).toBeVisible();
+  await expect(page.getByText(/busy — Entered/)).toBeVisible();
+
   // "My races" shows only races this owner has a horse in.
   const raceUrl = page.url();
   await page.getByRole("link", { name: "Races" }).click();

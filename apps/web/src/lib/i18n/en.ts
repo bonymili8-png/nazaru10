@@ -943,6 +943,25 @@ export const en = {
   "error.ALREADY_SUBSCRIBED": "You are already an Owners' Circle member.",
   "error.NOT_SUBSCRIBED": "No active membership.",
   "error.NOT_RESUMABLE": "This membership can't be resumed — subscribe again.",
+  "hstatus.IDLE": "Free",
+  "hstatus.TRAINING": "Training",
+  "hstatus.ENTERED": "Entered",
+  "hstatus.RACING": "Racing",
+  "hstatus.INJURED": "Injured",
+  "hstatus.LISTED": "On the market",
+  "hstatus.BREEDING": "In foal",
+  "hstatus.RETIRED": "Retired",
+  "race.noHorses": "You have no horses yet.",
+  "race.noneFit": "None of your horses can run in this race:",
+  "race.whyBusy": "busy — {status}",
+  "race.whyNotMaiden": (v) =>
+    `already has ${n(v)} win${s(v)} — maiden races are only for horses that have never won`,
+  "race.whyLow": "race rating {r} is below this class's minimum of {min}",
+  "race.whyHigh": "race rating {r} is above this class's limit of {max}",
+  "race.whyYoung": "too young to race yet",
+  "race.whyOld": "past racing age",
+  "race.findOther": "Find a race that fits",
+  "race.someUnfit": "Not eligible here",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

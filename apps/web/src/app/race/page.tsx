@@ -1,7 +1,8 @@
 "use client";
 import { type HorseSummaryDto, type RaceDetailDto, STRATEGIES, type Strategy } from "@thoroughline/contracts";
-import { trackByCode } from "@thoroughline/engine";
+import { canRaceAtAge, defaultConfig, trackByCode } from "@thoroughline/engine";
 import { Share2, ShieldCheck, Trophy } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
@@ -10,7 +11,7 @@ import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
 import { CLASS_NAMES, countdown, errorMessage, fmt, STRATEGY_INFO, titleCase, trackName } from "@/lib/format";
-import { getLocale, t } from "@/lib/i18n";
+import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { appLink, haptic, shareToTelegram } from "@/lib/telegram";
 
@@ -212,9 +213,11 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
   const [strategy, setStrategy] = useState<Strategy>("MID_PACK");
   const [busy, setBusy] = useState(false);
   const toast = useToast();
-  const available = (horses.data ?? []).filter(
-    (h) => h.status === "IDLE" && (!race.eligibility.maidenOnly || h.record.wins === 0),
-  );
+  const checked = (horses.data ?? [])
+    .filter((h) => h.status !== "RETIRED")
+    .map((h) => ({ horse: h, why: ineligibility(h, race) }));
+  const available = checked.filter((c) => c.why === null).map((c) => c.horse);
+  const unfit = checked.filter((c) => c.why !== null);
   const selected = horseId ?? available[0]?.id ?? null;
 
   const enter = async () => {
@@ -237,8 +240,18 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
     <>
       <SectionTitle>{t("race.enterHorse")}</SectionTitle>
       <Card>
-        {available.length === 0 ? (
-          <p className="text-sm text-muted">{t("race.noEligible")}</p>
+        {horses.data && checked.length === 0 ? (
+          <p className="text-sm text-muted">{t("race.noHorses")}</p>
+        ) : available.length === 0 ? (
+          <>
+            <p className="text-sm text-muted">{horses.data ? t("race.noneFit") : t("race.noEligible")}</p>
+            <UnfitList unfit={unfit} />
+            {unfit.length > 0 && (
+              <Link href="/races/" className="mt-3 inline-block text-sm font-semibold text-gold">
+                {t("race.findOther")} →
+              </Link>
+            )}
+          </>
         ) : (
           <>
             <label className="text-sm text-muted" htmlFor="horse">
@@ -276,9 +289,41 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
             <Button className="mt-4 w-full" onClick={enter} loading={busy}>
               {t("race.enterFee", { fee: fmt(race.entryFee) })}
             </Button>
+            {unfit.length > 0 && (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer text-muted">{t("race.someUnfit")}</summary>
+                <UnfitList unfit={unfit} />
+              </details>
+            )}
           </>
         )}
       </Card>
     </>
+  );
+}
+
+/** Why a horse can't enter this race (mirrors the server's checks), or null when it can. */
+function ineligibility(h: HorseSummaryDto, race: RaceDetailDto): string | null {
+  if (h.status !== "IDLE") return t("race.whyBusy", { status: t(`hstatus.${h.status}` as MessageKey) });
+  if (!canRaceAtAge(h.age, defaultConfig))
+    return h.age < defaultConfig.lifecycle.minRacingAge ? t("race.whyYoung") : t("race.whyOld");
+  const { maidenOnly, minRating, maxRating } = race.eligibility;
+  if (maidenOnly && h.record.wins > 0) return t("race.whyNotMaiden", { n: h.record.wins });
+  const r = Math.round(h.raceRating);
+  if (minRating !== null && h.raceRating < minRating) return t("race.whyLow", { r, min: minRating });
+  if (maxRating !== null && h.raceRating > maxRating) return t("race.whyHigh", { r, max: maxRating });
+  return null;
+}
+
+function UnfitList({ unfit }: { unfit: { horse: HorseSummaryDto; why: string | null }[] }) {
+  return (
+    <ul className="mt-2 space-y-1.5">
+      {unfit.map(({ horse, why }) => (
+        <li key={horse.id} className="text-sm">
+          <span className="font-semibold">{horse.name}</span>
+          <span className="text-muted"> — {why}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

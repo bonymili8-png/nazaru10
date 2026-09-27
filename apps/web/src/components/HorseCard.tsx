@@ -4,7 +4,7 @@ import Link from "next/link";
 import { fmt, titleCase } from "@/lib/format";
 import { SaddleCloth } from "./SaddleCloth";
 import { Badge } from "./ui";
-import { t } from "@/lib/i18n";
+import { type MessageKey, t } from "@/lib/i18n";
 
 const RARITY_TONE: Record<string, "neutral" | "gold" | "good" | "warn"> = {
   COMMON: "neutral",
@@ -74,7 +74,7 @@ export function HorseCard({
           })}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <Badge tone={STATUS_TONE[horse.status]}>{titleCase(horse.status)}</Badge>
+          <Badge tone={STATUS_TONE[horse.status]}>{t(`hstatus.${horse.status}` as MessageKey)}</Badge>
           <Badge tone={RARITY_TONE[horse.rarity]}>{titleCase(horse.rarity)}</Badge>
           {horse.record.earnings > 0 && (
             <span className="num text-xs text-muted">

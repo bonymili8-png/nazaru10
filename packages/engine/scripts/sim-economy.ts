@@ -264,6 +264,8 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   const setup = { distance, track, weather, wetness };
   const res = simulateRace(order, setup, seed, cfg);
   const pos = res.results.find((r) => r.entrantId === "me")!.position;
+  const lastMargin = Math.max(...res.results.map((r) => r.lengthsBehind));
+  (stats.margins[cls] ??= []).push(lastMargin);
   if (gear) {
     // Counterfactual: the same race and seed without gear isolates the gear's own edge.
     const plain = order.map((e) => (e === me ? { ...me, attributes: h.attributes } : e));
@@ -476,6 +478,7 @@ const stats = {
   gearWins: 0,
   gearWinsWithout: 0,
   positions: [] as number[],
+  margins: {} as Partial<Record<RaceClass, number[]>>,
   byClass: {} as Partial<Record<RaceClass, [number, number]>>,
 };
 
@@ -744,6 +747,13 @@ console.log(
   "win rate by class:",
   Object.entries(stats.byClass)
     .map(([c, [n, w]]) => `${c} ${((w / n) * 100).toFixed(1)}% of ${n}`)
+    .join(" | "),
+);
+const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
+console.log(
+  "median last-place margin by class:",
+  Object.entries(stats.margins)
+    .map(([c, xs]) => `${c} ${median(xs!).toFixed(1)}L`)
     .join(" | "),
 );
 const winRate = stats.positions.filter((x) => x === 1).length / Math.max(1, stats.positions.length);

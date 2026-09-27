@@ -22,13 +22,20 @@ describe("race class eligibility", () => {
         horse: (await t.get<HorseSummaryDto[]>("/horses", u.token)).body[0]!.id,
       });
     }
-    await t.service(RaceRunnerService).scheduleAhead();
-    for (const c of RACE_CLASSES) {
-      const list = await t.get<RaceSummaryDto[]>(`/races?status=upcoming&class=${c}&limit=5`, owner.token);
-      races.set(
-        c,
-        list.body.find((r) => r.status === "OPEN")!,
-      );
+    // Every class needs an open race; near a card's lock time one may briefly be missing, so
+    // step the clock until the schedule has one of each (independent of the time of day).
+    const runner = t.service(RaceRunnerService);
+    for (let tries = 0; races.size < RACE_CLASSES.length && tries < 20; tries++) {
+      if (tries > 0) t.clock.advance(3 * 60_000);
+      races.clear();
+      await runner.scheduleAhead();
+      for (const c of RACE_CLASSES) {
+        const list = await t.get<RaceSummaryDto[]>(`/races?status=upcoming&class=${c}&limit=5`, owner.token);
+        const open = list.body.find(
+          (r) => r.status === "OPEN" && new Date(r.locksAt).getTime() > t.clock.now().getTime() + 60_000,
+        );
+        if (open) races.set(c, open);
+      }
     }
   });
   afterAll(() => t.close());

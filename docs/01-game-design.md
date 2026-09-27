@@ -311,7 +311,10 @@ override (rejected with `INVALID_CONFIG`). Boundaries are covered end-to-end in
 Fields below the minimum size are filled with house (NPC) horses of matching class
 so races always run, even with few players. House quality rises by class (config
 `houseQuality`, e.g. Maiden 0.18–0.42 … Class 1 0.76–0.95) because house horses are generated
-untrained while player horses are trained; the bands were set by the economy simulation.
+untrained while player horses are trained; the bands were set by the economy simulation. House horses
+are reused across races but only when rested (projected fatigue ≤ 10, health ≥ 90 at lock time);
+otherwise a fresh one is generated. Tired fillers used to trail by 60–80 lengths, while the
+simulation (which assumes fresh fields) shows a median last-place margin of ≈ 25–28 lengths.
 
 ## Tracks & weather
 

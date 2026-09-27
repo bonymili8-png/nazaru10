@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import { type RaceClass, type Rng } from "@thoroughline/engine";
+import { projectCondition, type RaceClass, type Rng } from "@thoroughline/engine";
 import { Db, type Queryable, rows } from "../../common/db.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { HorseFactory } from "../horses/horse.factory.js";
@@ -53,6 +53,10 @@ export interface JockeyRow {
 }
 
 /** House (NPC) horses and jockeys that fill race fields so races always run. */
+/** Condition a reused house horse needs to be picked for a field. */
+const HOUSE_MAX_FATIGUE = 10;
+const HOUSE_MIN_HEALTH = 90;
+
 @Injectable()
 export class HouseService implements OnModuleInit {
   constructor(
@@ -108,15 +112,40 @@ export class HouseService implements OnModuleInit {
     const year = cfg.lifecycle.realDaysPerGameYear * 86_400_000;
     const maxBirth = new Date(now.getTime() - Math.max(ageLo, cfg.lifecycle.minRacingAge) * year);
     const minBirth = new Date(now.getTime() - ageHi * year);
-    const found = await rows<HorseRow>(
+    const candidates = await rows<HorseRow>(
       c,
       `SELECT * FROM horses
         WHERE is_house AND house_class = $1 AND status = 'IDLE' AND sale_price IS NULL
           AND birth_at BETWEEN $2 AND $3
+          -- Cheap pre-filter at the fastest possible recovery rate (endurance 100), so it never
+          -- drops a horse the exact check below would accept.
+          AND fatigue - $7 * extract(epoch FROM ($6 - condition_updated_at)) / 3600 <= $8
         ORDER BY abs((genome->'aptitudes'->>'optimalDistance')::int - $5), condition_updated_at, id
         LIMIT $4 FOR UPDATE SKIP LOCKED`,
-      [cls, minBirth, maxBirth, count, distance],
+      [
+        cls,
+        minBirth,
+        maxBirth,
+        count * 3,
+        distance,
+        now,
+        cfg.condition.fatigueRecoveryPerHour * 1.1,
+        HOUSE_MAX_FATIGUE,
+      ],
     );
+    // Only rested house horses run: a tired filler would trail the field by dozens of lengths
+    // (the economy simulation, which sets the class quality bands, assumes fresh house fields).
+    const found = candidates
+      .filter((h) => {
+        const cond = projectCondition(
+          { fatigue: h.fatigue, health: h.health, form: h.form, updatedAt: h.condition_updated_at },
+          now,
+          h.attributes.endurance,
+          cfg,
+        );
+        return cond.fatigue <= HOUSE_MAX_FATIGUE && cond.health >= HOUSE_MIN_HEALTH;
+      })
+      .slice(0, count);
     const [qLo, qHi] = cfg.race.classes[cls].houseQuality;
     while (found.length < count) {
       found.push(

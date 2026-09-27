@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import type { Crest, FacilityDto, StableDto } from "@thoroughline/contracts";
+import type { Crest, FacilityDto, GearDto, StableDto } from "@thoroughline/contracts";
 import {
   FACILITY_TYPES,
+  GEAR_ITEMS,
+  type GearItem,
   facilityEffect,
   facilityMaxLevel,
   facilityRequiredStableLevel,
@@ -25,6 +27,7 @@ interface StableRow {
   training_track: number;
   vet_clinic: number;
   crest: Crest;
+  gear: GearItem[];
 }
 
 const COLUMN: Record<FacilityType, "training_track" | "vet_clinic"> = {
@@ -46,7 +49,7 @@ export class StableService {
   async byOwner(c: Queryable, ownerId: string, lock = false): Promise<StableRow> {
     const s = await row<StableRow>(
       c,
-      `SELECT id, owner_id, name, level, training_track, vet_clinic, crest FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
+      `SELECT id, owner_id, name, level, training_track, vet_clinic, crest, gear FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
       [ownerId],
     );
     if (!s) throw notFound("Stable");
@@ -92,12 +95,55 @@ export class StableService {
       reputation: rep?.balance ?? 0,
       nextUpgradeCost: costs[s.level - 1] ?? null,
       facilities: this.facilityDtos(s),
+      gear: this.gearDtos(s),
       crest: s.crest,
     };
   }
 
   levels(s: StableRow): FacilityLevels {
     return { TRAINING_TRACK: s.training_track, VET_CLINIC: s.vet_clinic };
+  }
+
+  private gearDtos(s: StableRow): GearDto[] {
+    const cfg = this.config.get();
+    return GEAR_ITEMS.map((item) => ({
+      item,
+      cost: cfg.equipment[item].cost,
+      mods: cfg.equipment[item].mods,
+      owned: s.gear.includes(item),
+    }));
+  }
+
+  /** Buy a race-day gear item for the stable (credits, sink EQUIPMENT; once per item). */
+  async buyGear(ownerId: string, item: GearItem): Promise<StableDto> {
+    const now = this.clock.now();
+    const cost = this.config.get().equipment[item].cost;
+    await this.db.tx(async (c) => {
+      const s = await this.byOwner(c, ownerId, true);
+      if (s.gear.includes(item)) throw conflict("GEAR_OWNED", "Your stable already has this gear");
+      await this.ledger.debit(c, {
+        userId: ownerId,
+        currency: "CREDITS",
+        amount: cost,
+        sink: "EQUIPMENT",
+        key: `stable:${s.id}:gear:${item}`,
+        type: "GEAR_PURCHASE",
+        reason: `Race gear: ${item}`,
+      });
+      await c.query("UPDATE stables SET gear = array_append(gear, $2), updated_at = $3 WHERE id = $1", [
+        s.id,
+        item,
+        now,
+      ]);
+      await this.events.emit(c, {
+        type: "gear_bought",
+        aggregateType: "stable",
+        aggregateId: s.id,
+        actorId: ownerId,
+        payload: { item, cost },
+      });
+    });
+    return this.view(ownerId);
   }
 
   private facilityDtos(s: StableRow): FacilityDto[] {

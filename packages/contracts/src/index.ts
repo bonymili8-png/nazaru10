@@ -1,5 +1,6 @@
 import {
   FEED_PLANS,
+  GEAR_ITEMS,
   RACE_CLASSES,
   STRATEGIES,
   TRAINING_INTENSITIES,
@@ -7,6 +8,7 @@ import {
   type Aptitudes,
   type Attributes,
   type FeedPlan,
+  type GearItem,
   type HorseStatus,
   type RaceClass,
   type RaceEventType,
@@ -51,6 +53,8 @@ export type SetFeedRequest = z.infer<typeof SetFeedRequest>;
 export const EnterRaceRequest = z.object({
   horseId: z.string().uuid(),
   strategy: z.enum(STRATEGIES),
+  /** Race-day gear the stable owns (optional). */
+  gear: z.enum(GEAR_ITEMS).nullable().optional(),
 });
 export type EnterRaceRequest = z.infer<typeof EnterRaceRequest>;
 
@@ -187,6 +191,7 @@ export const TournamentRegisterRequest = z.object({
 export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest>;
 
 export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
+export const GearParam = z.enum(GEAR_ITEMS);
 
 /* ───────────────────────────── cosmetics ───────────────────────────── */
 
@@ -619,7 +624,17 @@ export interface StableDto {
   reputation: number;
   nextUpgradeCost: number | null;
   facilities: FacilityDto[];
+  /** Race-day gear on offer; `owned` once bought (one purchase per stable). */
+  gear: GearDto[];
   crest: Crest;
+}
+
+export interface GearDto {
+  item: GearItem;
+  cost: number;
+  /** Race-day attribute changes, e.g. { focus: 10, agility: -3 }. */
+  mods: Partial<Record<keyof Attributes, number>>;
+  owned: boolean;
 }
 
 export type FacilityType = "TRAINING_TRACK" | "VET_CLINIC";
@@ -775,6 +790,8 @@ export interface RaceEntryDto {
   isHouse: boolean;
   gate: number | null;
   strategy: Strategy | null;
+  /** Race-day gear (hidden from rivals until the race runs, like tactics). */
+  gear: GearItem | null;
   jockeyName: string | null;
   abilityRating: number;
   raceRating: number;
@@ -1092,6 +1109,7 @@ export type {
   Attributes,
   Aptitudes,
   FeedPlan,
+  GearItem,
   HorseStatus,
   RaceClass,
   RaceEventType,
@@ -1104,4 +1122,4 @@ export type {
   Traits,
   Weather,
 };
-export { FEED_PLANS, RACE_CLASSES, STRATEGIES, TRAINING_INTENSITIES, TRAINING_TYPES };
+export { FEED_PLANS, GEAR_ITEMS, RACE_CLASSES, STRATEGIES, TRAINING_INTENSITIES, TRAINING_TYPES };

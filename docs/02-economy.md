@@ -241,6 +241,15 @@ two entry classes (Maiden 0.20–0.44, Class 5 0.34–0.54). Result: win rate 23
 23.8 % (500), ~58–63 % of owners feed one horse better, feed ≈ 4 % of recurring income. New gates:
 10–70 % adoption and feed 1–10 % of income; all 16 gates pass.
 
+## Race-day gear (Phase 2+)
+
+One-off credit purchases (1 000–1 500 per item, sink `EQUIPMENT`). The first tuning had almost no
+edge (+0.2 points, a purchase with no visible effect); a stronger one gave +3.6. The shipped values
+give +1.6–2.1 points for a well-chosen item, measured against the same race and seed without
+gear. The simulated owner buys after the first stable upgrade: ~20–23 % own gear by season end,
+gear ≈ 5 % of income, win rate 23.2 % / 23.9 % (300 / 500 owners). New gates: gear edge ≤ 3
+points, gear < 10 % of income; all 18 gates pass.
+
 ## Owners' Circle subscription (Phase 3)
 
 A Telegram Stars subscription (`OWNERS_CIRCLE`, 150 ⭐ per 30 days, `subscription_period`

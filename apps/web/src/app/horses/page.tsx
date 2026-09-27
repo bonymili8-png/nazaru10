@@ -1,5 +1,5 @@
 "use client";
-import type { FacilityDto, HorseSummaryDto, StableDto } from "@thoroughline/contracts";
+import type { FacilityDto, GearDto, HorseSummaryDto, StableDto } from "@thoroughline/contracts";
 import { Dumbbell, Stethoscope } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import {
@@ -13,11 +13,11 @@ import {
   useToast,
 } from "@/components/ui";
 import { post } from "@/lib/api";
-import { errorMessage, fmt } from "@/lib/format";
+import { errorMessage, fmt, gearMods } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 import { useState } from "react";
-import { t } from "@/lib/i18n";
+import { type MessageKey, t } from "@/lib/i18n";
 
 export default function HorsesPage() {
   const horses = useApi<HorseSummaryDto[]>("/horses", { refreshMs: 15_000 });
@@ -69,6 +69,7 @@ export default function HorsesPage() {
         </Card>
       )}
       {stable.data && <Facilities stable={stable.data} />}
+      {stable.data && <TackRoom stable={stable.data} />}
       <SectionTitle>{t("horses.string")}</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}
@@ -155,6 +156,60 @@ function Facilities({ stable }: { stable: StableDto }) {
           );
         })}
       </div>
+    </>
+  );
+}
+
+/** Race-day gear: bought once per stable, one item picked per race entry. */
+function TackRoom({ stable }: { stable: StableDto }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const buy = async (g: GearDto) => {
+    const name = t(`gear.${g.item}` as MessageKey);
+    if (!window.confirm(t("gear.confirm", { name, cost: fmt(g.cost) }))) return;
+    setBusy(g.item);
+    try {
+      await post(`/stable/gear/${g.item}`);
+      haptic.success();
+      toast(t("gear.bought", { name }));
+      invalidate("/stable", "/wallet", "/home");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <>
+      <SectionTitle>{t("gear.title")}</SectionTitle>
+      <Card>
+        <p className="text-sm text-muted">{t("gear.hint")}</p>
+        <ul className="mt-3 divide-y divide-line/40">
+          {stable.gear.map((g) => (
+            <li key={g.item} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{t(`gear.${g.item}` as MessageKey)}</p>
+                <p className="text-xs text-muted">{t(`gear.${g.item}.hint` as MessageKey)}</p>
+                <p className="num text-xs text-gold">{gearMods(g.mods)}</p>
+              </div>
+              {g.owned ? (
+                <span className="shrink-0 text-xs font-medium text-good">{t("gear.owned")}</span>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="min-h-10 shrink-0 text-xs"
+                  loading={busy === g.item}
+                  disabled={busy !== null}
+                  onClick={() => buy(g)}
+                >
+                  {t("gear.buy", { cost: fmt(g.cost) })}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Card>
     </>
   );
 }

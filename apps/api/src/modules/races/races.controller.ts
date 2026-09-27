@@ -41,7 +41,7 @@ export class RacesController {
     @Body() body: unknown,
   ): Promise<RaceDetailDto> {
     const req = parse(EnterRaceRequest, body);
-    return this.races.enter(user.id, id, req.horseId, req.strategy);
+    return this.races.enter(user.id, id, req.horseId, req.strategy, req.gear ?? null);
   }
 
   @Delete(":id/entries/:horseId")

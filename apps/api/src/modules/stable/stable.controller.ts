@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
-import { FacilityParam, RenameStableRequest, type StableDto } from "@thoroughline/contracts";
+import { FacilityParam, GearParam, RenameStableRequest, type StableDto } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { StableService } from "./stable.service.js";
@@ -21,6 +21,11 @@ export class StableController {
   @Post("facilities/:type")
   build(@CurrentUser() user: AuthUser, @Param("type") type: string): Promise<StableDto> {
     return this.stables.build(user.id, parse(FacilityParam, type));
+  }
+
+  @Post("gear/:item")
+  buyGear(@CurrentUser() user: AuthUser, @Param("item") item: string): Promise<StableDto> {
+    return this.stables.buyGear(user.id, parse(GearParam, item));
   }
 
   @Patch()

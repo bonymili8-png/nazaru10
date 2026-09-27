@@ -1,5 +1,12 @@
 "use client";
-import { type HorseSummaryDto, type RaceDetailDto, STRATEGIES, type Strategy } from "@thoroughline/contracts";
+import {
+  type GearItem,
+  type HorseSummaryDto,
+  type RaceDetailDto,
+  type StableDto,
+  STRATEGIES,
+  type Strategy,
+} from "@thoroughline/contracts";
 import { canRaceAtAge, defaultConfig, trackByCode } from "@thoroughline/engine";
 import { Share2, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +23,7 @@ import {
   countdown,
   errorMessage,
   fmt,
+  gearMods,
   STRATEGY_INFO,
   titleCase,
   trackName,
@@ -217,6 +225,9 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
   const horses = useApi<HorseSummaryDto[]>("/horses");
   const [horseId, setHorseId] = useState<string | null>(null);
   const [strategy, setStrategy] = useState<Strategy>("MID_PACK");
+  const [gear, setGear] = useState<GearItem | null>(null);
+  const stable = useApi<StableDto>("/stable");
+  const ownedGear = (stable.data?.gear ?? []).filter((g) => g.owned);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
   const checked = (horses.data ?? [])
@@ -230,7 +241,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
     if (!selected) return;
     setBusy(true);
     try {
-      await post(`/races/${race.id}/entries`, { horseId: selected, strategy });
+      await post(`/races/${race.id}/entries`, { horseId: selected, strategy, gear });
       haptic.success();
       toast(t("race.entered"));
       invalidate(`/races/${race.id}`, "/wallet", "/horses", "/home");
@@ -292,6 +303,34 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
                 </button>
               ))}
             </div>
+            <p className="mt-4 text-sm text-muted" id="gear">
+              {t("race.gear")}
+            </p>
+            {ownedGear.length === 0 ? (
+              <Link href="/horses/" className="mt-1 inline-block text-sm text-gold underline">
+                {t("race.gearShop")}
+              </Link>
+            ) : (
+              <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="gear">
+                {[null, ...ownedGear.map((g) => g.item)].map((item) => {
+                  const g = ownedGear.find((x) => x.item === item);
+                  return (
+                    <button
+                      key={item ?? "none"}
+                      role="radio"
+                      aria-checked={gear === item}
+                      onClick={() => setGear(item)}
+                      className={`cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${gear === item ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
+                    >
+                      <p className="text-sm font-semibold">
+                        {item ? t(`gear.${item}` as MessageKey) : t("race.noGear")}
+                      </p>
+                      {g && <p className="num text-xs leading-snug text-muted">{gearMods(g.mods)}</p>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <Button className="mt-4 w-full" onClick={enter} loading={busy}>
               {t("race.enterFee", { fee: fmt(race.entryFee) })}
             </Button>

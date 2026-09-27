@@ -28,6 +28,8 @@ import {
   mean,
   projectCondition,
   feedCost,
+  applyGear,
+  type GearItem,
   feedEffect,
   type FeedPlan,
   raceAftermath,
@@ -88,6 +90,8 @@ interface Player {
   /** Active sponsor contract (progress counts qualifying runs until `until`, in hours). */
   sponsor: { def: SponsorDef; progress: number; until: number } | null;
   sponsoredWeek: number;
+  /** Race-day gear owned by the stable. */
+  gear: Set<GearItem>;
   id: number;
 }
 
@@ -216,6 +220,12 @@ function signSponsor(rng: Rng, p: Player, nowH: number): void {
   stats.sponsorsSigned++;
 }
 
+/** The simulated owner's gear choice: plates for sprints, tongue tie for staying races. */
+function pickGear(p: Player, distance: number): GearItem | null {
+  const want: GearItem = distance <= 1400 ? "RACING_PLATES" : distance >= 2000 ? "TONGUE_TIE" : "BLINKERS";
+  return p.gear.has(want) ? want : null;
+}
+
 function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition): void {
   const cls = raceClassFor(h);
   const cc = cfg.race.classes[cls];
@@ -224,10 +234,11 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   const distance = rng.pick(track.distances);
   const weather = rollWeather(track, rng);
   const wetness = rollWetness(track, weather, rng);
+  const gear = pickGear(p, distance);
   const me: RaceEntrant = {
     id: "me",
     name: "me",
-    attributes: h.attributes,
+    attributes: applyGear(h.attributes, gear, cfg),
     traits: h.genome.traits,
     aptitudes: h.genome.aptitudes,
     raceIntelligence: h.genome.hidden.raceIntelligence,
@@ -248,13 +259,19 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
     e.jockey.skill = rng.float(...cc.houseJockeySkill);
     field.push(e);
   }
-  const res = simulateRace(
-    rng.shuffle(field),
-    { distance, track, weather, wetness },
-    `${rng.nextUint32()}`,
-    cfg,
-  );
+  const order = rng.shuffle(field);
+  const seed = `${rng.nextUint32()}`;
+  const setup = { distance, track, weather, wetness };
+  const res = simulateRace(order, setup, seed, cfg);
   const pos = res.results.find((r) => r.entrantId === "me")!.position;
+  if (gear) {
+    // Counterfactual: the same race and seed without gear isolates the gear's own edge.
+    const plain = order.map((e) => (e === me ? { ...me, attributes: h.attributes } : e));
+    const pos0 = simulateRace(plain, setup, seed, cfg).results.find((r) => r.entrantId === "me")!.position;
+    stats.gearRuns++;
+    if (pos === 1) stats.gearWins++;
+    if (pos0 === 1) stats.gearWinsWithout++;
+  }
   sponsorRun(p, { surface: track.surface, distance, wetness, position: pos }, nowH);
   const prizes = splitPurse(
     cc.purse,
@@ -454,6 +471,10 @@ const stats = {
   facilities: 0,
   vet: 0,
   feeds: 0,
+  gear: 0,
+  gearRuns: 0,
+  gearWins: 0,
+  gearWinsWithout: 0,
   positions: [] as number[],
   byClass: {} as Partial<Record<RaceClass, [number, number]>>,
 };
@@ -585,6 +606,19 @@ function session(rng: Rng, p: Player, nowH: number): void {
       stats.feeds++;
     }
   }
+  // Gear: after the first stable upgrade, buy the next item of the owner's kit when well funded.
+  if (p.trainer) {
+    const next = (["BLINKERS", "RACING_PLATES", "TONGUE_TIE"] as const).find((g) => !p.gear.has(g));
+    if (
+      next &&
+      p.level >= 2 &&
+      p.credits >= cfg.equipment[next].cost + 3500 + saving &&
+      spend(p, "EQUIPMENT", cfg.equipment[next].cost)
+    ) {
+      p.gear.add(next);
+      stats.gear++;
+    }
+  }
   // Facilities: build the next level when well funded (after the upgrade savings).
   for (const type of ["TRAINING_TRACK", "VET_CLINIC"] as const) {
     const next = p.facilities[type] + 1;
@@ -630,6 +664,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     facilities: { TRAINING_TRACK: 0, VET_CLINIC: 0 },
     sponsor: null,
     sponsoredWeek: -1,
+    gear: new Set(),
     id: nextId++,
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
@@ -735,6 +770,15 @@ console.log(
   `tournaments net ${fmt(tournamentNet)} per player-day (${((tournamentNet / Math.max(1, income)) * 100).toFixed(1)}% of income)`,
 );
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
+const gearShare = (ledger.sinks.get("EQUIPMENT") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
+const kitted = players.filter((p) => p.gear.size > 0).length / PLAYERS;
+const gearEdge = (stats.gearWins - stats.gearWinsWithout) / Math.max(1, stats.gearRuns);
+console.log(
+  `gear: ${stats.gearRuns} runs, wins ${stats.gearWins} with vs ${stats.gearWinsWithout} without (edge ${(gearEdge * 100).toFixed(1)} pts)`,
+);
+console.log(
+  `owning race gear at season end ${(kitted * 100).toFixed(1)}% | gear ${(gearShare * 100).toFixed(1)}% of income`,
+);
 const feeding = players.filter((p) => p.horses.some((h) => h.feed !== "STANDARD")).length / PLAYERS;
 const feedShare = (ledger.sinks.get("FEED") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
@@ -775,6 +819,9 @@ const checks: [string, boolean][] = [
   // Feed is an optional comfort sink, not a must-have.
   ["10–70% of owners feed a paid plan at season end", feeding >= 0.1 && feeding <= 0.7],
   ["feed is 1–10% of recurring income", feedShare >= 0.01 && feedShare <= 0.1],
+  // Gear is a tactical choice, not a power purchase: small edge, minor sink.
+  ["well-chosen gear adds at most 3 win-rate points", gearEdge <= 0.03],
+  ["gear is below 10% of recurring income", gearShare < 0.1],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

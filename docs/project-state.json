@@ -84,7 +84,8 @@
     "25.0.1-race-entry-reasons",
     "25.0.2-class-bands-and-rating-names",
     "25.1.1-feed-plans",
-    "25.2.1-featured-listings"
+    "25.2.1-featured-listings",
+    "25.3.1-race-day-gear"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
@@ -101,5 +102,5 @@
   "technical_debt": [
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Equipment (race-day gear with trade-offs, sim-gated); more gem sinks without power (race analytics, finish effects); Stripe B2B sponsorship once the owner connects an account; set REDIS_URL when running more than one API replica"
+  "next_action": "More gem sinks without power (race analytics, finish effects); Stripe B2B sponsorship once the owner connects an account; set REDIS_URL when running more than one API replica"
 }

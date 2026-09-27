@@ -150,6 +150,24 @@ One-off purchases (sink `FACILITIES`), stacking multiplicatively with the traine
 effect is snapshotted when a session starts. Facilities only touch training so condition
 projection (fatigue/health) stays a pure function of the horse.
 
+### H.3 Race-day gear (tack room)
+
+Bought once per stable for credits (sink `EQUIPMENT`); one item is chosen per race entry and
+hidden from rivals until the race runs, like tactics. Each item trades one attribute for another
+on race day only (applied inside the simulation; the stored horse and the aftermath use the real
+attributes):
+
+| Item | Cost | Race-day effect | Use |
+|---|---|---|---|
+| Blinkers | 1 200 | focus +10, agility −3 | distractible horses |
+| Shadow roll | 1 000 | start +8, acceleration −2 | sharper break |
+| Tongue tie | 1 200 | stamina +5, speed −2 | staying trips |
+| Racing plates | 1 500 | speed +4, endurance −4 | sprints |
+| Cross noseband | 1 000 | cornering +8, final kick −2 | turning tracks |
+
+Validated by `sim:economy` with a same-seed counterfactual (the same race without gear): a
+well-chosen item adds ≈ 1.6–2.1 win-rate points (gate ≤ 3), and gear stays < 10 % of income.
+
 ## I. Race Simulation
 
 Engine: `packages/engine/src/race`. Pure, deterministic given `(entrants, conditions,

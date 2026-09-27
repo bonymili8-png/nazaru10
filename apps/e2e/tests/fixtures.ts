@@ -4,7 +4,13 @@ let seq = 0;
 
 /** Sign in as a brand-new owner through the developer login (each test gets its own stable). */
 export async function newOwner(page: Page): Promise<number> {
-  const devId = 50_000_000 + (process.pid % 1000) * 10_000 + ++seq * 7 + Math.floor(Math.random() * 7);
+  // Unique across workers and across runs (the e2e database persists, and an id reused from an
+  // earlier run could inherit that owner's role or state).
+  const devId =
+    50_000_000 +
+    (Math.floor(Date.now() / 1000) % 100_000) * 10_000 +
+    (process.pid % 100) * 100 +
+    (++seq % 100);
   await page.goto("/");
   await page.evaluate((id) => localStorage.setItem("tl.devId", String(id)), devId);
   await page.getByRole("button", { name: "Enter as developer" }).click();

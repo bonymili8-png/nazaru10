@@ -8,7 +8,14 @@ import type {
   RaceListQuery,
   RaceSummaryDto,
 } from "@thoroughline/contracts";
-import { assertTransition, canRaceAtAge, round, type Strategy, trackByCode } from "@thoroughline/engine";
+import {
+  assertTransition,
+  canRaceAtAge,
+  round,
+  type GearItem,
+  type Strategy,
+  trackByCode,
+} from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
 import { Db, type Queryable, row, rows } from "../../common/db.js";
 import { conflict, notFound } from "../../common/errors.js";
@@ -43,7 +50,13 @@ export class RacesService {
 
   /* ───────────────────────────── entries ───────────────────────────── */
 
-  async enter(userId: string, raceId: string, horseId: string, strategy: Strategy): Promise<RaceDetailDto> {
+  async enter(
+    userId: string,
+    raceId: string,
+    horseId: string,
+    strategy: Strategy,
+    gear: GearItem | null = null,
+  ): Promise<RaceDetailDto> {
     await this.training.settleDueForOwner(userId);
     const now = this.clock.now();
     const cfg = this.config.get();
@@ -80,10 +93,18 @@ export class RacesService {
         [raceId],
       );
       if (count!.n >= race.max_field) throw conflict("FIELD_FULL", "This race is full");
+      if (gear) {
+        const owned = await row<{ ok: boolean }>(
+          c,
+          "SELECT $2 = ANY(gear) AS ok FROM stables WHERE owner_id = $1",
+          [userId, gear],
+        );
+        if (!owned?.ok) throw conflict("GEAR_NOT_OWNED", "Buy this gear for your stable first");
+      }
 
       await c.query(
-        "INSERT INTO race_entries (race_id, horse_id, owner_id, strategy, entry_fee) VALUES ($1, $2, $3, $4, $5)",
-        [raceId, horseId, userId, strategy, race.entry_fee],
+        "INSERT INTO race_entries (race_id, horse_id, owner_id, strategy, entry_fee, gear) VALUES ($1, $2, $3, $4, $5, $6)",
+        [raceId, horseId, userId, strategy, race.entry_fee, gear],
       );
       if (race.entry_fee > 0) {
         await this.ledger.debit(c, {
@@ -102,7 +123,7 @@ export class RacesService {
         aggregateType: "race",
         aggregateId: raceId,
         actorId: userId,
-        payload: { horseId, strategy },
+        payload: { horseId, strategy, gear },
       });
     });
     return this.detail(raceId, userId);
@@ -241,6 +262,7 @@ export class RacesService {
       gate: e.gate === null ? null : e.gate + 1,
       // Tactics stay private until the result is public.
       strategy: mine || reveal ? e.strategy : null,
+      gear: mine || reveal ? e.gear : null,
       jockeyName: e.snapshot?.jockey.name ?? e.jockey_name,
       abilityRating: e.snapshot?.abilityRating ?? e.ability_rating,
       raceRating: e.rating_before ?? e.race_rating,

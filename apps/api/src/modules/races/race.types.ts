@@ -2,6 +2,7 @@ import type {
   Aptitudes,
   Attributes,
   Condition,
+  GearItem,
   RaceClass,
   RaceEvent,
   RaceFrames,
@@ -57,6 +58,8 @@ export interface EntrySnapshot {
   abilityRating: number;
   raceRating: number;
   jockey: { id: string; name: string; skill: number };
+  /** Race-day gear, applied to the attributes only inside the simulation. */
+  gear?: GearItem | null;
 }
 
 export interface EntryRow {
@@ -68,6 +71,7 @@ export interface EntryRow {
   jockey_id: string | null;
   gate: number | null;
   strategy: Strategy;
+  gear: GearItem | null;
   weight_kg: number;
   entry_fee: number;
   status: "ENTERED" | "WITHDRAWN" | "RAN" | "SCRATCHED";

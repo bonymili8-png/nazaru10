@@ -1006,6 +1006,27 @@ export const en = {
     "Featured listings are shown first to every buyer. Visibility only — the price and the sale rules stay the same.",
   "listing.featureDone": "Your listing is featured",
   "ledger.LISTING_FEATURED": "Featured listing",
+  "gear.title": "Tack room",
+  "gear.hint":
+    "Race-day gear trades one quality for another. Bought once for the stable; choose one item when entering a race.",
+  "gear.BLINKERS": "Blinkers",
+  "gear.BLINKERS.hint": "Keeps a distractible horse on task.",
+  "gear.SHADOW_ROLL": "Shadow roll",
+  "gear.SHADOW_ROLL.hint": "Sharper break from the gates.",
+  "gear.TONGUE_TIE": "Tongue tie",
+  "gear.TONGUE_TIE.hint": "Easier breathing over a long trip.",
+  "gear.RACING_PLATES": "Racing plates",
+  "gear.RACING_PLATES.hint": "Light shoes for raw speed in sprints.",
+  "gear.CROSS_NOSEBAND": "Cross noseband",
+  "gear.CROSS_NOSEBAND.hint": "Better control through the turns.",
+  "gear.buy": "Buy · {cost} cr",
+  "gear.owned": "In the tack room",
+  "gear.bought": "{name} added to the tack room",
+  "gear.confirm": "Buy {name} for {cost} credits?",
+  "race.gear": "Race-day gear",
+  "race.noGear": "None",
+  "race.gearShop": "Buy gear in the tack room",
+  "ledger.GEAR_PURCHASE": "Race gear",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

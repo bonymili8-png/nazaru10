@@ -3,6 +3,7 @@ import {
   buildCommentary,
   goingLabel,
   RACE_CLASSES,
+  applyGear,
   raceAftermath,
   type RaceClass,
   type RaceEntrant,
@@ -302,6 +303,7 @@ export class RaceRunnerService {
           abilityRating: h.ability_rating,
           raceRating: h.race_rating,
           jockey: { id: jockey.id, name: jockey.name, skill: jockey.skill },
+          gear: e.gear,
         };
         await c.query(
           "UPDATE race_entries SET gate = $2, jockey_id = $3, snapshot = $4, rating_before = $5 WHERE id = $1",
@@ -384,7 +386,7 @@ export class RaceRunnerService {
         return {
           id: e.horse_id,
           name: s.name,
-          attributes: s.attributes,
+          attributes: applyGear(s.attributes, s.gear ?? null, cfg),
           traits: s.traits,
           aptitudes: s.aptitudes,
           raceIntelligence: s.raceIntelligence,

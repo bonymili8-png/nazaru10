@@ -80,3 +80,9 @@ export function bandText(min: number | null, max: number | null): string {
   if (max === null) return t("band.from", { min });
   return t("band.range", { min, max });
 }
+
+/** Gear effect in words: "+10 Focus · −3 Agility". */
+export const gearMods = (mods: Partial<Record<string, number>>) =>
+  Object.entries(mods)
+    .map(([k, d]) => `${d! > 0 ? "+" : "−"}${Math.abs(d!)} ${ATTRIBUTE_LABELS[k]}`)
+    .join(" · ");

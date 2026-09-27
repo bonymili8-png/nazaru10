@@ -37,6 +37,16 @@ export type Strategy = (typeof STRATEGIES)[number];
 export const FACILITY_TYPES = ["TRAINING_TRACK", "VET_CLINIC"] as const;
 export type FacilityType = (typeof FACILITY_TYPES)[number];
 
+/** Race-day gear: bought once per stable (credits), one item chosen per race entry. */
+export const GEAR_ITEMS = [
+  "BLINKERS",
+  "SHADOW_ROLL",
+  "TONGUE_TIE",
+  "RACING_PLATES",
+  "CROSS_NOSEBAND",
+] as const;
+export type GearItem = (typeof GEAR_ITEMS)[number];
+
 /** Feed plans: STANDARD is free; the others are weekly, per horse, paid in credits. */
 export const FEED_PLANS = ["STANDARD", "PREMIUM", "ELITE"] as const;
 export type FeedPlan = (typeof FEED_PLANS)[number];
@@ -238,6 +248,8 @@ export interface GameConfig {
     free: Record<string, { gems?: number; silk?: string }>;
     premium: Record<string, { gems?: number; silk?: string }>;
   };
+  /** Gear trades one attribute for another on race day (never a net gain on every course). */
+  equipment: Record<GearItem, { cost: number; mods: Partial<Record<TrainableAttribute, number>> }>;
   nutrition: {
     periodDays: number;
     plans: Record<Exclude<FeedPlan, "STANDARD">, FeedPlanConfig>;
@@ -693,6 +705,13 @@ export const defaultConfig: GameConfig = {
       "17": { gems: 50 },
       "20": { silk: "CHECK" },
     },
+  },
+  equipment: {
+    BLINKERS: { cost: 1200, mods: { focus: 10, agility: -3 } },
+    SHADOW_ROLL: { cost: 1000, mods: { start: 8, acceleration: -2 } },
+    TONGUE_TIE: { cost: 1200, mods: { stamina: 5, speed: -2 } },
+    RACING_PLATES: { cost: 1500, mods: { speed: 4, endurance: -4 } },
+    CROSS_NOSEBAND: { cost: 1000, mods: { cornering: 8, finalKick: -2 } },
   },
   nutrition: {
     periodDays: 7,

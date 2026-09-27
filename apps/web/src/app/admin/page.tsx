@@ -21,8 +21,9 @@ import { invalidate, useApi } from "@/lib/hooks";
  * Operator console. The API enforces every permission; the role lists here only decide which
  * tabs are shown.
  */
-type Tab = "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
+type Tab = "revenue" | "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
+  revenue: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   users: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
   fraud: ["FRAUD_ANALYST"],
@@ -39,9 +40,9 @@ export default function AdminPage() {
   if (me.error) return <ErrorState error={me.error} retry={me.reload} />;
   if (!me.data) return <Skeleton className="h-40" />;
   const role = me.data.role;
-  const tabs = (["economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]).filter((t) =>
-    can(role, t),
-  );
+  const tabs = (
+    ["revenue", "economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]
+  ).filter((t) => can(role, t));
   if (tabs.length === 0)
     return <EmptyState title="No console access" body="This area is for the operations team." />;
   const active = tab && tabs.includes(tab) ? tab : tabs[0]!;
@@ -62,6 +63,7 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
+      {active === "revenue" && <Revenue />}
       {active === "economy" && <Economy />}
       {active === "users" && <Users role={role} />}
       {active === "fraud" && <Fraud />}
@@ -70,6 +72,114 @@ export default function AdminPage() {
       {active === "audit" && <Audit />}
       {active === "config" && <Config canEdit={role === "SUPER_ADMIN" || role === "ECONOMY_ADMIN"} />}
     </div>
+  );
+}
+
+/* ───────────────────────────── revenue ───────────────────────────── */
+
+interface RevenueDto {
+  stars: { d7: number; d30: number; all: number; refunded30: number; payers30: number };
+  usdPerStarEstimate: number;
+  products: { product_id: string; sales: number; stars: number }[];
+  daily: { day: string; stars: number }[];
+  members: { active: number; cancelling: number };
+  gemSinks: { code: string; gems: number; buyers: number }[];
+}
+
+function Revenue() {
+  const { data, error, reload } = useApi<RevenueDto>("/admin/revenue", { refreshMs: 60_000 });
+  if (error) return <ErrorState error={error} retry={reload} />;
+  if (!data) return <Skeleton className="mt-3 h-64" />;
+  const usd = (stars: number) => `≈ $${(stars * data.usdPerStarEstimate).toFixed(0)}`;
+  const arppu = data.stars.payers30 ? Math.round(data.stars.d30 / data.stars.payers30) : 0;
+  const tiles: [string, string, string][] = [
+    ["Stars · 7 days", fmt(data.stars.d7), usd(data.stars.d7)],
+    ["Stars · 30 days", fmt(data.stars.d30), usd(data.stars.d30)],
+    ["Payers · 30 days", fmt(data.stars.payers30), `${fmt(arppu)} ⭐ per payer`],
+    ["Owners' Circle", fmt(data.members.active), `${fmt(data.members.cancelling)} cancelling`],
+  ];
+  const gemMax = Math.max(1, ...data.gemSinks.map((g) => g.gems));
+  const dayMax = Math.max(1, ...data.daily.map((d) => d.stars));
+  return (
+    <>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {tiles.map(([label, value, sub]) => (
+          <Card key={label}>
+            <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+            <p className="num mt-1 font-display text-2xl font-bold text-gold">{value}</p>
+            <p className="num text-xs text-muted">{sub}</p>
+          </Card>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        All time {fmt(data.stars.all)} ⭐ ({usd(data.stars.all)}) · refunded in 30 days{" "}
+        {fmt(data.stars.refunded30)} ⭐. Dollar values use an estimated {data.usdPerStarEstimate} $/⭐ payout;
+        check Fragment for the live rate.
+      </p>
+
+      <SectionTitle>Products · 30 days</SectionTitle>
+      <Card className="overflow-x-auto p-0">
+        <table className="w-full text-xs">
+          <thead className="text-left text-[10px] uppercase tracking-wider text-muted">
+            <tr>
+              {["Product", "Sales", "Stars"].map((h) => (
+                <th key={h} className="px-3 py-2 font-medium">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="num">
+            {data.products.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-3 py-3 font-sans text-muted">
+                  No sales yet.
+                </td>
+              </tr>
+            )}
+            {data.products.map((p) => (
+              <tr key={p.product_id} className="border-t border-line/40">
+                <td className="px-3 py-2 font-sans">{titleCase(p.product_id)}</td>
+                <td className="px-3 py-2">{fmt(p.sales)}</td>
+                <td className="px-3 py-2">{fmt(p.stars)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <SectionTitle>Where gems go · 30 days</SectionTitle>
+      <Card className="space-y-2">
+        {data.gemSinks.length === 0 && <p className="text-sm text-muted">No gem spending yet.</p>}
+        {data.gemSinks.map((g) => (
+          <div key={g.code}>
+            <div className="flex justify-between text-xs">
+              <span>{titleCase(g.code)}</span>
+              <span className="num">
+                {fmt(g.gems)} · {fmt(g.buyers)} buyer{g.buyers === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="mt-0.5 h-1.5 rounded-full bg-surface-2">
+              <div className="h-1.5 rounded-full bg-gold" style={{ width: `${(g.gems / gemMax) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      <SectionTitle>Stars per day · 30 days</SectionTitle>
+      <Card className="space-y-1.5">
+        {data.daily.length === 0 && <p className="text-sm text-muted">No sales yet.</p>}
+        {data.daily.map((d) => (
+          <div key={d.day} className="grid grid-cols-[4rem_1fr_3.5rem] items-center gap-2 text-xs">
+            <span className="num text-muted">{d.day.slice(5)}</span>
+            <div className="h-1.5 rounded-full bg-surface-2">
+              <div className="h-1.5 rounded-full bg-gold" style={{ width: `${(d.stars / dayMax) * 100}%` }} />
+            </div>
+            <span className="num text-right">{fmt(d.stars)}</span>
+          </div>
+        ))}
+      </Card>
+    </>
   );
 }
 

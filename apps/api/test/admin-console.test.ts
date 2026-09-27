@@ -1,6 +1,7 @@
 import type { StableDto } from "@thoroughline/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GameConfigService } from "../src/common/game-config.js";
+import { LedgerService } from "../src/modules/economy/ledger.service.js";
 import { createTestApp, type TestApp } from "./helpers.js";
 
 type User = { token: string; userId: string };
@@ -130,6 +131,56 @@ describe("admin console — payments and races", () => {
     expect(r.status).toBe(200);
     expect(Array.isArray(r.body)).toBe(true);
     expect((await t.get("/admin/payments?status=LOST", finance.token)).status).toBe(400);
+  });
+
+  it("summarises Stars revenue, members and gem sinks for finance", async () => {
+    const ins = (product: string, amount: number, status: string, charge: string) =>
+      t.db.query(
+        `INSERT INTO payments (user_id, provider, product_id, amount, currency, status, provider_charge_id,
+                               completed_at, refunded_at)
+         VALUES ($1, 'TELEGRAM_STARS', $2, $3, 'XTR', $4, $5, now(), CASE WHEN $4 = 'REFUNDED' THEN now() END)`,
+        [player.userId, product, amount, status, charge],
+      );
+    await ins("GEMS_550", 250, "COMPLETED", "rev-1");
+    await ins("OWNERS_CIRCLE", 150, "COMPLETED", "rev-2");
+    await ins("GEMS_100", 50, "REFUNDED", "rev-3");
+    await t.db.query(
+      `INSERT INTO subscriptions (user_id, product_id, status, period_end, charge_id)
+       VALUES ($1, 'OWNERS_CIRCLE', 'ACTIVE', now() + interval '30 days', 'rev-2')`,
+      [player.userId],
+    );
+    const ledger = t.service(LedgerService);
+    await t.db.tx(async (c) => {
+      await ledger.credit(c, {
+        userId: player.userId,
+        currency: "GEMS",
+        amount: 100,
+        source: "PAYMENTS",
+        key: "rev:gems",
+        type: "TEST",
+      });
+      await ledger.debit(c, {
+        userId: player.userId,
+        currency: "GEMS",
+        amount: 60,
+        sink: "COSMETICS",
+        key: "rev:spend",
+        type: "COSMETIC_UNLOCK",
+      });
+    });
+
+    expect((await t.get("/admin/revenue", game.token)).status).toBe(403);
+    const r = await t.get<{
+      stars: { d7: number; d30: number; all: number; refunded30: number; payers30: number };
+      products: { product_id: string; sales: number; stars: number }[];
+      members: { active: number; cancelling: number };
+      gemSinks: { code: string; gems: number; buyers: number }[];
+    }>("/admin/revenue", finance.token);
+    expect(r.status).toBe(200);
+    expect(r.body.stars).toEqual({ d7: 400, d30: 400, all: 400, refunded30: 50, payers30: 1 });
+    expect(r.body.products[0]).toEqual({ product_id: "GEMS_550", sales: 1, stars: 250 });
+    expect(r.body.members).toEqual({ active: 1, cancelling: 0 });
+    expect(r.body.gemSinks).toEqual([{ code: "COSMETICS", gems: 60, buyers: 1 }]);
   });
 
   it("creates a special race (validated) and cancels it with refunds", async () => {

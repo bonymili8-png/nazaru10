@@ -314,4 +314,64 @@ export class AdminController {
       daily,
     };
   }
+
+  /**
+   * Monetization dashboard: Stars revenue (completed, net of refunds), products, payers,
+   * Owners' Circle members and where gems are spent. For pricing decisions.
+   */
+  @Get("revenue")
+  @Roles("ECONOMY_ADMIN", "FINANCE_ADMIN")
+  async revenue() {
+    const totals = await this.db.one<{
+      d7: number;
+      d30: number;
+      all: number;
+      refunded30: number;
+      payers30: number;
+    }>(
+      `SELECT COALESCE(sum(amount) FILTER (WHERE status = 'COMPLETED' AND completed_at > now() - interval '7 days'), 0)::int AS d7,
+              COALESCE(sum(amount) FILTER (WHERE status = 'COMPLETED' AND completed_at > now() - interval '30 days'), 0)::int AS d30,
+              COALESCE(sum(amount) FILTER (WHERE status = 'COMPLETED'), 0)::int AS "all",
+              COALESCE(sum(amount) FILTER (WHERE status = 'REFUNDED' AND refunded_at > now() - interval '30 days'), 0)::int AS "refunded30",
+              count(DISTINCT user_id) FILTER (WHERE status = 'COMPLETED' AND completed_at > now() - interval '30 days')::int AS "payers30"
+         FROM payments WHERE provider = 'TELEGRAM_STARS'`,
+    );
+    const products = await this.db.query<{ product_id: string; sales: number; stars: number }>(
+      `SELECT product_id, count(*)::int AS sales, sum(amount)::int AS stars
+         FROM payments WHERE provider = 'TELEGRAM_STARS' AND status = 'COMPLETED'
+          AND completed_at > now() - interval '30 days'
+        GROUP BY product_id ORDER BY stars DESC`,
+    );
+    const daily = await this.db.query<{ day: string; stars: number }>(
+      `SELECT to_char(date_trunc('day', completed_at), 'YYYY-MM-DD') AS day, sum(amount)::int AS stars
+         FROM payments WHERE provider = 'TELEGRAM_STARS' AND status = 'COMPLETED'
+          AND completed_at > now() - interval '30 days'
+        GROUP BY 1 ORDER BY 1 DESC`,
+    );
+    const members = await this.db.one<{ active: number; cancelling: number }>(
+      `SELECT count(*) FILTER (WHERE status = 'ACTIVE' AND period_end > now())::int AS active,
+              count(*) FILTER (WHERE status = 'CANCELED' AND period_end > now())::int AS cancelling
+         FROM subscriptions`,
+    );
+    // Gems burned per sink over 30 days (credits to a system account in GEMS).
+    const gemSinks = await this.db.query<{ code: string; gems: number; buyers: number }>(
+      `SELECT a.code, sum(e.amount)::int AS gems, count(DISTINCT ua.owner_id)::int AS buyers
+         FROM ledger_entries e
+         JOIN accounts a ON a.id = e.account_id
+         JOIN ledger_entries ue ON ue.tx_id = e.tx_id AND ue.amount < 0
+         JOIN accounts ua ON ua.id = ue.account_id AND ua.owner_type = 'USER'
+        WHERE a.owner_type = 'SYSTEM' AND a.currency = 'GEMS' AND e.amount > 0
+          AND e.created_at > now() - interval '30 days'
+        GROUP BY a.code ORDER BY gems DESC`,
+    );
+    return {
+      stars: totals!,
+      /** Rough developer payout per Star after Telegram's cut (check Fragment for the live rate). */
+      usdPerStarEstimate: 0.013,
+      products,
+      daily,
+      members: members!,
+      gemSinks,
+    };
+  }
 }

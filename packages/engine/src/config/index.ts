@@ -251,8 +251,11 @@ export interface GameConfig {
     xpPerTier: number;
     premiumPriceGems: number;
     xp: { raceRun: number; win: number; second: number; third: number; training: number };
-    /** Rewards by tier number (string keys). */
-    free: Record<string, { gems?: number; silk?: string }>;
+    /**
+     * Rewards by tier number (string keys). Credits only on the free track: premium is bought with
+     * gems, so credits there would be a gems-to-credits exchange (declined by the owner).
+     */
+    free: Record<string, { gems?: number; silk?: string; credits?: number }>;
     premium: Record<string, { gems?: number; silk?: string }>;
   };
   /** Gear trades one attribute for another on race day (never a net gain on every course). */
@@ -697,13 +700,13 @@ export const defaultConfig: GameConfig = {
     premiumPriceGems: 400,
     xp: { raceRun: 20, win: 30, second: 20, third: 10, training: 10 },
     free: {
-      "2": { gems: 10 },
-      "5": { gems: 15 },
-      "8": { gems: 20 },
-      "11": { gems: 25 },
-      "14": { gems: 30 },
-      "17": { gems: 40 },
-      "20": { gems: 60 },
+      "2": { gems: 10, credits: 50 },
+      "5": { gems: 15, credits: 75 },
+      "8": { gems: 20, credits: 100 },
+      "11": { gems: 25, credits: 125 },
+      "14": { gems: 30, credits: 150 },
+      "17": { gems: 40, credits: 200 },
+      "20": { gems: 60, credits: 300 },
     },
     premium: {
       "1": { gems: 25 },

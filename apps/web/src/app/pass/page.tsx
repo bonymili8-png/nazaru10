@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Silk } from "@/components/Silk";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
-import { countdown, errorMessage, titleCase } from "@/lib/format";
+import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { t as tr } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
@@ -183,6 +183,11 @@ function RewardCell({
         <Gem className="size-6 text-gold" aria-hidden />
       )}
       <span className="text-xs font-medium">{label}</span>
+      {!!reward.credits && (
+        <span className="num text-[11px] font-medium text-good">
+          {tr("pass.plusCredits", { n: fmt(reward.credits) })}
+        </span>
+      )}
       {claimed ? (
         <Badge tone="good">
           <Check className="size-3" aria-hidden /> {tr("pass.claimedBadge")}

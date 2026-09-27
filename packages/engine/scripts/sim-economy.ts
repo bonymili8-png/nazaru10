@@ -92,6 +92,8 @@ interface Player {
   sponsoredWeek: number;
   /** Race-day gear owned by the stable. */
   gear: Set<GearItem>;
+  /** Racing Pass XP this season (the simulation covers one 28-day season). */
+  passXp: number;
   id: number;
 }
 
@@ -116,6 +118,17 @@ const QUEST: Record<string, number> = {
   FIRST_WIN: 1500,
   BUY_HORSE: 500,
   UPGRADE_STABLE: 1000,
+};
+/** Racing Pass: XP from play; free-track credit rewards are claimed as tiers are reached. */
+const passXp = (p: Player, xp: number) => {
+  const per = cfg.pass.xpPerTier;
+  const before = Math.min(cfg.pass.tiers, Math.floor(p.passXp / per));
+  p.passXp += xp;
+  const after = Math.min(cfg.pass.tiers, Math.floor(p.passXp / per));
+  for (let tier = before + 1; tier <= after; tier++) {
+    const credits = cfg.pass.free[String(tier)]?.credits ?? 0;
+    if (credits) earn(p, "PASS_REWARDS", credits);
+  }
 };
 const quest = (p: Player, q: string) => {
   if (p.quests.has(q)) return;
@@ -264,6 +277,8 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   const setup = { distance, track, weather, wetness };
   const res = simulateRace(order, setup, seed, cfg);
   const pos = res.results.find((r) => r.entrantId === "me")!.position;
+  const px = cfg.pass.xp;
+  passXp(p, px.raceRun + (pos === 1 ? px.win : pos === 2 ? px.second : pos === 3 ? px.third : 0));
   const lastMargin = Math.max(...res.results.map((r) => r.lengthsBehind));
   (stats.margins[cls] ??= []).push(lastMargin);
   if (gear) {
@@ -538,6 +553,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
       stats.injuries++;
     }
     stats.trainings++;
+    passXp(p, cfg.pass.xp.training);
     quest(p, "FIRST_TRAINING");
   }
   // Staff: renew the weekly contract while comfortably solvent, otherwise let the trainer go.
@@ -668,6 +684,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     sponsor: null,
     sponsoredWeek: -1,
     gear: new Set(),
+    passXp: 0,
     id: nextId++,
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
@@ -802,6 +819,11 @@ const salaryShare = (ledger.sinks.get("STAFF_SALARY") ?? 0) / (PLAYERS * DAYS) /
 console.log(
   `employing a trainer at season end ${(employing * 100).toFixed(1)}% | salaries ${(salaryShare * 100).toFixed(1)}% of income`,
 );
+const passShare = (ledger.sources.get("PASS_REWARDS") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
+const tier20 = players.filter((p) => p.passXp >= cfg.pass.tiers * cfg.pass.xpPerTier).length / PLAYERS;
+console.log(
+  `racing pass: ${(passShare * 100).toFixed(1)}% of income from free-track credits | ${(tier20 * 100).toFixed(1)}% reach the last tier`,
+);
 const checks: [string, boolean][] = [
   ["recurring income 400–1,200 per player-day", income >= 400 && income <= 1200],
   [
@@ -832,6 +854,8 @@ const checks: [string, boolean][] = [
   // Gear is a tactical choice, not a power purchase: small edge, minor sink.
   ["well-chosen gear adds at most 3 win-rate points", gearEdge <= 0.03],
   ["gear is below 10% of recurring income", gearShare < 0.1],
+  // The pass rewards playing a little; it must not become a salary.
+  ["racing-pass credits are below 8% of recurring income", passShare < 0.08],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

@@ -10,4 +10,8 @@ test("the Racing Pass shows progress, tracks and locked premium rewards", async 
   await expect(page.getByRole("button", { name: /Unlock premium/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: /^Claim tier/ })).toHaveCount(0);
   await expect(page.getByText("Chevron silks")).toBeVisible();
+  // Free-track tiers pay credits on top of gems.
+  await expect(page.getByText("+ 50 cr")).toBeVisible();
+  await page.getByText("+ 50 cr").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/claude-0/shots/pass.png" });
 });

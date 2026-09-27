@@ -688,7 +688,7 @@ export const en = {
   "pass.tierLine": "Tier {tier} / {max} · {xp} XP",
   "pass.progress": "Progress to next tier",
   "pass.xpRules":
-    "Earn XP by playing: {run} per race run, +{win} for a win, +{second} for 2nd, +{third} for 3rd, {training} per training session. Rewards are gems and exclusive silks — never an advantage on the track.",
+    "Earn XP by playing: {run} per race run, +{win} for a win, +{second} for 2nd, +{third} for 3rd, {training} per training session. Rewards are gems, credits on the free track and exclusive silks — never an advantage on the track.",
   "pass.confirmPremium": "Unlock the premium track for {n} gems?",
   "pass.premiumUnlocked": "Premium track unlocked",
   "pass.unlockPremium": "Unlock premium · {n} gems",
@@ -1097,6 +1097,7 @@ export const en = {
   "error.NAME_UNCHANGED": "That is already the current name.",
   "color.choose": "Choose colour",
   "silks.colours": "Colours",
+  "pass.plusCredits": "+ {n} cr",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

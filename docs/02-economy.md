@@ -226,8 +226,11 @@ within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
   for 1st/2nd/3rd, 10 per training session — recorded once per source (`pass_xp_events`).
 * Free track: 200 gems over the season. Premium track (400 gems, sink `RACING_PASS`): 200 gems back
   plus four pass-exclusive silk patterns (Chevron, Stripes, Cross, Check) that cannot be bought.
-* No credits and nothing that affects racing, so the premium track does not buy power and does
-  not touch the credit economy (the cohort simulation is unaffected).
+* Free-track tiers also pay credits (50 … 300, 1 000 per season), earned only by playing. The
+  premium track, bought with gems, never pays credits (that would be a gems-to-credits exchange,
+  declined by the owner) — the service drops credits from premium rewards even if configured.
+  Modelled in `sim:economy`: ≈ 4.7 % of recurring income, ≈ 35 % of owners reach tier 20 (gate:
+  pass credits < 8 % of income).
 * Tuning in config `pass.*`; admin overrides can change existing tiers' rewards and prices (new
   tier keys need a release, as the override validator only accepts known settings).
 

@@ -690,7 +690,7 @@ export const uk: Record<MessageKey, Msg> = {
   "pass.tierLine": "Рівень {tier} / {max} · {xp} XP",
   "pass.progress": "Прогрес до наступного рівня",
   "pass.xpRules":
-    "Отримуйте XP, граючи: {run} за забіг, +{win} за перемогу, +{second} за 2-ге місце, +{third} за 3-тє, {training} за тренування. Нагороди — самоцвіти та ексклюзивні кольори, ніколи не перевага на доріжці.",
+    "Отримуйте XP, граючи: {run} за забіг, +{win} за перемогу, +{second} за 2-ге місце, +{third} за 3-тє, {training} за тренування. Нагороди — самоцвіти, кредити на безкоштовній доріжці та ексклюзивні кольори, ніколи не перевага на доріжці.",
   "pass.confirmPremium": "Відкрити преміум-доріжку за {n} самоцвітів?",
   "pass.premiumUnlocked": "Преміум-доріжку відкрито",
   "pass.unlockPremium": "Відкрити преміум · {n} самоцвітів",
@@ -1098,4 +1098,5 @@ export const uk: Record<MessageKey, Msg> = {
   "error.NAME_UNCHANGED": "Це й так поточна назва.",
   "color.choose": "Обрати колір",
   "silks.colours": "Кольори",
+  "pass.plusCredits": "+ {n} кр",
 };

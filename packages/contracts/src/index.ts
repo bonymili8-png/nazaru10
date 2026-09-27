@@ -342,6 +342,8 @@ export interface CosmeticsDto {
 
 export interface PassRewardDto {
   gems?: number;
+  /** Free track only (earned by playing, never bought). */
+  credits?: number;
   silk?: SilkPattern;
 }
 

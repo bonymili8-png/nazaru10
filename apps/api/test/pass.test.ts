@@ -67,9 +67,15 @@ describe("Racing Pass", () => {
     const v = await view();
     expect(v.tier).toBe(cfg.tiers);
     const before = v.gems;
+    const credits = async () =>
+      (await t.get<{ balances: { CREDITS: number } }>("/wallet", owner.token)).body.balances.CREDITS;
+    const creditsBefore = await credits();
+    expect(v.tiers.find((x) => x.tier === 2)!.free).toEqual({ gems: 10, credits: 50 });
     const r = await claim(2, "FREE");
     expect(r.status).toBe(201);
     expect(r.body.gems).toBe(before + cfg.free["2"]!.gems!);
+    // Free-track tiers also pay credits (earned by playing).
+    expect(await credits()).toBe(creditsBefore + cfg.free["2"]!.credits!);
     expect((await claim(2, "FREE")).status).toBe(409);
     expect((await claim(4, "FREE")).status).toBe(400); // no reward on this tier
     expect((await claim(5, "PREMIUM")).status).toBe(409); // premium required
@@ -96,7 +102,14 @@ describe("Racing Pass", () => {
 
     // Exclusive silks cannot be bought, only earned.
     expect((await t.post("/cosmetics/silks/patterns/CHEVRON/unlock", {}, owner.token)).status).toBe(409);
+    const creditsBefore = (await t.get<{ balances: { CREDITS: number } }>("/wallet", owner.token)).body
+      .balances.CREDITS;
     expect((await claim(5, "PREMIUM")).status).toBe(201);
+    // The premium track (bought with gems) never pays credits.
+    expect(
+      (await t.get<{ balances: { CREDITS: number } }>("/wallet", owner.token)).body.balances.CREDITS,
+    ).toBe(creditsBefore);
+    expect((await view()).tiers.every((x) => !x.premium?.credits)).toBe(true);
     const c = (await t.get<CosmeticsDto>("/cosmetics", owner.token)).body;
     expect(c.patterns.find((p) => p.pattern === "CHEVRON")).toMatchObject({ owned: true, priceGems: null });
     expect(

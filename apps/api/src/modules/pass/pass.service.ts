@@ -13,8 +13,8 @@ type Track = "FREE" | "PREMIUM";
 
 /**
  * Racing Pass. XP comes only from play (race runs, placings, training) and is recorded once per
- * source key; rewards are gems and cosmetic silks — never credits or anything that races faster,
- * so buying the premium track cannot buy an advantage.
+ * source key. Rewards are gems and cosmetic silks, plus credits on the free track only (earned by
+ * playing); the premium track, bought with gems, never pays credits or anything that races faster.
  */
 @Injectable()
 export class PassService {
@@ -54,10 +54,16 @@ export class PassService {
 
   private reward(track: Track, tier: number): PassRewardDto | null {
     const p = this.config.get().pass;
-    const r = (track === "FREE" ? p.free : p.premium)[String(tier)];
-    return r
-      ? { ...(r.gems ? { gems: r.gems } : {}), ...(r.silk ? { silk: r.silk as SilkPattern } : {}) }
-      : null;
+    const r: { gems?: number; silk?: string; credits?: number } | undefined = (
+      track === "FREE" ? p.free : p.premium
+    )[String(tier)];
+    if (!r) return null;
+    return {
+      ...(r.gems ? { gems: r.gems } : {}),
+      ...(r.silk ? { silk: r.silk as SilkPattern } : {}),
+      // Never credits on the premium track, even if a config override tried to add them.
+      ...(track === "FREE" && r.credits ? { credits: r.credits } : {}),
+    };
   }
 
   async view(userId: string): Promise<RacingPassDto> {
@@ -170,6 +176,17 @@ export class PassService {
           amount: reward.gems,
           source: "PASS_REWARDS",
           key: `pass:${season}:${userId}:${tier}:${track}`,
+          type: "PASS_REWARD",
+          reason: `Racing Pass tier ${tier}`,
+        });
+      }
+      if (reward.credits) {
+        await this.ledger.credit(c, {
+          userId,
+          currency: "CREDITS",
+          amount: reward.credits,
+          source: "PASS_REWARDS",
+          key: `pass:${season}:${userId}:${tier}:${track}:credits`,
           type: "PASS_REWARD",
           reason: `Racing Pass tier ${tier}`,
         });

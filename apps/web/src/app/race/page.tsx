@@ -108,7 +108,6 @@ function RacePage() {
         )}
       </Card>
 
-      {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
       {(race.status === "RUNNING" || race.status === "COMPLETED") && <LiveRace race={race} />}
       {race.status === "COMPLETED" &&
         race.entryList
@@ -154,6 +153,8 @@ function RacePage() {
           </Card>
         </>
       )}
+
+      {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
 
       {race.status === "COMPLETED" && mine.length > 0 && (
         <Button

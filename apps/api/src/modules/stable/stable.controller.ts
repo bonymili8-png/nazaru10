@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { FacilityParam, GearParam, RenameStableRequest, type StableDto } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
@@ -28,7 +28,8 @@ export class StableController {
     return this.stables.buyGear(user.id, parse(GearParam, item));
   }
 
-  @Patch()
+  /** Rename the stable for gems (Latin letters only). */
+  @Post("rename")
   rename(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<StableDto> {
     return this.stables.rename(user.id, parse(RenameStableRequest, body).name);
   }

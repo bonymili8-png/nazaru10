@@ -59,15 +59,23 @@ export const EnterRaceRequest = z.object({
 });
 export type EnterRaceRequest = z.infer<typeof EnterRaceRequest>;
 
-export const RenameStableRequest = z.object({
-  name: z
+/**
+ * A player-chosen name: Latin letters, digits, spaces and ' & . - only, starting with a letter or
+ * digit; inner whitespace is collapsed. Shared by the client (live validation) and the API.
+ */
+export const LATIN_NAME = /^[A-Za-z0-9][A-Za-z0-9 '&.-]*$/;
+const latinName = (max: number) =>
+  z
     .string()
-    .trim()
-    .min(2)
-    .max(40)
-    .regex(/^[\p{L}\p{N} '&.-]+$/u, "letters, digits, spaces and ' & . - only"),
-});
+    .transform((s) => s.trim().replace(/\s+/g, " "))
+    .pipe(z.string().min(2).max(max).regex(LATIN_NAME, "Latin letters, digits, spaces and ' & . - only"));
+export const NAME_LIMITS = { horse: 24, stable: 30 } as const;
+
+export const RenameStableRequest = z.object({ name: latinName(NAME_LIMITS.stable) }).strict();
 export type RenameStableRequest = z.infer<typeof RenameStableRequest>;
+
+export const RenameHorseRequest = z.object({ name: latinName(NAME_LIMITS.horse) }).strict();
+export type RenameHorseRequest = z.infer<typeof RenameHorseRequest>;
 
 export const CreatePaymentRequest = z.object({ productId: z.string().min(1).max(64) });
 export type CreatePaymentRequest = z.infer<typeof CreatePaymentRequest>;
@@ -632,6 +640,8 @@ export interface StableDto {
   horseCount: number;
   reputation: number;
   nextUpgradeCost: number | null;
+  /** Gem prices to rename the stable or one of its horses. */
+  renameGems: { stable: number; horse: number };
   facilities: FacilityDto[];
   /** Race-day gear on offer; `owned` once bought (one purchase per stable). */
   gear: GearDto[];

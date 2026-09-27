@@ -1,7 +1,14 @@
 "use client";
-import type { FacilityDto, GearDto, HorseSummaryDto, StableDto } from "@thoroughline/contracts";
-import { Dumbbell, Stethoscope } from "lucide-react";
+import {
+  type FacilityDto,
+  type GearDto,
+  type HorseSummaryDto,
+  NAME_LIMITS,
+  type StableDto,
+} from "@thoroughline/contracts";
+import { Dumbbell, Pencil, Stethoscope } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
+import { RenameForm } from "@/components/RenameForm";
 import {
   Button,
   Card,
@@ -24,6 +31,7 @@ export default function HorsesPage() {
   const stable = useApi<StableDto>("/stable");
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [renaming, setRenaming] = useState(false);
 
   const upgrade = async () => {
     setBusy(true);
@@ -53,6 +61,30 @@ export default function HorsesPage() {
           </LinkButton>
         </div>
       </div>
+      {stable.data && (
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="truncate font-display text-xl font-semibold">{stable.data.name}</p>
+          <button
+            onClick={() => setRenaming((v) => !v)}
+            aria-label={t("rename.stable")}
+            aria-expanded={renaming}
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-colors hover:text-gold"
+          >
+            <Pencil className="size-5" aria-hidden />
+          </button>
+        </div>
+      )}
+      {renaming && stable.data && (
+        <RenameForm
+          title={t("rename.stable")}
+          current={stable.data.name}
+          maxLength={NAME_LIMITS.stable}
+          priceGems={stable.data.renameGems.stable}
+          endpoint="/stable/rename"
+          refresh={["/stable", "/home", "/leaderboard"]}
+          onClose={() => setRenaming(false)}
+        />
+      )}
       {stable.data && (
         <Card className="mt-3 flex items-center justify-between gap-3">
           <div>

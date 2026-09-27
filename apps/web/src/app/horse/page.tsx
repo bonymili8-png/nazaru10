@@ -3,6 +3,8 @@ import {
   type CosmeticsDto,
   type FeedPlan,
   type HorseAdviceDto,
+  NAME_LIMITS,
+  type StableDto,
   type HorseDetailDto,
   type SaddleCloth as Cloth,
   SILK_COLORS,
@@ -31,6 +33,7 @@ import {
   HeartPulse,
   Lock,
   Microscope,
+  Pencil,
   Share2,
   Stethoscope,
   Tag,
@@ -41,6 +44,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
 import { RaceCard } from "@/components/RaceCard";
+import { RenameForm } from "@/components/RenameForm";
 import { coatColor } from "@/components/HorseCard";
 import { SaddleCloth } from "@/components/SaddleCloth";
 import { Syndicate } from "@/components/Syndicate";
@@ -89,7 +93,9 @@ function HorsePage() {
     reload,
   } = useApi<HorseDetailDto>(id ? `/horses/${id}` : null, { refreshMs: 10_000 });
   const me = useApi<UserDto>("/me");
+  const stable = useApi<StableDto>("/stable");
   const [tab, setTab] = useState<Tab>("overview");
+  const [renaming, setRenaming] = useState(false);
   if (!id) return <ErrorState error={new Error(t("horse.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!h) return <Skeleton className="h-64" />;
@@ -109,6 +115,16 @@ function HorsePage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <h1 className="truncate font-display text-2xl font-bold">{h.name}</h1>
+              {mine && (
+                <button
+                  onClick={() => setRenaming((v) => !v)}
+                  aria-label={t("rename.horse")}
+                  aria-expanded={renaming}
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-colors hover:text-gold"
+                >
+                  <Pencil className="size-5" aria-hidden />
+                </button>
+              )}
               {!h.isHouse && (
                 <button
                   onClick={() =>
@@ -152,6 +168,17 @@ function HorsePage() {
         </dl>
         {h.status !== "RETIRED" && <RaceClasses horse={h} />}
       </Card>
+      {renaming && mine && stable.data && (
+        <RenameForm
+          title={t("rename.horse")}
+          current={h.name}
+          maxLength={NAME_LIMITS.horse}
+          priceGems={stable.data.renameGems.horse}
+          endpoint={`/horses/${h.id}/rename`}
+          refresh={[`/horses/${h.id}`, "/horses", "/home"]}
+          onClose={() => setRenaming(false)}
+        />
+      )}
 
       {mine && (
         <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1" role="tablist">

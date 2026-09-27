@@ -1083,6 +1083,18 @@ export const en = {
   "advice.rest": "Needs about {h} h of rest before it can race.",
   "advice.races": "Races that suit it",
   "advice.noRaces": "No suitable race opens in the next few hours.",
+  "rename.horse": "Rename horse",
+  "rename.stable": "Rename stable",
+  "rename.label": "New name",
+  "rename.hint": "Latin letters, digits, spaces and ' & . - · up to {n} characters",
+  "rename.notLatin": "Use Latin letters only (A–Z).",
+  "rename.tooShort": "At least 2 characters.",
+  "rename.submit": "Rename · {n} gems",
+  "rename.done": "Renamed to {name}",
+  "rename.cancel": "Cancel",
+  "rename.confirm": "Rename to “{name}” for {n} gems?",
+  "error.NAME_TAKEN": "That name is already taken.",
+  "error.NAME_UNCHANGED": "That is already the current name.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

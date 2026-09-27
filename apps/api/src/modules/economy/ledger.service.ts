@@ -34,6 +34,7 @@ export type SystemAccount =
   | "PROMOTIONS"
   | "EQUIPMENT"
   | "ANALYTICS"
+  | "RENAMES"
   | "COSMETICS"
   | "CLUBS"
   | "SPONSORS"

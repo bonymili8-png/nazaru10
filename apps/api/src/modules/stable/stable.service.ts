@@ -94,6 +94,10 @@ export class StableService {
       horseCount: n!.n,
       reputation: rep?.balance ?? 0,
       nextUpgradeCost: costs[s.level - 1] ?? null,
+      renameGems: {
+        stable: this.config.get().economy.renameStableGems,
+        horse: this.config.get().economy.renameHorseGems,
+      },
       facilities: this.facilityDtos(s),
       gear: this.gearDtos(s),
       crest: s.crest,
@@ -233,11 +237,38 @@ export class StableService {
     return this.view(ownerId);
   }
 
+  /** Rename the stable for gems (sink RENAMES). Names are Latin-only and unique (case-insensitive). */
   async rename(ownerId: string, name: string): Promise<StableDto> {
-    await this.db.query("UPDATE stables SET name = $2, updated_at = now() WHERE owner_id = $1", [
-      ownerId,
-      name,
-    ]);
+    const now = this.clock.now();
+    await this.db.tx(async (c) => {
+      const s = await this.byOwner(c, ownerId, true);
+      if (s.name === name) throw conflict("NAME_UNCHANGED", "That is already the stable's name");
+      // Serialise renames to the same name so two owners cannot both take it.
+      await c.query("SELECT pg_advisory_xact_lock(hashtext('stable-name:' || lower($1)))", [name]);
+      const taken = await row(c, "SELECT 1 FROM stables WHERE lower(name) = lower($1) AND id <> $2", [
+        name,
+        s.id,
+      ]);
+      if (taken) throw conflict("NAME_TAKEN", "Another stable already has this name");
+      await this.ledger.debit(c, {
+        userId: ownerId,
+        currency: "GEMS",
+        amount: this.config.get().economy.renameStableGems,
+        sink: "RENAMES",
+        key: `rename:stable:${s.id}:${now.getTime()}`,
+        type: "RENAME",
+        reason: `Stable renamed to ${name}`,
+        metadata: { from: s.name, to: name },
+      });
+      await c.query("UPDATE stables SET name = $2, updated_at = $3 WHERE id = $1", [s.id, name, now]);
+      await this.events.emit(c, {
+        type: "stable_renamed",
+        aggregateType: "stable",
+        aggregateId: s.id,
+        actorId: ownerId,
+        payload: { from: s.name, to: name },
+      });
+    });
     return this.view(ownerId);
   }
 }

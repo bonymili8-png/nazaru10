@@ -250,6 +250,44 @@ export class HorsesService {
     });
   }
 
+  /** Rename a horse for gems (sink RENAMES). Latin-only; unique among active horses. */
+  async rename(userId: string, horseId: string, name: string): Promise<HorseRow> {
+    const now = this.clock.now();
+    return this.db.tx(async (c) => {
+      const h = await this.lockOwned(c, horseId, userId);
+      if (h.name === name) throw conflict("NAME_UNCHANGED", "That is already the horse's name");
+      await c.query("SELECT pg_advisory_xact_lock(hashtext('horse-name:' || lower($1)))", [name]);
+      const taken = await rows(
+        c,
+        "SELECT 1 FROM horses WHERE lower(name) = lower($1) AND id <> $2 AND retired_at IS NULL LIMIT 1",
+        [name, h.id],
+      );
+      if (taken.length) throw conflict("NAME_TAKEN", "Another horse already has this name");
+      await this.ledger.debit(c, {
+        userId,
+        currency: "GEMS",
+        amount: this.config.get().economy.renameHorseGems,
+        sink: "RENAMES",
+        key: `rename:horse:${h.id}:${now.getTime()}`,
+        type: "RENAME",
+        reason: `${h.name} renamed to ${name}`,
+        metadata: { horseId: h.id, from: h.name, to: name },
+      });
+      const res = await c.query<HorseRow>(
+        "UPDATE horses SET name = $2, updated_at = $3 WHERE id = $1 RETURNING *",
+        [h.id, name, now],
+      );
+      await this.events.emit(c, {
+        type: "horse_renamed",
+        aggregateType: "horse",
+        aggregateId: h.id,
+        actorId: userId,
+        payload: { from: h.name, to: name },
+      });
+      return res.rows[0]!;
+    });
+  }
+
   /** Paid veterinary diagnostics reveal the hidden genome (information economy, no power). */
   async diagnose(userId: string, horseId: string): Promise<HorseRow> {
     const now = this.clock.now();

@@ -203,6 +203,9 @@ export interface GameConfig {
     diagnosticsCostGems: number;
     /** Gems for a post-race report on one of your runs (free for Owners' Circle members). */
     raceReportGems: number;
+    /** Gems to rename a horse / the stable (Latin letters only; visibility, no power). */
+    renameHorseGems: number;
+    renameStableGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
   };
@@ -594,6 +597,8 @@ export const defaultConfig: GameConfig = {
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
     raceReportGems: 10,
+    renameHorseGems: 50,
+    renameStableGems: 80,
     allowance: { threshold: 400, amount: 250 },
   },
   cosmetics: {

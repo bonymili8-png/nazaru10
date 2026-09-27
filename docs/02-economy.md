@@ -146,6 +146,9 @@ with competitive horses for real money.
 - **Race reports** (live): 10 gems per run (free for Owners' Circle members) — positions at each
   quarter, sectional times against the fastest, energy left, trouble and advice. Computed from a
   finished race's recorded frames only (`raceReport` in the engine); never a prediction.
+- **Renames** (live): horse 50 gems, stable 80 gems (sink `RENAMES`). Names are Latin letters,
+  digits, spaces and ' & . - only (horse ≤ 24, stable ≤ 30 characters), whitespace collapsed, unique
+  case-insensitively among active horses / stables. Default and generated names are unaffected.
 - **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
   placements, invoiced outside the game (and physical merch if ever sold). It is never used for
   in-app digital goods. The provider stub stays disabled until the owner connects an account

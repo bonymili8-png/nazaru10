@@ -3,6 +3,7 @@ import {
   type HorseAdviceDto,
   type HorseDetailDto,
   type HorseSummaryDto,
+  RenameHorseRequest,
   SetFeedRequest,
   StartTrainingRequest,
   type TrainingSessionDto,
@@ -148,6 +149,17 @@ export class HorsesController {
   ): Promise<HorseDetailDto> {
     const req = parse(SetFeedRequest, body);
     const h = await this.nutrition.set(user.id, id, req.plan);
+    return this.horses.detail(h, user.id, this.clock.now(), null, null);
+  }
+
+  /** Rename the horse for gems (Latin letters only). */
+  @Post(":id/rename")
+  async rename(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<HorseDetailDto> {
+    const h = await this.horses.rename(user.id, id, parse(RenameHorseRequest, body).name);
     return this.horses.detail(h, user.id, this.clock.now(), null, null);
   }
 }

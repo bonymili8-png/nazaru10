@@ -102,6 +102,14 @@ export class NotificationsService {
             ? `📋 ${name("trainerName")} залишив вашу стайню — не вдалося сплатити тижневу зарплату ${credits(p.salary, lang)}.`
             : `📋 ${name("trainerName")} has left your stable — the weekly salary of ${credits(p.salary, lang)} could not be paid.`,
         };
+      case "followed_win":
+        return {
+          userId,
+          openApp: true,
+          text: uk
+            ? `⭐ ${name("horseName")}, за яким ви стежите, виграв забіг «${escape(p.raceName)}»!`
+            : `⭐ ${name("horseName")}, a horse you follow, won the ${escape(p.raceName)}!`,
+        };
       case "comeback_nudge":
         return {
           userId,

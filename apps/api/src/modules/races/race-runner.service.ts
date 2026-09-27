@@ -634,6 +634,16 @@ export class RaceRunnerService {
             injury: after.injury?.severity ?? null,
           },
         });
+        // Tell the horse's followers (other than its owner) that it won.
+        if (pos === 1)
+          await c.query(
+            `INSERT INTO domain_events (type, aggregate_type, aggregate_id, payload)
+             SELECT 'followed_win', 'race', $1,
+                    jsonb_build_object('userId', f.user_id, 'horseName', $3::text, 'raceName', $4::text)
+               FROM horse_follows f WHERE f.horse_id = $2 AND f.user_id <> $5
+              ORDER BY f.created_at LIMIT 1000`,
+            [raceId, e.horse_id, s.name, race.name, owner],
+          );
       }
       await this.seasons.award(
         c,

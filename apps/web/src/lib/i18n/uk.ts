@@ -1099,4 +1099,13 @@ export const uk: Record<MessageKey, Msg> = {
   "color.choose": "Обрати колір",
   "silks.colours": "Кольори",
   "pass.plusCredits": "+ {n} кр",
+  "follow.follow": "Стежити",
+  "follow.unfollow": "Не стежити",
+  "follow.followers": (v) => `${n(v)} ${ukPlural(n(v), "підписник", "підписники", "підписників")}`,
+  "follow.title": "Відстежую",
+  "follow.hint":
+    "Стежте за кіньми зі сторінки коня: тут буде їхній найближчий забіг, а про перемоги прийде повідомлення.",
+  "follow.next": "Далі: {race} · {time}",
+  "follow.noRace": "Не заявлений на забіг",
+  "follow.done": "Ви стежите за {name}",
 };

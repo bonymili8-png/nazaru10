@@ -163,10 +163,12 @@ export class HorsesService {
     activeTraining: TrainingSessionDto | null,
     listingId: string | null = null,
     studFee: number | null = null,
+    follow: { followed: boolean; followers: number } = { followed: false, followers: 0 },
   ): HorseDetailDto {
     const isOwner = viewerId !== null && h.owner_id === viewerId;
     return {
       ...this.summary(h, now, ownerName),
+      ...follow,
       private: isOwner
         ? {
             attributes: h.attributes,
@@ -192,6 +194,42 @@ export class HorsesService {
           }
         : null,
     };
+  }
+
+  /** Whether `userId` follows the horse, and how many players do. */
+  async followInfo(horseId: string, userId: string): Promise<{ followed: boolean; followers: number }> {
+    const r = await rows<{ followed: boolean; followers: number }>(
+      this.db.pool,
+      `SELECT bool_or(user_id = $2) IS TRUE AS followed, count(*)::int AS followers
+         FROM horse_follows WHERE horse_id = $1`,
+      [horseId, userId],
+    );
+    return r[0] ?? { followed: false, followers: 0 };
+  }
+
+  /** Follow or unfollow a horse (not house horses; at most `limit` follows per player). */
+  async setFollow(userId: string, horseId: string, on: boolean, limit = 100): Promise<void> {
+    await this.db.tx(async (c) => {
+      const h = await getHorse(c, horseId);
+      if (!on) {
+        await c.query("DELETE FROM horse_follows WHERE user_id = $1 AND horse_id = $2", [userId, horseId]);
+        return;
+      }
+      if (h.is_house || h.retired_at)
+        throw conflict("NOT_FOLLOWABLE", "Only active owned horses can be followed");
+      // Serialise this player's follows so the limit holds under concurrent requests.
+      await c.query("SELECT pg_advisory_xact_lock(hashtext('follows:' || $1))", [userId]);
+      const n = await rows<{ n: number }>(
+        c,
+        "SELECT count(*)::int AS n FROM horse_follows WHERE user_id = $1",
+        [userId],
+      );
+      if (n[0]!.n >= limit) throw conflict("FOLLOW_LIMIT", `You can follow up to ${limit} horses`);
+      await c.query(
+        "INSERT INTO horse_follows (user_id, horse_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+        [userId, horseId, this.clock.now()],
+      );
+    });
   }
 
   async ownerName(ownerId: string | null, c: Queryable = this.db.pool): Promise<string | null> {

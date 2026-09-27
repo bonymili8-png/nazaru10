@@ -1098,6 +1098,15 @@ export const en = {
   "color.choose": "Choose colour",
   "silks.colours": "Colours",
   "pass.plusCredits": "+ {n} cr",
+  "follow.follow": "Follow",
+  "follow.unfollow": "Unfollow",
+  "follow.followers": (v) => `${n(v)} follower${s(v)}`,
+  "follow.title": "Following",
+  "follow.hint":
+    "Follow horses from their page: you'll see their next race here and get a message when they win.",
+  "follow.next": "Next: {race} · {time}",
+  "follow.noRace": "No race entered",
+  "follow.done": "Following {name}",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

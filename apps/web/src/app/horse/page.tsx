@@ -35,6 +35,7 @@ import {
   Microscope,
   Pencil,
   Share2,
+  Star,
   Stethoscope,
   Tag,
   Timer,
@@ -126,6 +127,7 @@ function HorsePage() {
                   <Pencil className="size-5" aria-hidden />
                 </button>
               )}
+              {!mine && !h.isHouse && <FollowButton h={h} />}
               {!h.isHouse && (
                 <button
                   onClick={() =>
@@ -1045,5 +1047,40 @@ function AdviceCard({ h }: { h: HorseDetailDto }) {
         </>
       )}
     </>
+  );
+}
+
+/** Follow another owner's horse: see its next race in "Following" and hear when it wins. */
+function FollowButton({ h }: { h: HorseDetailDto }) {
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (h.followed) await del(`/horses/${h.id}/follow`);
+      else {
+        await post(`/horses/${h.id}/follow`);
+        toast(t("follow.done", { name: h.name }));
+      }
+      haptic.success();
+      invalidate(`/horses/${h.id}`, "/me/follows");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      aria-pressed={h.followed}
+      aria-label={h.followed ? t("follow.unfollow") : t("follow.follow")}
+      title={t("follow.followers", { n: h.followers })}
+      className={`grid size-11 shrink-0 cursor-pointer place-items-center rounded-full transition-colors disabled:opacity-50 ${h.followed ? "text-gold" : "text-muted hover:text-gold"}`}
+    >
+      <Star className="size-5" fill={h.followed ? "currentColor" : "none"} aria-hidden />
+    </button>
   );
 }

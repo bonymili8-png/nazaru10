@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import {
   type HorseAdviceDto,
   type HorseDetailDto,
@@ -70,7 +70,20 @@ export class HorsesController {
       active,
       listing?.id ?? null,
       stud?.fee ?? null,
+      await this.horses.followInfo(h.id, user.id),
     );
+  }
+
+  @Post(":id/follow")
+  async follow(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string) {
+    await this.horses.setFollow(user.id, id, true);
+    return this.horses.followInfo(id, user.id);
+  }
+
+  @Delete(":id/follow")
+  async unfollow(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string) {
+    await this.horses.setFollow(user.id, id, false);
+    return this.horses.followInfo(id, user.id);
   }
 
   /** Trainer's advice: rest, the next training session and open races that suit the horse. */

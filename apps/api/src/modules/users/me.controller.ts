@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Put } from "@nestjs/common";
-import { type HomeDto, type ReferralDto, UpdateSettingsRequest, type UserDto } from "@thoroughline/contracts";
+import {
+  type FollowedHorseDto,
+  type HomeDto,
+  type ReferralDto,
+  UpdateSettingsRequest,
+  type UserDto,
+} from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
@@ -8,7 +14,7 @@ import { parse } from "../../common/http.js";
 import { memberSql } from "../../common/membership.js";
 import { toUserDto } from "../auth/auth.service.js";
 import { LedgerService } from "../economy/ledger.service.js";
-import { horsesByOwner } from "../horses/horse.repo.js";
+import { type HorseRow, horsesByOwner } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { RacesService } from "../races/races.service.js";
@@ -46,6 +52,40 @@ export class MeController {
   }
 
   /** Friends this player invited and the state of each invite reward. */
+  /** Horses the player follows, each with its next race (if entered). */
+  @Get("me/follows")
+  async follows(@CurrentUser() user: AuthUser): Promise<FollowedHorseDto[]> {
+    const now = this.clock.now();
+    const list = await this.db.query<
+      HorseRow & {
+        owner_name: string | null;
+        race_id: string | null;
+        race_name: string | null;
+        starts_at: Date | null;
+      }
+    >(
+      `SELECT h.*, COALESCE(u.username, u.first_name) AS owner_name, nr.id AS race_id, nr.name AS race_name,
+              nr.starts_at
+         FROM horse_follows f
+         JOIN horses h ON h.id = f.horse_id
+         LEFT JOIN users u ON u.id = h.owner_id
+         LEFT JOIN LATERAL (
+           SELECT r.id, r.name, r.starts_at FROM race_entries e JOIN races r ON r.id = e.race_id
+            WHERE e.horse_id = h.id AND e.status = 'ENTERED' AND r.status IN ('OPEN','LOCKED','RUNNING')
+            ORDER BY r.starts_at LIMIT 1
+         ) nr ON true
+        WHERE f.user_id = $1
+        ORDER BY nr.starts_at NULLS LAST, f.created_at DESC`,
+      [user.id],
+    );
+    return list.map((h) => ({
+      horse: this.horses.summary(h, now, h.owner_name),
+      nextRace: h.race_id
+        ? { id: h.race_id, name: h.race_name!, startsAt: h.starts_at!.toISOString() }
+        : null,
+    }));
+  }
+
   @Get("me/referrals")
   myReferrals(@CurrentUser() user: AuthUser): Promise<ReferralDto[]> {
     return this.referrals.list(user.id);

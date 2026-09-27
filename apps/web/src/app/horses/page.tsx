@@ -1,6 +1,7 @@
 "use client";
 import {
   type FacilityDto,
+  type FollowedHorseDto,
   type GearDto,
   type HorseSummaryDto,
   NAME_LIMITS,
@@ -20,8 +21,8 @@ import {
   useToast,
 } from "@/components/ui";
 import { post } from "@/lib/api";
-import { errorMessage, fmt, gearMods } from "@/lib/format";
-import { invalidate, useApi } from "@/lib/hooks";
+import { countdown, errorMessage, fmt, gearMods } from "@/lib/format";
+import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { haptic } from "@/lib/telegram";
 import { useState } from "react";
 import { type MessageKey, t } from "@/lib/i18n";
@@ -117,6 +118,7 @@ export default function HorsesPage() {
           <HorseCard key={h.id} horse={h} href={`/horse/?id=${h.id}`} />
         ))}
       </div>
+      <Following />
     </div>
   );
 }
@@ -242,6 +244,38 @@ function TackRoom({ stable }: { stable: StableDto }) {
           ))}
         </ul>
       </Card>
+    </>
+  );
+}
+
+/** Horses the player follows, with their next race. */
+function Following() {
+  const { data } = useApi<FollowedHorseDto[]>("/me/follows", { refreshMs: 30_000 });
+  const now = useNow(1000);
+  if (!data) return null;
+  return (
+    <>
+      <SectionTitle>{t("follow.title")}</SectionTitle>
+      {data.length === 0 ? (
+        <p className="text-sm text-muted">{t("follow.hint")}</p>
+      ) : (
+        <div className="space-y-2">
+          {data.map((f) => (
+            <HorseCard
+              key={f.horse.id}
+              horse={f.horse}
+              href={f.nextRace ? `/race/?id=${f.nextRace.id}` : `/horse/?id=${f.horse.id}`}
+              extra={
+                <span className="text-xs text-muted">
+                  {f.nextRace
+                    ? t("follow.next", { race: f.nextRace.name, time: countdown(f.nextRace.startsAt, now) })
+                    : t("follow.noRace")}
+                </span>
+              }
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 }

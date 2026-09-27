@@ -681,6 +681,12 @@ export interface ConditionDto {
   hoursToRaceReady: number;
 }
 
+/** A followed horse with its next race, if it is entered in one. */
+export interface FollowedHorseDto {
+  horse: HorseSummaryDto;
+  nextRace: { id: string; name: string; startsAt: string } | null;
+}
+
 /** Trainer's advice for one of the owner's horses (from owner-visible data only). */
 export interface HorseAdviceDto {
   profile: "SPRINTER" | "MILER" | "STAYER";
@@ -788,6 +794,9 @@ export interface HorseSummaryDto {
 }
 
 export interface HorseDetailDto extends HorseSummaryDto {
+  /** Whether the viewer follows this horse, and how many players do. */
+  followed: boolean;
+  followers: number;
   /** Present only for the owner. */
   private: {
     attributes: Attributes;

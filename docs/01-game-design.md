@@ -339,6 +339,13 @@ stayer ≥ 2 000 m) and up to three open races in the next three hours the horse
 maiden and age checks as entry), ranked by distance and surface fit. Uses only owner-visible data
 (current attributes, aptitudes); hidden genes and ceilings are never used. No language model.
 
+## Following horses
+
+Players follow any active owned horse (star on its page, up to 100 follows; house horses excluded).
+"Following" on the Horses page lists them with their next race; when a followed horse wins, its
+followers (not its owner) get a bot message (`followed_win`, capped at 1 000 per win). Follower
+counts are public on the horse page.
+
 ## Comeback nudges
 
 A player away for 2 days (but less than 14) gets one bot message naming their best horse, with a

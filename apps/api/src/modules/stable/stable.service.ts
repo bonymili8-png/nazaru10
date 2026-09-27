@@ -3,6 +3,7 @@ import type { Crest, FacilityDto, GearDto, StableDto } from "@thoroughline/contr
 import {
   FACILITY_TYPES,
   GEAR_ITEMS,
+  gearRepairCost,
   type GearItem,
   facilityEffect,
   facilityMaxLevel,
@@ -28,6 +29,7 @@ interface StableRow {
   vet_clinic: number;
   crest: Crest;
   gear: GearItem[];
+  gear_wear: Record<string, number>;
 }
 
 const COLUMN: Record<FacilityType, "training_track" | "vet_clinic"> = {
@@ -49,7 +51,7 @@ export class StableService {
   async byOwner(c: Queryable, ownerId: string, lock = false): Promise<StableRow> {
     const s = await row<StableRow>(
       c,
-      `SELECT id, owner_id, name, level, training_track, vet_clinic, crest, gear FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
+      `SELECT id, owner_id, name, level, training_track, vet_clinic, crest, gear, gear_wear FROM stables WHERE owner_id = $1${lock ? " FOR UPDATE" : ""}`,
       [ownerId],
     );
     if (!s) throw notFound("Stable");
@@ -110,12 +112,18 @@ export class StableService {
 
   private gearDtos(s: StableRow): GearDto[] {
     const cfg = this.config.get();
-    return GEAR_ITEMS.map((item) => ({
-      item,
-      cost: cfg.equipment[item].cost,
-      mods: cfg.equipment[item].mods,
-      owned: s.gear.includes(item),
-    }));
+    return GEAR_ITEMS.map((item) => {
+      const owned = s.gear.includes(item);
+      const used = s.gear_wear[item] ?? 0;
+      return {
+        item,
+        cost: cfg.equipment[item].cost,
+        mods: cfg.equipment[item].mods,
+        owned,
+        racesLeft: owned ? Math.max(0, cfg.gearWear.races - used) : null,
+        repairCost: owned ? gearRepairCost(item, used, cfg) : 0,
+      };
+    });
   }
 
   /** Buy a race-day gear item for the stable (credits, sink EQUIPMENT; once per item). */
@@ -134,11 +142,10 @@ export class StableService {
         type: "GEAR_PURCHASE",
         reason: `Race gear: ${item}`,
       });
-      await c.query("UPDATE stables SET gear = array_append(gear, $2), updated_at = $3 WHERE id = $1", [
-        s.id,
-        item,
-        now,
-      ]);
+      await c.query(
+        "UPDATE stables SET gear = array_append(gear, $2), gear_wear = gear_wear - $2, updated_at = $3 WHERE id = $1",
+        [s.id, item, now],
+      );
       await this.events.emit(c, {
         type: "gear_bought",
         aggregateType: "stable",
@@ -148,6 +155,55 @@ export class StableService {
       });
     });
     return this.view(ownerId);
+  }
+
+  /** Restore a worn item to full (cost proportional to wear; sink EQUIPMENT). */
+  async repairGear(ownerId: string, item: GearItem): Promise<StableDto> {
+    const now = this.clock.now();
+    const cfg = this.config.get();
+    await this.db.tx(async (c) => {
+      const s = await this.byOwner(c, ownerId, true);
+      if (!s.gear.includes(item)) throw conflict("GEAR_NOT_OWNED", "Buy this gear for your stable first");
+      const used = s.gear_wear[item] ?? 0;
+      const cost = gearRepairCost(item, used, cfg);
+      if (cost <= 0) throw conflict("GEAR_NEW", "This gear shows no wear yet");
+      await this.ledger.debit(c, {
+        userId: ownerId,
+        currency: "CREDITS",
+        amount: cost,
+        sink: "EQUIPMENT",
+        key: `stable:${s.id}:gear:${item}:repair:${now.getTime()}`,
+        type: "GEAR_REPAIR",
+        reason: `Race gear repaired: ${item}`,
+        metadata: { item, used },
+      });
+      await c.query("UPDATE stables SET gear_wear = gear_wear - $2, updated_at = $3 WHERE id = $1", [
+        s.id,
+        item,
+        now,
+      ]);
+    });
+    return this.view(ownerId);
+  }
+
+  /**
+   * One race run with an item: count the wear and retire it when used up. Call inside the race
+   * settlement transaction. Returns true when the item wore out.
+   */
+  async wearGear(c: Queryable, ownerId: string, item: GearItem): Promise<boolean> {
+    const races = this.config.get().gearWear.races;
+    const r = await row<{ used: number }>(
+      c,
+      `UPDATE stables SET gear_wear = jsonb_set(gear_wear, ARRAY[$2::text], to_jsonb(COALESCE((gear_wear->>$2)::int, 0) + 1))
+        WHERE owner_id = $1 AND $2 = ANY(gear) RETURNING (gear_wear->>$2)::int AS used`,
+      [ownerId, item],
+    );
+    if (!r || r.used < races) return false;
+    await c.query(
+      "UPDATE stables SET gear = array_remove(gear, $2), gear_wear = gear_wear - $2 WHERE owner_id = $1",
+      [ownerId, item],
+    );
+    return true;
   }
 
   private facilityDtos(s: StableRow): FacilityDto[] {

@@ -98,7 +98,8 @@
     "26.2.1-follow-horses",
     "26.3.1-live-ops-events",
     "26.4.1-market-offers",
-    "26.5.1-club-treasury-chat"
+    "26.5.1-club-treasury-chat",
+    "26.6.1-gear-durability"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
@@ -115,5 +116,5 @@
   "technical_debt": [
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Stripe B2B sponsorship once the owner connects an account; watch live gem sinks (cosmetics, pass, featured listings, finish effects, reports); set REDIS_URL when running more than one API replica"
+  "next_action": "Owner decisions pending: creator affiliate payouts, rewarded ads network, LLM trainer assistant (API key/cost), Stripe B2B sponsorship; then balance tuning from live data (Revenue/Players tabs)"
 }

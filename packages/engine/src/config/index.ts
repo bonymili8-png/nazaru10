@@ -266,6 +266,8 @@ export interface GameConfig {
   };
   /** Gear trades one attribute for another on race day (never a net gain on every course). */
   equipment: Record<GearItem, { cost: number; mods: Partial<Record<TrainableAttribute, number>> }>;
+  /** Gear wears out after `races` starts; repairing costs repairRate × cost × the share worn. */
+  gearWear: { races: number; repairRate: number };
   nutrition: {
     periodDays: number;
     plans: Record<Exclude<FeedPlan, "STANDARD">, FeedPlanConfig>;
@@ -743,6 +745,7 @@ export const defaultConfig: GameConfig = {
     RACING_PLATES: { cost: 1500, mods: { speed: 4, endurance: -4 } },
     CROSS_NOSEBAND: { cost: 1000, mods: { cornering: 8, finalKick: -2 } },
   },
+  gearWear: { races: 40, repairRate: 0.5 },
   nutrition: {
     periodDays: 7,
     // Recovery only: horses are ready sooner and hold form longer; no attribute or race-day edge.

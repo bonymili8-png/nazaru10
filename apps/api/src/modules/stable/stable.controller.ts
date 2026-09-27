@@ -23,6 +23,11 @@ export class StableController {
     return this.stables.build(user.id, parse(FacilityParam, type));
   }
 
+  @Post("gear/:item/repair")
+  repairGear(@CurrentUser() user: AuthUser, @Param("item") item: string): Promise<StableDto> {
+    return this.stables.repairGear(user.id, parse(GearParam, item));
+  }
+
   @Post("gear/:item")
   buyGear(@CurrentUser() user: AuthUser, @Param("item") item: string): Promise<StableDto> {
     return this.stables.buyGear(user.id, parse(GearParam, item));

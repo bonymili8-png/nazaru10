@@ -711,6 +711,10 @@ export interface GearDto {
   /** Race-day attribute changes, e.g. { focus: 10, agility: -3 }. */
   mods: Partial<Record<keyof Attributes, number>>;
   owned: boolean;
+  /** Races left before the item wears out (null when not owned). */
+  racesLeft: number | null;
+  /** Credits to restore it to full (0 when unused or not owned). */
+  repairCost: number;
 }
 
 export type FacilityType = "TRAINING_TRACK" | "VET_CLINIC";

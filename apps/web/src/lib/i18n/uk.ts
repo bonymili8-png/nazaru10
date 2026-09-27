@@ -1164,4 +1164,9 @@ export const uk: Record<MessageKey, Msg> = {
   "club.chatSaved": "Посилання збережено",
   "club.chatHint": "Посилання бачать лише учасники.",
   "error.DONATION_TOO_SMALL": "Замалий внесок.",
+  "gear.racesLeft": (v) => `ще ${n(v)} ${ukPlural(n(v), "забіг", "забіги", "забігів")}`,
+  "gear.repair": "Полагодити · {cost} кр",
+  "gear.repaired": "{name}: полагоджено",
+  "gear.wearHint": "Кожна річ витримує {n} забігів; полагодити можна будь-коли за частку ціни.",
+  "error.GEAR_NEW": "Ця річ ще не зношена.",
 };

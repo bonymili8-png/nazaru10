@@ -133,6 +133,23 @@ export class NotificationsService {
             ? `⭐ ${name("horseName")}, за яким ви стежите, виграв забіг «${escape(p.raceName)}»!`
             : `⭐ ${name("horseName")}, a horse you follow, won the ${escape(p.raceName)}!`,
         };
+      case "gear_worn": {
+        const item = String(p.item);
+        const names: Record<string, [string, string]> = {
+          BLINKERS: ["blinkers", "шори"],
+          SHADOW_ROLL: ["shadow roll", "шедоу-рол"],
+          TONGUE_TIE: ["tongue tie", "язикова пов'язка"],
+          RACING_PLATES: ["racing plates", "легкі підкови"],
+          CROSS_NOSEBAND: ["cross noseband", "хрестовий капсуль"],
+        };
+        const [en, ukName] = names[item] ?? [item.toLowerCase(), item.toLowerCase()];
+        return {
+          userId,
+          text: uk
+            ? `🔧 Спорядження зносилось: ${ukName}. Купіть нове в амуніції (краще лагодити завчасно — це дешевше).`
+            : `🔧 Your ${en} wore out. Buy a new set in the tack room (repairing earlier is cheaper).`,
+        };
+      }
       case "comeback_nudge":
         return {
           userId,

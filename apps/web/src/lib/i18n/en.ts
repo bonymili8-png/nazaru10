@@ -1162,6 +1162,11 @@ export const en = {
   "club.chatSaved": "Chat link saved",
   "club.chatHint": "Only members see the link.",
   "error.DONATION_TOO_SMALL": "That donation is too small.",
+  "gear.racesLeft": (v) => `${n(v)} race${s(v)} left`,
+  "gear.repair": "Repair · {cost} cr",
+  "gear.repaired": "{name} repaired",
+  "gear.wearHint": "Each item lasts {n} races; repair it any time for a share of its price.",
+  "error.GEAR_NEW": "This gear shows no wear yet.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

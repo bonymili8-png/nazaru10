@@ -36,6 +36,7 @@ import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
 import { LiveEventsService } from "../events/live-events.service.js";
+import { StableService } from "../stable/stable.service.js";
 import {
   CLASS_LABEL,
   type EntryRow,
@@ -69,6 +70,7 @@ export class RaceRunnerService {
     private readonly clock: Clock,
     @Inject(ENV) private readonly env: Env,
     private readonly liveEvents: LiveEventsService,
+    private readonly stables: StableService,
   ) {}
 
   raceSeed(raceId: string): string {
@@ -616,6 +618,13 @@ export class RaceRunnerService {
           this.pass.raceXp(pos),
           race.starts_at,
         );
+        if (e.gear && (await this.stables.wearGear(c, owner, e.gear)))
+          await this.events.emit(c, {
+            type: "gear_worn",
+            aggregateType: "race",
+            aggregateId: raceId,
+            payload: { userId: owner, item: e.gear },
+          });
         await this.quests.complete(c, owner, "FIRST_RACE", now);
         if (pos <= 3) await this.quests.complete(c, owner, "FIRST_PODIUM", now);
         if (pos === 1) await this.quests.complete(c, owner, "FIRST_WIN", now);

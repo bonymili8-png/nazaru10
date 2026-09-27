@@ -8,7 +8,7 @@ test("an owner buys blinkers and races with them", async ({ page }) => {
   const row = page.getByRole("listitem").filter({ hasText: "Blinkers" });
   await row.getByRole("button", { name: /Buy · 1,200 cr/ }).click();
   await expect(page.getByText("Blinkers added to the tack room")).toBeVisible();
-  await expect(row.getByText("In the tack room")).toBeVisible();
+  await expect(row.getByText("40 races left")).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBe(before - 1200);
 
   await page.goto("/races/");

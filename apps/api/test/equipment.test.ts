@@ -3,6 +3,7 @@ import { defaultConfig as cfg } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { LedgerService } from "../src/modules/economy/ledger.service.js";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
+import { StableService } from "../src/modules/stable/stable.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
 
 describe("race-day gear", () => {
@@ -105,6 +106,38 @@ describe("race-day gear", () => {
     const done = (await t.get<RaceDetailDto>(`/races/${race.id}`, rival.token)).body;
     expect(done.status).toBe("COMPLETED");
     expect(done.entryList.find((e) => e.horseId === horse)!.gear).toBe("BLINKERS");
+  });
+
+  it("wears with every race, can be repaired, and wears out", async () => {
+    const races = cfg.gearWear.races;
+    let g = (await t.get<StableDto>("/stable", owner.token)).body.gear.find((x) => x.item === "BLINKERS")!;
+    expect(g.racesLeft).toBe(races - 1); // the race above
+    expect(g.repairCost).toBe(Math.round((cfg.equipment.BLINKERS.cost * cfg.gearWear.repairRate) / races));
+
+    const before = await credits();
+    const r = await t.post<StableDto>("/stable/gear/BLINKERS/repair", {}, owner.token);
+    expect(r.status).toBe(201);
+    g = r.body.gear.find((x) => x.item === "BLINKERS")!;
+    expect(g).toMatchObject({ racesLeft: races, repairCost: 0 });
+    expect(await credits()).toBe(
+      before - Math.round((cfg.equipment.BLINKERS.cost * cfg.gearWear.repairRate) / races),
+    );
+    const fresh = await t.post<{ error: { code: string } }>("/stable/gear/BLINKERS/repair", {}, owner.token);
+    expect(fresh.body.error.code).toBe("GEAR_NEW");
+
+    // The last race of its life retires the item.
+    await t.db.query(
+      "UPDATE stables SET gear_wear = jsonb_build_object('BLINKERS', $2::int) WHERE owner_id = $1",
+      [owner.userId, races - 1],
+    );
+    const stables = t.service(StableService);
+    expect(await t.db.tx((c) => stables.wearGear(c, owner.userId, "BLINKERS"))).toBe(true);
+    g = (await t.get<StableDto>("/stable", owner.token)).body.gear.find((x) => x.item === "BLINKERS")!;
+    expect(g).toMatchObject({ owned: false, racesLeft: null });
+    // Worn-out gear is bought again at full price.
+    expect((await t.post("/stable/gear/BLINKERS", {}, owner.token)).status).toBe(201);
+    g = (await t.get<StableDto>("/stable", owner.token)).body.gear.find((x) => x.item === "BLINKERS")!;
+    expect(g.racesLeft).toBe(races);
   });
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));

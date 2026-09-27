@@ -165,8 +165,10 @@ attributes):
 | Racing plates | 1 500 | speed +4, endurance −4 | sprints |
 | Cross noseband | 1 000 | cornering +8, final kick −2 | turning tracks |
 
-Validated by `sim:economy` with a same-seed counterfactual (the same race without gear): a
-well-chosen item adds ≈ 1.6–2.1 win-rate points (gate ≤ 3), and gear stays < 10 % of income.
+Gear wears: each item lasts 40 races (config `gearWear`), then leaves the tack room (bot message)
+and must be bought again; it can be repaired any time for 50 % × price × share worn. With wear
+modelled, `sim:economy` shows a well-chosen item adding ≈ 2.5–2.8 win-rate points (gate ≤ 3) and
+gear at ≈ 5.6–6.2 % of income (gate < 10 %).
 
 ## I. Race Simulation
 

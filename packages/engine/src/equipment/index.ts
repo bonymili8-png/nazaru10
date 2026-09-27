@@ -10,3 +10,9 @@ export function applyGear(attributes: Attributes, gear: GearItem | null, cfg: Ga
     out[k] = clamp(out[k] + d, 1, 100);
   return out;
 }
+
+/** Credits to restore an item after `used` races (proportional to wear; 0 when unused). */
+export function gearRepairCost(gear: GearItem, used: number, cfg: GameConfig): number {
+  const share = Math.min(1, Math.max(0, used) / cfg.gearWear.races);
+  return Math.round(cfg.equipment[gear].cost * cfg.gearWear.repairRate * share);
+}

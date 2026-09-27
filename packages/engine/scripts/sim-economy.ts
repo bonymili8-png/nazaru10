@@ -29,6 +29,7 @@ import {
   projectCondition,
   feedCost,
   applyGear,
+  gearRepairCost,
   type GearItem,
   feedEffect,
   type FeedPlan,
@@ -90,8 +91,9 @@ interface Player {
   /** Active sponsor contract (progress counts qualifying runs until `until`, in hours). */
   sponsor: { def: SponsorDef; progress: number; until: number } | null;
   sponsoredWeek: number;
-  /** Race-day gear owned by the stable. */
+  /** Race-day gear owned by the stable, with races used (wear). */
   gear: Set<GearItem>;
+  gearUsed: Map<GearItem, number>;
   /** Racing Pass XP this season (the simulation covers one 28-day season). */
   passXp: number;
   id: number;
@@ -282,6 +284,16 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   const lastMargin = Math.max(...res.results.map((r) => r.lengthsBehind));
   (stats.margins[cls] ??= []).push(lastMargin);
   if (gear) {
+    // Wear: the item is used up after `gearWear.races` starts; the owner repairs it when half worn.
+    const used = (p.gearUsed.get(gear) ?? 0) + 1;
+    p.gearUsed.set(gear, used);
+    if (used >= cfg.gearWear.races) {
+      p.gear.delete(gear);
+      p.gearUsed.delete(gear);
+    } else if (used >= cfg.gearWear.races / 2) {
+      const cost = gearRepairCost(gear, used, cfg);
+      if (p.credits >= cost + 2000 && spend(p, "EQUIPMENT", cost)) p.gearUsed.set(gear, 0);
+    }
     // Counterfactual: the same race and seed without gear isolates the gear's own edge.
     const plain = order.map((e) => (e === me ? { ...me, attributes: h.attributes } : e));
     const pos0 = simulateRace(plain, setup, seed, cfg).results.find((r) => r.entrantId === "me")!.position;
@@ -684,6 +696,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     sponsor: null,
     sponsoredWeek: -1,
     gear: new Set(),
+    gearUsed: new Map(),
     passXp: 0,
     id: nextId++,
   };

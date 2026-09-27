@@ -1169,4 +1169,5 @@ export const uk: Record<MessageKey, Msg> = {
   "gear.repaired": "{name}: полагоджено",
   "gear.wearHint": "Кожна річ витримує {n} забігів; полагодити можна будь-коли за частку ціни.",
   "error.GEAR_NEW": "Ця річ ще не зношена.",
+  "circle.perk5": "Безкоштовний звіт по кожному забігу ваших коней",
 };

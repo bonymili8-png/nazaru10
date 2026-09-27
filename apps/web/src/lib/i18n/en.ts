@@ -1167,6 +1167,7 @@ export const en = {
   "gear.repaired": "{name} repaired",
   "gear.wearHint": "Each item lasts {n} races; repair it any time for a share of its price.",
   "error.GEAR_NEW": "This gear shows no wear yet.",
+  "circle.perk5": "Free race report for every race your horses run",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

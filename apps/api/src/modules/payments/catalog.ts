@@ -34,7 +34,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "OWNERS_CIRCLE",
     title: "Owners' Circle",
-    description: "300 Racing Gems every month, member colours and badge",
+    description: "300 Racing Gems every month, member colours and badge, free race reports",
     priceStars: 150,
     grants: { gems: 300 },
     subscriptionDays: 30,

@@ -279,8 +279,8 @@ points, gear < 10 % of income; all 18 gates pass.
 A Telegram Stars subscription (`OWNERS_CIRCLE`, 150 ⭐ per 30 days, `subscription_period`
 2592000). Each paid period (first payment and every automatic renewal, recorded as a child
 payment) grants 300 gems; members get three extra colours (platinum, burgundy, teal) for silks,
-crest and saddle cloths, a crown badge in rankings and clubs, and up to 100 starts of race history
-(20 otherwise). No credits, horses, training or race effects (anti pay-to-win). Members cancel or
+crest and saddle cloths, a crown badge in rankings and clubs, up to 100 starts of race history
+(20 otherwise) and free race reports for every run (10 gems each otherwise). No credits, horses, training or race effects (anti pay-to-win). Members cancel or
 resume in-game (`editUserStarSubscription`); benefits last until `period_end`, then a daily job
 expires the membership after a 1-day grace for late renewals. Refunding a membership payment
 claws back its gems, ends the membership and cancels renewals. `/terms` explains renewal and

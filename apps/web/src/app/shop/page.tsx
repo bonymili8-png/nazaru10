@@ -370,6 +370,7 @@ function OwnersCircle({
           t("circle.perk2"),
           t("circle.perk3"),
           t("circle.perk4"),
+          t("circle.perk5"),
         ].map((line) => (
           <li key={line} className="flex items-start gap-2">
             <Check className="mt-0.5 size-4 shrink-0 text-good" aria-hidden />

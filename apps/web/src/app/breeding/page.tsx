@@ -169,7 +169,7 @@ function BreedingPage() {
               <optgroup label={t("breed.yourStallions")}>
                 {ownSires.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {t("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
+                    {t("race.horseOption", { name: h.name, s: Math.round(h.abilityRating), r: h.raceRating })}
                   </option>
                 ))}
               </optgroup>

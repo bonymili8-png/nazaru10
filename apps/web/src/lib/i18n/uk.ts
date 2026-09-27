@@ -407,8 +407,7 @@ export const uk: Record<MessageKey, Msg> = {
   "race.closes": "Закриття",
   "race.off": "Старт",
   "race.maidenOnly": "Для коней, які ще не вигравали.",
-  "race.band": "Діапазон рейтингу {min}–{max}.",
-  "race.any": "будь-який",
+  "race.band": "Рейтинг забігу: {band}.",
   "race.runnersTitle": "Учасники ({n})",
   "race.noRunners": "Учасників ще немає — коні дому заповнять поле, коли запис закриється.",
   "race.ownersSilks": "Кольори: {name}",
@@ -427,7 +426,7 @@ export const uk: Record<MessageKey, Msg> = {
   "race.noEligible":
     "Зараз немає вільного коня, що підходить. Коні на тренуванні, заявлені деінде або травмовані бігти не можуть.",
   "race.horse": "Кінь",
-  "race.horseOption": "{name} — рейтинг {r}",
+  "race.horseOption": "{name} — рівень {s} · рейтинг забігу {r}",
   "race.tactics": "Тактика",
   "race.enterFee": "Заявити · {fee} кр",
   "live.gates": "Коні заходять у стартові бокси…",
@@ -556,7 +555,7 @@ export const uk: Record<MessageKey, Msg> = {
   "tentry.SCRATCHED": "Знятий",
   "tour.openToAll": "Відкрито для всіх",
   "tour.seasonPts": "{n} очок сезону",
-  "tour.ratingPlus": "рейтинг {n}+",
+  "tour.ratingPlus": "рейтинг забігу {n}+",
   "tour.or": " або ",
   "tour.closesIn": "закриття через {t}",
   "tour.finalIn": "фінал через {t}",
@@ -965,4 +964,20 @@ export const uk: Record<MessageKey, Msg> = {
   "race.whyOld": "уже завеликий вік для забігів",
   "race.findOther": "Знайти відповідний забіг",
   "race.someUnfit": "Тут не можуть бігти",
+  "common.strength": "Рівень",
+  "band.upTo": "до {max}",
+  "band.range": "{min}–{max}",
+  "band.from": "від {min}",
+  "band.maiden": "будь-який, без перемог",
+  "guide.title": "Як працюють рейтинги й класи",
+  "guide.strength":
+    "Рівень (20–100) — підсумок атрибутів коня. Росте з тренуваннями й віком і визначає ринкову ціну; сам забіг рахується за атрибутами.",
+  "guide.rating":
+    "Рейтинг забігу починається з 1000 і змінюється після кожного забігу: обігнав суперників — зростає, фінішував позаду — падає (сильніше проти сильніших). Лише він визначає клас.",
+  "guide.bands":
+    "Кожен рейтинг забігу підходить рівно одному класу; дебютні забіги — додатково, для коней без жодної перемоги.",
+  "guide.class": "Клас",
+  "guide.band": "Рейтинг забігу",
+  "horse.classesNow": "Може бігти в",
+  "horse.classesNone": "Зараз жоден клас не доступний",
 };

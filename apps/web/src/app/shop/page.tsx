@@ -96,7 +96,7 @@ function PlayerMarket() {
           <option value="newest">{t("shop.newest")}</option>
           <option value="price_asc">{t("shop.priceAsc")}</option>
           <option value="price_desc">{t("shop.priceDesc")}</option>
-          <option value="rating">{t("common.rating")}</option>
+          <option value="rating">{t("common.strength")}</option>
         </select>
       </div>
       <div className="mt-3 space-y-2">

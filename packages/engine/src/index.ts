@@ -14,6 +14,7 @@ export * from "./race/track.js";
 export * from "./race/simulate.js";
 export * from "./race/commentary.js";
 export * from "./race/rating.js";
+export * from "./race/classes.js";
 export * from "./race/aftermath.js";
 export * from "./breeding/index.js";
 export * from "./race/validation.js";

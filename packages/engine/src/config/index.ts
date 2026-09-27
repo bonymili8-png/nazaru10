@@ -495,7 +495,7 @@ export const defaultConfig: GameConfig = {
       CLASS_4: {
         entryFee: 250,
         purse: 4100,
-        minRating: 1050,
+        minRating: 1100,
         maxRating: 1199,
         maidenOnly: false,
         reputation: [22, 10, 5],
@@ -506,7 +506,7 @@ export const defaultConfig: GameConfig = {
       CLASS_3: {
         entryFee: 400,
         purse: 6600,
-        minRating: 1150,
+        minRating: 1200,
         maxRating: 1299,
         maidenOnly: false,
         reputation: [32, 15, 7],
@@ -517,7 +517,7 @@ export const defaultConfig: GameConfig = {
       CLASS_2: {
         entryFee: 650,
         purse: 10800,
-        minRating: 1250,
+        minRating: 1300,
         maxRating: 1399,
         maidenOnly: false,
         reputation: [45, 22, 10],
@@ -528,7 +528,7 @@ export const defaultConfig: GameConfig = {
       CLASS_1: {
         entryFee: 1000,
         purse: 17100,
-        minRating: 1350,
+        minRating: 1400,
         maxRating: null,
         maidenOnly: false,
         reputation: [65, 30, 15],

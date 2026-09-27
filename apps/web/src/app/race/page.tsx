@@ -10,7 +10,16 @@ import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
-import { CLASS_NAMES, countdown, errorMessage, fmt, STRATEGY_INFO, titleCase, trackName } from "@/lib/format";
+import {
+  bandText,
+  CLASS_NAMES,
+  countdown,
+  errorMessage,
+  fmt,
+  STRATEGY_INFO,
+  titleCase,
+  trackName,
+} from "@/lib/format";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { appLink, haptic, shareToTelegram } from "@/lib/telegram";
@@ -83,10 +92,7 @@ function RacePage() {
         )}
         {!race.tournamentId && (race.eligibility.minRating || race.eligibility.maxRating) && (
           <p className="mt-2 text-xs text-muted">
-            {t("race.band", {
-              min: race.eligibility.minRating ?? t("race.any"),
-              max: race.eligibility.maxRating ?? t("race.any"),
-            })}
+            {t("race.band", { band: bandText(race.eligibility.minRating, race.eligibility.maxRating) })}
           </p>
         )}
       </Card>
@@ -265,7 +271,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
             >
               {available.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {t("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
+                  {t("race.horseOption", { name: h.name, s: Math.round(h.abilityRating), r: h.raceRating })}
                 </option>
               ))}
             </select>

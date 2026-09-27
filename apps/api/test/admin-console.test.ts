@@ -53,6 +53,17 @@ describe("admin console API", () => {
       "economy.startingCredits: expected a number",
       "economy.free: unknown setting",
     ]);
+
+    // Class rating bands may not overlap or leave gaps.
+    const bands = await t.post<{ error: { code: string; details: string[] } }>(
+      "/admin/config",
+      { override: { race: { classes: { CLASS_4: { minRating: 1050 } } } }, note: "overlap classes" },
+      admin.token,
+    );
+    expect(bands.status).toBe(400);
+    expect(bands.body.error.details).toEqual([
+      "race.classes.CLASS_4.minRating: must be CLASS_5.maxRating + 1",
+    ]);
   });
 
   it("publishes a versioned override that applies live and is audited", async () => {

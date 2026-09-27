@@ -9,7 +9,7 @@ import {
   AdminReasonRequest,
   AdminUserSearchQuery,
 } from "@thoroughline/contracts";
-import { defaultConfig, validateConfigOverride } from "@thoroughline/engine";
+import { classBandProblems, defaultConfig, mergeConfig, validateConfigOverride } from "@thoroughline/engine";
 import { type AuthedRequest, type AuthUser, CurrentUser, Roles } from "../../common/auth.js";
 import { Db } from "../../common/db.js";
 import { badRequest, conflict, notFound } from "../../common/errors.js";
@@ -83,6 +83,8 @@ export class AdminController {
   async setConfig(@CurrentUser() actor: AuthUser, @Body() body: unknown, @Req() req: AuthedRequest) {
     const b = parse(AdminConfigRequest, body);
     const problems = validateConfigOverride(defaultConfig, b.override);
+    // Class rating bands must still tile the rating line once merged.
+    if (!problems.length) problems.push(...classBandProblems(mergeConfig(defaultConfig, b.override)));
     if (problems.length)
       throw badRequest("INVALID_CONFIG", "The override does not match the game settings", problems);
     const version = await this.db.tx(async (c) => {

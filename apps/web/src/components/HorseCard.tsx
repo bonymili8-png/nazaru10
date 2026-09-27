@@ -86,7 +86,7 @@ export function HorseCard({
       </div>
       <div className="text-right">
         <p className="num font-display text-2xl font-bold text-gold">{Math.round(horse.abilityRating)}</p>
-        <p className="text-[11px] uppercase tracking-wider text-muted">{t("common.rating")}</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted">{t("common.strength")}</p>
       </div>
       {href && <ChevronRight className="size-5 text-muted" aria-hidden />}
     </div>

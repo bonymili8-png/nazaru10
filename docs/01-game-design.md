@@ -259,14 +259,29 @@ transaction guarded by status + row lock, so the job can run on any number of wo
 
 ## Race classes (MVP)
 
-| Class | Eligibility | Entry fee | Base purse |
+Two numbers describe a horse, and only one gates entry:
+
+- **Ability** (UI "Ability" / "Рівень", 20–100): weighted summary of attributes plus
+  consistency/courage (`abilityRating`). Grows with training and age; drives valuation and UI
+  hints. The simulation itself runs on the attributes, never on this number.
+- **Race rating** (Elo, starts at 1 000, `eloK` 32 split across the field): every pair of
+  finishers is a virtual head-to-head, so beating rivals raises it and finishing behind lowers
+  it (more against stronger fields). **Class eligibility uses race rating only.**
+
+Rated class bands are inclusive and tile the rating line with no gaps or overlaps, so every
+race rating fits exactly one rated class; MAIDEN is extra, open at any rating until the first
+win. `classBandProblems` enforces this for the defaults (engine test) and for every admin config
+override (rejected with `INVALID_CONFIG`). Boundaries are covered end-to-end in
+`apps/api/test/race-classes.test.ts`.
+
+| Class | Eligibility (race rating, inclusive) | Entry fee | Base purse |
 |---|---|---|---|
-| MAIDEN | 0 wins | 100 | 1 600 |
-| CLASS_5 | raceRating < 1 100 | 150 | 2 500 |
-| CLASS_4 | 1 050–1 200 | 250 | 4 100 |
-| CLASS_3 | 1 150–1 300 | 400 | 6 600 |
-| CLASS_2 | 1 250–1 400 | 650 | 10 800 |
-| CLASS_1 | ≥ 1 350 | 1 000 | 17 100 |
+| MAIDEN | 0 wins (any rating) | 100 | 1 600 |
+| CLASS_5 | ≤ 1 099 | 150 | 2 500 |
+| CLASS_4 | 1 100–1 199 | 250 | 4 100 |
+| CLASS_3 | 1 200–1 299 | 400 | 6 600 |
+| CLASS_2 | 1 300–1 399 | 650 | 10 800 |
+| CLASS_1 | ≥ 1 400 | 1 000 | 17 100 |
 
 Fields below the minimum size are filled with house (NPC) horses of matching class
 so races always run, even with few players. House quality rises by class (config

@@ -283,7 +283,7 @@ export const en = {
   "facility.build": "Build · {cost} cr",
   "horse.noneSelected": "No horse selected",
   "horse.ageLine": "{age}y {sex}",
-  "horse.mark": "Mark",
+  "horse.mark": "Race rating",
   "horse.record": "Record",
   "horse.tab.overview": "Overview",
   "horse.tab.train": "Train",
@@ -407,8 +407,7 @@ export const en = {
   "race.closes": "Closes",
   "race.off": "Off",
   "race.maidenOnly": "For horses that have never won.",
-  "race.band": "Rating band {min}–{max}.",
-  "race.any": "any",
+  "race.band": "Race rating {band}.",
   "race.runnersTitle": "Runners ({n})",
   "race.noRunners": "No runners yet — house horses fill the field when entries close.",
   "race.ownersSilks": "{name}'s silks",
@@ -427,7 +426,7 @@ export const en = {
   "race.noEligible":
     "No eligible horse is free right now. Horses in training, entered elsewhere or injured can't run.",
   "race.horse": "Horse",
-  "race.horseOption": "{name} — rating {r}",
+  "race.horseOption": "{name} — ability {s} · race rating {r}",
   "race.tactics": "Tactics",
   "race.enterFee": "Enter · {fee} cr",
   "live.gates": "The field is going behind the gates…",
@@ -554,7 +553,7 @@ export const en = {
   "tentry.SCRATCHED": "Scratched",
   "tour.openToAll": "Open to all",
   "tour.seasonPts": "{n} season pts",
-  "tour.ratingPlus": "rating {n}+",
+  "tour.ratingPlus": "race rating {n}+",
   "tour.or": " or ",
   "tour.closesIn": "closes in {t}",
   "tour.finalIn": "final in {t}",
@@ -962,6 +961,22 @@ export const en = {
   "race.whyOld": "past racing age",
   "race.findOther": "Find a race that fits",
   "race.someUnfit": "Not eligible here",
+  "common.strength": "Ability",
+  "band.upTo": "up to {max}",
+  "band.range": "{min}–{max}",
+  "band.from": "{min} and above",
+  "band.maiden": "any, no wins yet",
+  "guide.title": "How ratings and classes work",
+  "guide.strength":
+    "Ability (20–100) sums up the horse's attributes. It grows with training and age and sets its market value; the race itself runs on the attributes.",
+  "guide.rating":
+    "Race rating starts at 1000 and moves after every race: beating rivals raises it, finishing behind them lowers it (more against stronger fields). It alone decides the class.",
+  "guide.bands":
+    "Each race rating fits exactly one class; maiden races are extra, for horses that have never won.",
+  "guide.class": "Class",
+  "guide.band": "Race rating",
+  "horse.classesNow": "Can race in",
+  "horse.classesNone": "No race class right now",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

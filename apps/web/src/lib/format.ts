@@ -73,3 +73,10 @@ export const errorMessage = (e: unknown): string => {
   const key = `error.${err?.code ?? ""}`;
   return err?.code && has(key) ? t(key as MessageKey) : (err?.message ?? t("state.error"));
 };
+
+/** A class's race-rating band in words: "up to 1099", "1100–1199", "1400 and above". */
+export function bandText(min: number | null, max: number | null): string {
+  if (min === null) return max === null ? t("band.maiden") : t("band.upTo", { max });
+  if (max === null) return t("band.from", { min });
+  return t("band.range", { min, max });
+}

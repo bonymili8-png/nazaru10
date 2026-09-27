@@ -203,7 +203,7 @@ function AllTime() {
   const owners = useApi<LeaderboardOwnerDto[]>(board === "owners" ? `/leaderboard/owners?by=${by}` : null);
   const active = board === "horses" ? horses : owners;
   const labels: Record<By, string> = {
-    rating: board === "horses" ? t("common.rating") : t("rank.reputation"),
+    rating: board === "horses" ? t("horse.mark") : t("rank.reputation"),
     earnings: t("rank.earnings"),
     wins: t("rank.wins"),
   };

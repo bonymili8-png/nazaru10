@@ -222,7 +222,7 @@ function RegisterForm({ t }: { t: TournamentDetailDto }) {
             >
               {available.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {tr("race.horseOption", { name: h.name, r: Math.round(h.abilityRating) })}
+                  {tr("race.horseOption", { name: h.name, s: Math.round(h.abilityRating), r: h.raceRating })}
                 </option>
               ))}
             </select>

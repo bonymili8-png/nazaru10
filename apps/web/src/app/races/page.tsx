@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { RaceCard } from "@/components/RaceCard";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
+import { ClassGuide } from "@/components/ClassGuide";
 import { CLASS_NAMES } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
@@ -71,6 +72,9 @@ export default function RacesPage() {
             {c ? CLASS_NAMES[c] : t("races.allClasses")}
           </button>
         ))}
+      </div>
+      <div className="mt-3">
+        <ClassGuide />
       </div>
       <div className="mt-3 space-y-2">
         {error && <ErrorState error={error} retry={reload} />}

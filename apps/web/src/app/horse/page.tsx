@@ -12,7 +12,14 @@ import {
   type TrainingIntensity,
   type TrainingType,
 } from "@thoroughline/contracts";
-import { bestTrainerFor, defaultConfig, trainingCost, trainingDurationMinutes } from "@thoroughline/engine";
+import {
+  bestTrainerFor,
+  canRaceAtAge,
+  defaultConfig,
+  eligibleClasses,
+  trainingCost,
+  trainingDurationMinutes,
+} from "@thoroughline/engine";
 import {
   Activity,
   Dna,
@@ -28,6 +35,7 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { ClassGuide } from "@/components/ClassGuide";
 import { coatColor } from "@/components/HorseCard";
 import { SaddleCloth } from "@/components/SaddleCloth";
 import { Syndicate } from "@/components/Syndicate";
@@ -45,6 +53,7 @@ import {
 import { del, post, put } from "@/lib/api";
 import {
   ATTRIBUTE_LABELS,
+  CLASS_NAMES,
   countdown,
   errorMessage,
   fmt,
@@ -53,7 +62,7 @@ import {
   TRAINING_INFO,
 } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
-import { getLocale, t } from "@/lib/i18n";
+import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { memberLocked } from "@/lib/member";
 import { haptic } from "@/lib/telegram";
 
@@ -101,14 +110,14 @@ function HorsePage() {
               <Badge tone="gold">{titleCase(h.rarity)}</Badge>
               <Badge>{titleCase(h.stage)}</Badge>
               <Badge tone={h.status === "IDLE" ? "good" : h.status === "INJURED" ? "bad" : "warn"}>
-                {titleCase(h.status)}
+                {t(`hstatus.${h.status}` as MessageKey)}
               </Badge>
             </div>
           </div>
         </div>
         <dl className="mt-4 grid grid-cols-4 gap-2 text-center">
           {[
-            [t("common.rating"), Math.round(h.abilityRating)],
+            [t("common.strength"), Math.round(h.abilityRating)],
             [t("horse.mark"), h.raceRating],
             [t("horse.record"), `${h.record.wins}-${h.record.seconds}-${h.record.thirds}`],
             [t("horse.earnedLabel"), fmt(h.record.earnings)],
@@ -119,6 +128,7 @@ function HorsePage() {
             </div>
           ))}
         </dl>
+        {h.status !== "RETIRED" && <RaceClasses horse={h} />}
       </Card>
 
       {mine && (
@@ -849,5 +859,27 @@ function ClothEditor({ h }: { h: HorseDetailDto }) {
         </Button>
       </Card>
     </>
+  );
+}
+
+/** The race classes this horse's record and race rating open to it now, with the full class guide. */
+function RaceClasses({ horse }: { horse: HorseDetailDto }) {
+  const classes = canRaceAtAge(horse.age, defaultConfig)
+    ? eligibleClasses(horse.raceRating, horse.record.wins, defaultConfig)
+    : [];
+  return (
+    <div className="mt-3">
+      <p className="text-sm">
+        <span className="text-muted">{classes.length ? t("horse.classesNow") : t("horse.classesNone")}</span>
+        {classes.map((c) => (
+          <span key={c} className="ml-1.5 inline-block">
+            <Badge tone="gold">{CLASS_NAMES[c]}</Badge>
+          </span>
+        ))}
+      </p>
+      <div className="mt-2">
+        <ClassGuide highlight={classes} />
+      </div>
+    </div>
   );
 }

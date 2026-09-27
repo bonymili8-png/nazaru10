@@ -4,6 +4,8 @@ import {
   type ClothPattern,
   type CosmeticsDto,
   CREST_ICONS,
+  FINISH_EFFECTS,
+  type FinishEffect,
   type Crest,
   type CrestIcon,
   SILK_PATTERNS,
@@ -24,6 +26,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 export const silkItem = (p: SilkPattern | string) => `silk:${p}`;
 export const crestItem = (i: CrestIcon | string) => `crest:${i}`;
 export const clothItem = (p: ClothPattern | string) => `cloth:${p}`;
+export const finishItem = (e: FinishEffect | string) => `finish:${e}`;
 
 /**
  * Cosmetics are the main gem sink: they change how a stable looks (racing silks on race cards and
@@ -51,11 +54,16 @@ export class CosmeticsService {
     return this.config.get().cosmetics.clothPatternPrices[p] ?? 0;
   }
 
+  private finishPrice(e: FinishEffect): number {
+    return this.config.get().cosmetics.finishEffectPrices[e] ?? 0;
+  }
+
   async view(userId: string): Promise<CosmeticsDto> {
     const [stable, owned, balances] = await Promise.all([
-      this.db.one<{ silks: Silks; crest: Crest }>("SELECT silks, crest FROM stables WHERE owner_id = $1", [
-        userId,
-      ]),
+      this.db.one<{ silks: Silks; crest: Crest; finish_effect: FinishEffect }>(
+        "SELECT silks, crest, finish_effect FROM stables WHERE owner_id = $1",
+        [userId],
+      ),
       this.db.query<{ item: string }>("SELECT item FROM owned_cosmetics WHERE user_id = $1", [userId]),
       this.ledger.balances(userId),
     ]);
@@ -80,6 +88,11 @@ export class CosmeticsService {
       clothPatterns: CLOTH_PATTERNS.map((pattern) => {
         const price = this.clothPrice(pattern);
         return { pattern, priceGems: price, owned: price <= 0 || have.has(clothItem(pattern)) };
+      }),
+      finishEffect: stable.finish_effect,
+      finishEffects: FINISH_EFFECTS.map((effect) => {
+        const price = this.finishPrice(effect);
+        return { effect, priceGems: price, owned: price <= 0 || have.has(finishItem(effect)) };
       }),
       gems: balances.GEMS,
       member,
@@ -173,6 +186,29 @@ export class CosmeticsService {
     );
     if (r.length === 0) throw notFound("Horse");
     return value;
+  }
+
+  async unlockFinishEffect(userId: string, effect: FinishEffect): Promise<CosmeticsDto> {
+    const price = this.finishPrice(effect);
+    if (price > 0)
+      await this.buy(userId, finishItem(effect), price, `Finish effect — ${effect.toLowerCase()}`);
+    return this.view(userId);
+  }
+
+  async setFinishEffect(userId: string, effect: FinishEffect): Promise<CosmeticsDto> {
+    if (this.finishPrice(effect) > 0) {
+      const owned = await row<{ item: string }>(
+        this.db.pool,
+        "SELECT item FROM owned_cosmetics WHERE user_id = $1 AND item = $2",
+        [userId, finishItem(effect)],
+      );
+      if (!owned) throw conflict("NOT_OWNED", "Unlock this effect first");
+    }
+    await this.db.query("UPDATE stables SET finish_effect = $2, updated_at = now() WHERE owner_id = $1", [
+      userId,
+      effect,
+    ]);
+    return this.view(userId);
   }
 
   /** Pay gems for a cosmetic item exactly once (the ownership row and the debit commit together). */

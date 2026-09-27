@@ -72,3 +72,62 @@ body {
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: 12px;
 }
+
+/* Finish effects (cosmetic winner celebrations). Particles play once and end invisible, so
+   reduced motion (near-zero durations above) simply shows nothing. */
+.fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.fx > * {
+  position: absolute;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+@keyframes fx-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, -24px) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), 420px) rotate(var(--spin, 360deg));
+  }
+}
+@keyframes fx-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateX(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateX(var(--r, 70px)) scale(0.4);
+  }
+}
+@keyframes fx-flash {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  16% {
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}

@@ -311,6 +311,12 @@ export type SetClothRequest = z.infer<typeof SetClothRequest>;
 
 export const ClothPatternParam = z.enum(CLOTH_PATTERNS);
 
+/** Finish effect: the stable's celebration when one of its horses wins (cosmetic only). */
+export const FINISH_EFFECTS = ["NONE", "CONFETTI", "FIREWORKS", "GOLD_RAIN", "ROSES", "LIGHTNING"] as const;
+export type FinishEffect = (typeof FINISH_EFFECTS)[number];
+export const FinishEffectParam = z.enum(FINISH_EFFECTS);
+export const SetFinishEffectRequest = z.object({ effect: z.enum(FINISH_EFFECTS) }).strict();
+
 export interface CosmeticsDto {
   silks: Silks;
   /** priceGems is null for Racing Pass exclusives (earned, never sold). */
@@ -318,6 +324,8 @@ export interface CosmeticsDto {
   crest: Crest;
   crestIcons: { icon: CrestIcon; priceGems: number; owned: boolean }[];
   clothPatterns: { pattern: ClothPattern; priceGems: number; owned: boolean }[];
+  finishEffect: FinishEffect;
+  finishEffects: { effect: FinishEffect; priceGems: number; owned: boolean }[];
   gems: number;
   /** Whether the viewer may use MEMBER_COLORS. */
   member: boolean;
@@ -804,6 +812,8 @@ export interface RaceEntryDto {
   silks: Silks | null;
   /** The horse's saddle cloth, if its owner set one. */
   cloth: SaddleCloth | null;
+  /** The owner's celebration if this horse wins (null for house horses). */
+  finishEffect: FinishEffect | null;
 }
 
 export type RaceStatus = "OPEN" | "LOCKED" | "RUNNING" | "COMPLETED" | "CANCELLED";

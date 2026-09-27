@@ -213,3 +213,62 @@ describe("cosmetics — saddle cloths", () => {
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
 });
+
+describe("cosmetics — finish effects", () => {
+  let t: TestApp;
+  let owner: { token: string; userId: string };
+
+  beforeAll(async () => {
+    t = await createTestApp();
+    owner = await t.login(9961, "Showman");
+  });
+  afterAll(() => t.close());
+
+  it("starts with free confetti; paid effects are locked", async () => {
+    const c = (await t.get<CosmeticsDto>("/cosmetics", owner.token)).body;
+    expect(c.finishEffect).toBe("CONFETTI");
+    const byEffect = Object.fromEntries(c.finishEffects.map((f) => [f.effect, f]));
+    expect(byEffect.NONE!.owned && byEffect.CONFETTI!.owned).toBe(true);
+    expect(byEffect.FIREWORKS).toMatchObject({ owned: false, priceGems: 100 });
+    const locked = await t.put<{ error: { code: string } }>(
+      "/cosmetics/finish",
+      { effect: "FIREWORKS" },
+      owner.token,
+    );
+    expect(locked.body.error.code).toBe("NOT_OWNED");
+    expect((await t.put("/cosmetics/finish", { effect: "DISCO" }, owner.token)).status).toBe(400);
+    expect((await t.put("/cosmetics/finish", { effect: "NONE" }, owner.token)).status).toBe(200);
+  });
+
+  it("unlocks an effect once for gems and shows it on the owner's race entries", async () => {
+    await t.db.tx((c) =>
+      t.service(LedgerService).credit(c, {
+        userId: owner.userId,
+        currency: "GEMS",
+        amount: 150,
+        source: "ADMIN_ADJUSTMENT",
+        key: "test:gems:showman",
+        type: "ADMIN_ADJUSTMENT",
+      }),
+    );
+    const u = await t.post<CosmeticsDto>("/cosmetics/finish/FIREWORKS/unlock", {}, owner.token);
+    expect(u.body.gems).toBe(50);
+    expect(u.body.finishEffects.find((f) => f.effect === "FIREWORKS")!.owned).toBe(true);
+    expect((await t.post("/cosmetics/finish/FIREWORKS/unlock", {}, owner.token)).status).toBe(409);
+    const set = await t.put<CosmeticsDto>("/cosmetics/finish", { effect: "FIREWORKS" }, owner.token);
+    expect(set.body.finishEffect).toBe("FIREWORKS");
+
+    const runner = t.service(RaceRunnerService);
+    await runner.scheduleAhead();
+    const race = (await t.get<RaceSummaryDto[]>("/races?status=upcoming&class=MAIDEN", owner.token)).body[0]!;
+    const horse = (await t.get<HorseSummaryDto[]>("/horses", owner.token)).body[0]!;
+    await t.post(`/races/${race.id}/entries`, { horseId: horse.id, strategy: "MID_PACK" }, owner.token);
+    t.clock.advance(new Date(race.locksAt).getTime() - t.clock.now().getTime() + 1000);
+    await runner.lockDue();
+    const d = (await t.get<RaceDetailDto>(`/races/${race.id}`, owner.token)).body;
+    expect(d.entryList.find((e) => e.mine)!.finishEffect).toBe("FIREWORKS");
+    expect(d.entryList.filter((e) => e.isHouse).every((e) => e.finishEffect === null)).toBe(true);
+  });
+
+  it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
+});

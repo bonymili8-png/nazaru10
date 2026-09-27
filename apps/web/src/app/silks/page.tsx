@@ -1,19 +1,21 @@
 "use client";
 import {
   type CosmeticsDto,
+  type FinishEffect as Effect,
   SILK_COLORS,
   type SilkColor,
   type SilkPattern,
   type Silks,
 } from "@thoroughline/contracts";
-import { Gem, Lock, Ticket } from "lucide-react";
+import { Gem, Lock, Play, Ticket } from "lucide-react";
 import { useState } from "react";
+import { FinishEffect } from "@/components/FinishEffect";
 import { Silk } from "@/components/Silk";
 import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post, put } from "@/lib/api";
 import { errorMessage, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
-import { t } from "@/lib/i18n";
+import { type MessageKey, t } from "@/lib/i18n";
 import { memberLocked } from "@/lib/member";
 import { haptic } from "@/lib/telegram";
 
@@ -148,6 +150,8 @@ export default function SilksPage() {
         </div>
       ))}
 
+      <FinishEffects data={data} />
+
       <div className="mt-5 grid grid-cols-2 gap-2">
         <LinkButton href="/profile/">{t("common.back")}</LinkButton>
         <Button onClick={save} disabled={!changed} loading={busy === "save"}>
@@ -155,5 +159,82 @@ export default function SilksPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/** The stable's winner celebration: pick, unlock for gems and preview. */
+function FinishEffects({ data }: { data: CosmeticsDto }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<Effect | null>(null);
+  const [preview, setPreview] = useState<{ effect: Effect; n: number } | null>(null);
+  const name = (e: Effect) => t(`finish.${e}` as MessageKey);
+  const choose = async (f: CosmeticsDto["finishEffects"][number]) => {
+    if (f.effect === data.finishEffect) return;
+    setBusy(f.effect);
+    try {
+      if (!f.owned) {
+        if (!window.confirm(t("finish.confirmUnlock", { name: name(f.effect), n: f.priceGems }))) return;
+        await post(`/cosmetics/finish/${f.effect}/unlock`);
+        toast(t("finish.unlocked", { name: name(f.effect) }));
+      }
+      await put("/cosmetics/finish", { effect: f.effect });
+      haptic.success();
+      toast(t("finish.saved", { name: name(f.effect) }));
+      setPreview((p) => ({ effect: f.effect, n: (p?.n ?? 0) + 1 }));
+      invalidate("/cosmetics", "/wallet");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const shown = preview?.effect ?? data.finishEffect;
+  return (
+    <>
+      <SectionTitle
+        action={
+          <Button
+            variant="ghost"
+            className="min-h-9 text-sm"
+            onClick={() => setPreview((p) => ({ effect: shown, n: (p?.n ?? 0) + 1 }))}
+          >
+            <Play className="size-4" aria-hidden />
+            {t("finish.preview")}
+          </Button>
+        }
+      >
+        {t("finish.title")}
+      </SectionTitle>
+      <Card className="relative min-h-28 overflow-hidden bg-gradient-to-br from-surface to-surface-2">
+        {preview && <FinishEffect key={preview.n} effect={preview.effect} />}
+        <p className="relative text-sm text-muted">{t("finish.hint")}</p>
+        <div
+          className="relative mt-3 grid grid-cols-3 gap-2"
+          role="radiogroup"
+          aria-label={t("finish.title")}
+        >
+          {data.finishEffects.map((f) => (
+            <button
+              key={f.effect}
+              role="radio"
+              aria-checked={data.finishEffect === f.effect}
+              disabled={busy !== null}
+              onClick={() => void choose(f)}
+              className={`flex min-h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center transition-colors ${data.finishEffect === f.effect ? "border-gold bg-gold/10" : "border-line/60 bg-surface"}`}
+            >
+              <span className="text-xs font-medium">{name(f.effect)}</span>
+              {!f.owned && (
+                <span className="num flex items-center gap-1 text-[11px] text-gold">
+                  <Lock className="size-3" aria-hidden />
+                  {f.priceGems}
+                  <Gem className="size-3" aria-hidden />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </Card>
+    </>
   );
 }

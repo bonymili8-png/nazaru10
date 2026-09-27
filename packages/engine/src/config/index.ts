@@ -211,6 +211,8 @@ export interface GameConfig {
     crestIconPrices: Record<string, number>;
     /** Gem price to unlock each saddle-cloth pattern for the whole stable (0 = free). */
     clothPatternPrices: Record<string, number>;
+    /** Gem price to unlock each finish effect (0 = free). */
+    finishEffectPrices: Record<string, number>;
   };
   /** Clubs: player groups ranked by their members' season points. */
   clubs: {
@@ -615,6 +617,7 @@ export const defaultConfig: GameConfig = {
       LAUREL: 150,
     },
     clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
+    finishEffectPrices: { NONE: 0, CONFETTI: 0, ROSES: 80, FIREWORKS: 100, GOLD_RAIN: 120, LIGHTNING: 150 },
   },
   clubs: { createCost: 5000, maxMembers: 20, rejoinCooldownHours: 24 },
   sponsors: {

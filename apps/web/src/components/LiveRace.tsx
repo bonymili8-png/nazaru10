@@ -8,6 +8,7 @@ import { fmt, ordinal, STRATEGY_INFO } from "@/lib/format";
 import { t as tr } from "@/lib/i18n";
 import { commentaryText } from "@/lib/i18n/commentary";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
+import { FinishEffect } from "./FinishEffect";
 import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
 
@@ -130,6 +131,8 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
     .slice(-3)
     .reverse();
   const done = live.status === "COMPLETED" && playT >= available;
+  // The winner's owner-chosen celebration plays once the picture reaches the finish.
+  const winnerEffect = live.results?.find((r) => r.position === 1)?.finishEffect ?? null;
 
   return (
     <>
@@ -145,7 +148,8 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
       >
         {live.status === "RUNNING" ? tr("live.live") : tr("live.replay")}
       </SectionTitle>
-      <Card className="p-2">
+      <Card className="relative p-2">
+        {done && winnerEffect && <FinishEffect key={replayStart ?? "live"} effect={winnerEffect} />}
         <svg
           viewBox={`${b.x} ${b.y} ${b.w} ${b.h}`}
           className="w-full"

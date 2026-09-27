@@ -139,6 +139,10 @@ with competitive horses for real money.
 - **Gem sinks** are cosmetics (silks, crest, cloths), the Racing Pass, information (diagnostics)
   and visibility (featured listings). Further candidates: advanced race analytics, convenience
   (multi-week auto-renew), finish effects.
+- **No gems → credits conversion** (owner decision, re-confirmed): not even a capped, bound-credit
+  variant. Credits stay earn-only.
+- **Finish effects** (live): a stable-wide winner celebration drawn over the race picture for every
+  viewer — confetti (free), roses 80, fireworks 100, gold rain 120, lightning 150 gems.
 - **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
   placements, invoiced outside the game (and physical merch if ever sold). It is never used for
   in-app digital goods. The provider stub stays disabled until the owner connects an account

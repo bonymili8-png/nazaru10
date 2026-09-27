@@ -4,8 +4,10 @@ import {
   type CosmeticsDto,
   type SaddleCloth,
   CrestIconParam,
+  FinishEffectParam,
   SetClothRequest,
   SetCrestRequest,
+  SetFinishEffectRequest,
   SetSilksRequest,
   SilkPatternParam,
 } from "@thoroughline/contracts";
@@ -49,6 +51,16 @@ export class CosmeticsController {
     @Body() body: unknown,
   ): Promise<SaddleCloth> {
     return this.cosmetics.setCloth(user.id, id, parse(SetClothRequest, body));
+  }
+
+  @Post("finish/:effect/unlock")
+  unlockFinish(@CurrentUser() user: AuthUser, @Param("effect") effect: string): Promise<CosmeticsDto> {
+    return this.cosmetics.unlockFinishEffect(user.id, parse(FinishEffectParam, effect));
+  }
+
+  @Put("finish")
+  setFinish(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<CosmeticsDto> {
+    return this.cosmetics.setFinishEffect(user.id, parse(SetFinishEffectRequest, body).effect);
   }
 
   @Put("crest")

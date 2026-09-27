@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type {
   LiveRaceDto,
   SaddleCloth,
+  FinishEffect,
   Silks,
   RaceDetailDto,
   RaceEntryDto,
@@ -28,6 +29,7 @@ import type { EntryRow, RaceRow, ResultRow } from "./race.types.js";
 
 type EntryViewRow = EntryRow & {
   silks: Silks | null;
+  finish_effect: FinishEffect | null;
   cloth: SaddleCloth | null;
   horse_name: string;
   owner_name: string | null;
@@ -240,7 +242,7 @@ export class RacesService {
     return rows<EntryViewRow>(
       c,
       `SELECT e.*, h.name AS horse_name, h.ability_rating, h.race_rating, h.cloth, j.name AS jockey_name,
-              COALESCE(u.username, u.first_name) AS owner_name, st.silks
+              COALESCE(u.username, u.first_name) AS owner_name, st.silks, st.finish_effect
          FROM race_entries e
          JOIN horses h ON h.id = e.horse_id
          LEFT JOIN users u ON u.id = e.owner_id
@@ -273,6 +275,7 @@ export class RacesService {
       mine,
       silks: e.is_house ? null : e.silks,
       cloth: e.is_house ? null : e.cloth,
+      finishEffect: e.is_house ? null : e.finish_effect,
     };
   }
 

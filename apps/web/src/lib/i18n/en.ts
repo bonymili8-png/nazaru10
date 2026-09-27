@@ -1027,6 +1027,19 @@ export const en = {
   "race.noGear": "None",
   "race.gearShop": "Buy gear in the tack room",
   "ledger.GEAR_PURCHASE": "Race gear",
+  "finish.title": "Finish effect",
+  "finish.hint":
+    "Plays over the race picture when one of your horses wins — for everyone watching. Looks only.",
+  "finish.NONE": "None",
+  "finish.CONFETTI": "Confetti",
+  "finish.FIREWORKS": "Fireworks",
+  "finish.GOLD_RAIN": "Gold rain",
+  "finish.ROSES": "Roses",
+  "finish.LIGHTNING": "Lightning",
+  "finish.preview": "Preview",
+  "finish.saved": "Finish effect set: {name}",
+  "finish.confirmUnlock": "Unlock the {name} finish effect for {n} gems?",
+  "finish.unlocked": "{name} unlocked",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

@@ -164,11 +164,13 @@ export class HorsesService {
     listingId: string | null = null,
     studFee: number | null = null,
     follow: { followed: boolean; followers: number } = { followed: false, followers: 0 },
+    offerBand: { min: number; max: number } | null = null,
   ): HorseDetailDto {
     const isOwner = viewerId !== null && h.owner_id === viewerId;
     return {
       ...this.summary(h, now, ownerName),
       ...follow,
+      offerBand,
       private: isOwner
         ? {
             attributes: h.attributes,

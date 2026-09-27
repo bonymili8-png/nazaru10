@@ -830,6 +830,8 @@ export interface HorseSummaryDto {
 }
 
 export interface HorseDetailDto extends HorseSummaryDto {
+  /** Price band for an offer on this horse (null when the viewer cannot make one). */
+  offerBand: { min: number; max: number } | null;
   /** Whether the viewer follows this horse, and how many players do. */
   followed: boolean;
   followers: number;
@@ -1010,6 +1012,26 @@ export interface MarketListingDetailDto extends MarketListingDto {
   feeRate: number;
   /** Price and length of one featuring (for the seller's button). */
   feature: { gems: number; hours: number };
+}
+
+export const MakeOfferRequest = z.object({ amount: z.number().int().positive() }).strict();
+
+export interface HorseOfferDto {
+  id: string;
+  horse: HorseSummaryDto;
+  amount: number;
+  status: "OPEN" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
+  expiresAt: string;
+  createdAt: string;
+  buyerName: string | null;
+  sellerName: string | null;
+  /** Seller's proceeds after the market fee. */
+  net: number;
+}
+
+export interface OffersDto {
+  received: HorseOfferDto[];
+  made: HorseOfferDto[];
 }
 
 export interface MarketMineDto {

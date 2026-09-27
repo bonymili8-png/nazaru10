@@ -343,6 +343,9 @@ export interface GameConfig {
     maxPriceFactor: number;
     auctionHours: number[];
     fixedListingDays: number;
+    /** Offers on horses not for sale: how long they stay open, and how many one buyer may hold. */
+    offerHours: number;
+    maxOpenOffers: number;
     /** A bid in the last N minutes extends the auction to N minutes from now. */
     antiSnipeMinutes: number;
     minIncrementRate: number;
@@ -843,6 +846,8 @@ export const defaultConfig: GameConfig = {
     maxPriceFactor: 20,
     auctionHours: [24, 48, 72],
     fixedListingDays: 7,
+    offerHours: 48,
+    maxOpenOffers: 10,
     antiSnipeMinutes: 5,
     minIncrementRate: 0.05,
     minIncrement: 50,

@@ -4,16 +4,22 @@ import {
   CreateListingRequest,
   type MarketListingDetailDto,
   type MarketListingDto,
+  type HorseOfferDto,
   type MarketMineDto,
+  type OffersDto,
   MarketQuery,
 } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { MarketService } from "./market.service.js";
+import { OffersService } from "./offers.service.js";
 
 @Controller("market")
 export class MarketController {
-  constructor(private readonly market: MarketService) {}
+  constructor(
+    private readonly market: MarketService,
+    private readonly offersService: OffersService,
+  ) {}
 
   @Get("listings")
   list(@CurrentUser() user: AuthUser, @Query() query: unknown): Promise<MarketListingDto[]> {
@@ -74,5 +80,26 @@ export class MarketController {
     @Body() body: unknown,
   ): Promise<MarketListingDetailDto> {
     return this.market.bid(user.id, id, parse(BidRequest, body).amount);
+  }
+
+  /** The player's offers: received on their horses and made on others'. */
+  @Get("offers")
+  offers(@CurrentUser() user: AuthUser): Promise<OffersDto> {
+    return this.offersService.mine(user.id);
+  }
+
+  @Post("offers/:id/accept")
+  accept(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string): Promise<HorseOfferDto> {
+    return this.offersService.accept(user.id, id);
+  }
+
+  @Post("offers/:id/decline")
+  decline(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string): Promise<HorseOfferDto> {
+    return this.offersService.decline(user.id, id);
+  }
+
+  @Post("offers/:id/withdraw")
+  withdraw(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string): Promise<HorseOfferDto> {
+    return this.offersService.withdraw(user.id, id);
   }
 }

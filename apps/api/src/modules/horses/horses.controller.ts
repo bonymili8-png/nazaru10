@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import {
   type HorseAdviceDto,
+  type HorseOfferDto,
+  MakeOfferRequest,
   type HorseDetailDto,
   type HorseSummaryDto,
   RenameHorseRequest,
@@ -21,6 +23,7 @@ import { trainingAdvice } from "@thoroughline/engine";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
 import { NutritionService } from "./nutrition.service.js";
+import { OffersService } from "../market/offers.service.js";
 
 @Controller("horses")
 export class HorsesController {
@@ -32,6 +35,7 @@ export class HorsesController {
     private readonly races: RacesService,
     private readonly clock: Clock,
     private readonly config: GameConfigService,
+    private readonly offers: OffersService,
   ) {}
 
   @Get()
@@ -71,7 +75,18 @@ export class HorsesController {
       listing?.id ?? null,
       stud?.fee ?? null,
       await this.horses.followInfo(h.id, user.id),
+      this.offers.canOffer(h, user.id) ? this.offers.band(h, this.clock.now()) : null,
     );
+  }
+
+  /** Offer to buy a horse that is not for sale (amount held in escrow until answered). */
+  @Post(":id/offers")
+  makeOffer(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<HorseOfferDto> {
+    return this.offers.make(user.id, id, parse(MakeOfferRequest, body).amount);
   }
 
   @Post(":id/follow")

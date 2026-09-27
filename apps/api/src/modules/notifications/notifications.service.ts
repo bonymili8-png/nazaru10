@@ -102,6 +102,29 @@ export class NotificationsService {
             ? `📋 ${name("trainerName")} залишив вашу стайню — не вдалося сплатити тижневу зарплату ${credits(p.salary, lang)}.`
             : `📋 ${name("trainerName")} has left your stable — the weekly salary of ${credits(p.salary, lang)} could not be paid.`,
         };
+      case "offer_received":
+        return {
+          userId,
+          openApp: true,
+          text: uk
+            ? `💰 Пропозиція за ${name("horseName")}: ${credits(p.amount, lang)}. Прийняти чи відхилити можна на ринку протягом 48 годин.`
+            : `💰 An offer for ${name("horseName")}: ${credits(p.amount, lang)}. Accept or decline it in the market within 48 hours.`,
+        };
+      case "offer_accepted":
+        return {
+          userId,
+          openApp: true,
+          text: uk
+            ? `🎉 Вашу пропозицію прийнято: ${name("horseName")} тепер у вашій стайні!`
+            : `🎉 Your offer was accepted: ${name("horseName")} is now in your stable!`,
+        };
+      case "offer_declined":
+        return {
+          userId,
+          text: uk
+            ? `Власник ${name("horseName")} відхилив вашу пропозицію; ${credits(p.amount, lang)} повернуто.`
+            : `The owner of ${name("horseName")} declined your offer; ${credits(p.amount, lang)} returned.`,
+        };
       case "followed_win":
         return {
           userId,

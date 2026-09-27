@@ -47,6 +47,7 @@ import { TournamentsController } from "./modules/tournaments/tournaments.control
 import { TournamentsService } from "./modules/tournaments/tournaments.service.js";
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";
+import { OffersService } from "./modules/market/offers.service.js";
 import { NotificationsService } from "./modules/notifications/notifications.service.js";
 import { EngagementService } from "./modules/notifications/engagement.service.js";
 import { EventsController } from "./modules/events/events.controller.js";
@@ -151,6 +152,7 @@ export class AppModule {
         ReportsService,
         ShopService,
         MarketService,
+        OffersService,
         BreedingService,
         SeasonsService,
         TournamentsService,

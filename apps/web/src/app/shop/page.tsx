@@ -14,6 +14,7 @@ import { Check, Crown, Gem, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { HorseCard } from "@/components/HorseCard";
 import { ListingCard } from "@/components/ListingCard";
+import { MyOffers } from "@/components/Offers";
 import {
   Button,
   Card,
@@ -119,6 +120,7 @@ function MyMarket() {
   if (!data) return <Skeleton className="mt-3 h-40" />;
   return (
     <>
+      <MyOffers />
       <SectionTitle>{t("shop.yourBids")}</SectionTitle>
       {data.bids.length === 0 ? (
         <p className="text-sm text-muted">{t("shop.noBids")}</p>

@@ -171,6 +171,15 @@ two owners (FK + unique current owner column). Price sanity: listing price must 
 within [0.2×, 20×] the valuation model; wash-trading detection by trade graph
 (same device/IP clusters, circular trades) feeds the risk score.
 
+### Offers on horses not for sale
+
+Any player can offer for another owner's active horse that is not listed (same price band as the
+market, one open offer per horse, up to 10 open offers, a free box needed). The amount is held in
+the market escrow; the owner accepts (sale with the usual fee, ownership transfer, every other
+open offer on the horse refunded) or declines, the buyer may withdraw, and unanswered offers
+expire after 48 h (also when the horse changes hands or retires) with a full refund. Owners are
+told by bot message; buyers hear when accepted or declined.
+
 ## Seasons (Phase 2)
 
 * A season lasts one game year (`lifecycle.realDaysPerGameYear`, 28 days) starting from

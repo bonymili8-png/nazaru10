@@ -45,6 +45,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
 import { ColorPicker } from "@/components/ColorPicker";
+import { MakeOffer } from "@/components/Offers";
 import { RaceCard } from "@/components/RaceCard";
 import { RenameForm } from "@/components/RenameForm";
 import { coatColor } from "@/components/HorseCard";
@@ -204,6 +205,7 @@ function HorsePage() {
       {(!mine || tab === "history") && <History id={h.id} />}
       {(!mine || tab === "history") && <Pedigree id={h.id} />}
       {!h.isHouse && (!mine || tab === "overview") && <Syndicate horseId={h.id} horseName={h.name} />}
+      {!mine && h.offerBand && <MakeOffer h={h} />}
     </div>
   );
 }

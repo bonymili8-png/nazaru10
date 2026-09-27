@@ -9,6 +9,7 @@ import { NutritionService } from "../horses/nutrition.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { EngagementService } from "../notifications/engagement.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
@@ -40,6 +41,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly nutrition: NutritionService,
     private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
+    private readonly engagement: EngagementService,
     private readonly referrals: ReferralsService,
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
@@ -77,6 +79,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("feed-prune", () => this.feed.prune());
         await this.step("sponsor-expiry", () => this.sponsors.expireDue());
         await this.step("membership-expiry", () => this.subscriptions.expireDue());
+        await this.step("comeback-nudges", () => this.engagement.nudgeDue());
       }
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;

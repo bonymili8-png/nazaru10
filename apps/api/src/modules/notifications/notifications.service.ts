@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Db } from "../../common/db.js";
 import { LOGGER, type Logger } from "../../common/logger.js";
+import { ENV, type Env } from "../../config/env.js";
 import { credits, type Lang, langOf, num, ordinal } from "../../common/i18n.js";
 import { BOT_API, type BotApi } from "../telegram/bot-api.js";
 
@@ -24,9 +25,10 @@ export class NotificationsService {
     private readonly db: Db,
     @Inject(BOT_API) private readonly bot: BotApi,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
-  render(e: EventRow, lang: Lang = "en"): { userId: string; text: string } | null {
+  render(e: EventRow, lang: Lang = "en"): { userId: string; text: string; openApp?: boolean } | null {
     const p = e.payload;
     const uk = lang === "uk";
     const userId = String(p.userId);
@@ -100,6 +102,14 @@ export class NotificationsService {
             ? `📋 ${name("trainerName")} залишив вашу стайню — не вдалося сплатити тижневу зарплату ${credits(p.salary, lang)}.`
             : `📋 ${name("trainerName")} has left your stable — the weekly salary of ${credits(p.salary, lang)} could not be paid.`,
         };
+      case "comeback_nudge":
+        return {
+          userId,
+          openApp: true,
+          text: uk
+            ? `🐎 ${name("horseName")} відпочив і готовий до старту. Забіги стартують щокілька хвилин — стайня чекає на вас!`
+            : `🐎 ${name("horseName")} is rested and ready to run. Races go off every few minutes — your stable is waiting!`,
+        };
       case "feed_lapsed": {
         const plan = uk
           ? p.plan === "ELITE"
@@ -151,7 +161,7 @@ export class NotificationsService {
       await c.query("UPDATE domain_events SET processed_at = now() WHERE id = ANY($1::bigint[])", [
         events.rows.map((e) => e.id),
       ]);
-      const out: { chatId: number; text: string }[] = [];
+      const out: { chatId: number; text: string; button?: string }[] = [];
       for (const e of events.rows) {
         const userId = this.render(e)?.userId;
         if (!userId) continue;
@@ -166,13 +176,23 @@ export class NotificationsService {
         if (!user?.telegram_id || user.settings.notifications === false) continue;
         const m = this.render(e, langOf(user.language_code, user.settings.locale));
         if (!m) continue;
-        out.push({ chatId: user.telegram_id, text: m.text });
+        const lang = langOf(user.language_code, user.settings.locale);
+        out.push({
+          chatId: user.telegram_id,
+          text: m.text,
+          button: m.openApp ? (lang === "uk" ? "Відкрити стайню" : "Open the stable") : undefined,
+        });
       }
       return out;
     });
     for (const m of messages) {
       try {
-        await this.bot.sendMessage(m.chatId, m.text);
+        const url = this.env.WEBAPP_URL;
+        await this.bot.sendMessage(
+          m.chatId,
+          m.text,
+          m.button && url ? [[{ text: m.button, web_app: { url } }]] : undefined,
+        );
       } catch (err) {
         this.logger.warn({ err, chatId: m.chatId }, "notification delivery failed");
       }

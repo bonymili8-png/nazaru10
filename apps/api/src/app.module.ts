@@ -48,6 +48,7 @@ import { TournamentsService } from "./modules/tournaments/tournaments.service.js
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";
 import { NotificationsService } from "./modules/notifications/notifications.service.js";
+import { EngagementService } from "./modules/notifications/engagement.service.js";
 import { StripeProvider, TelegramStarsProvider } from "./modules/payments/payment-provider.js";
 import { PaymentsController } from "./modules/payments/payments.controller.js";
 import { PaymentsService } from "./modules/payments/payments.service.js";
@@ -160,6 +161,7 @@ export class AppModule {
         StripeProvider,
         PaymentsService,
         NotificationsService,
+        EngagementService,
         JobRunnerService,
       ],
     };

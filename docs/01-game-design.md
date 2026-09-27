@@ -331,6 +331,13 @@ Shared race and horse links carry the sharer's referral code (`race_<uuid>_r<COD
 recorded as that owner's referral exactly like a `ref_<CODE>` invite (same 24-hour activity check
 and fraud rules). The web app routes on the `kind_uuid` prefix and ignores the suffix.
 
+## Comeback nudges
+
+A player away for 2 days (but less than 14) gets one bot message naming their best horse, with a
+button back into the stable: at most one every 3 days and 3 per absence (the count resets when they
+return), only 07:00–18:00 UTC, and never when notifications are off. Tunables in
+`engagement.service.ts` (`NUDGE`).
+
 ## Clubs (Phase 3, v1)
 
 Players found a club (5,000 credits, sink `CLUBS`) with a unique name and a 2–4 character tag,

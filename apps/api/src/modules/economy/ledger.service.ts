@@ -30,6 +30,7 @@ export type SystemAccount =
   | "TOURNAMENT_PRIZE"
   | "STAFF_SALARY"
   | "FACILITIES"
+  | "FEED"
   | "COSMETICS"
   | "CLUBS"
   | "SPONSORS"

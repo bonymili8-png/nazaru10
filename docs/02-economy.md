@@ -215,6 +215,16 @@ unfinished contracts expire without penalty. Modelled in `sim:economy`: ~54% of 
 complete and sponsors are ~11% of recurring income (new gate: 2–15%); all 14 gates pass at 300
 and 500 owners. Config: `sponsors.offersPerWeek`, `contractDays`, `catalog`.
 
+## Feed plans (Phase 2+, nutrition)
+
+Per-horse weekly feed plans are an optional credit sink (`FEED`) that only speeds recovery
+(see game design F.4). The first tuning (Premium ×1.15 / Elite ×1.3 recovery) lifted the player
+win rate from 23.6 % to 27.1 % — fresher horses train more and race less tired — so the effects
+were cut (×1.08 / ×1.15), prices raised (200 / 500 per week) and house quality nudged up in the
+two entry classes (Maiden 0.20–0.44, Class 5 0.34–0.54). Result: win rate 23.0 % (300 owners) /
+23.8 % (500), ~58–63 % of owners feed one horse better, feed ≈ 4 % of recurring income. New gates:
+10–70 % adoption and feed 1–10 % of income; all 16 gates pass.
+
 ## Owners' Circle subscription (Phase 3)
 
 A Telegram Stars subscription (`OWNERS_CIRCLE`, 150 ⭐ per 30 days, `subscription_period`

@@ -977,6 +977,27 @@ export const en = {
   "guide.band": "Race rating",
   "horse.classesNow": "Can race in",
   "horse.classesNone": "No race class right now",
+  "ledger.FEED": "Feed plan",
+  "nutrition.title": "Feed",
+  "nutrition.hint":
+    "Better feed helps the horse recover faster between races and training and hold its form longer. It does not raise attributes.",
+  "nutrition.STANDARD": "Standard",
+  "nutrition.PREMIUM": "Premium",
+  "nutrition.ELITE": "Elite",
+  "nutrition.free": "Free",
+  "nutrition.perWeek": "{n} cr / week",
+  "nutrition.effect": "Recovery +{r}% · health +{h}% · form holds {f}% longer",
+  "nutrition.basic": "Normal recovery",
+  "nutrition.renews": "Paid until {date}, renews automatically",
+  "nutrition.ends": "Paid until {date}, then back to standard",
+  "nutrition.confirm":
+    "Switch {name} to {plan} feed for {n} cr a week? The first week is charged now and renews automatically.",
+  "nutrition.confirmSwitch": "The rest of the current paid week is not refunded.",
+  "nutrition.started": "{plan} feed started",
+  "nutrition.stop": "Stop renewal",
+  "nutrition.resume": "Resume renewal",
+  "nutrition.stopped": "Renewal stopped",
+  "nutrition.resumed": "Renewal resumed",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

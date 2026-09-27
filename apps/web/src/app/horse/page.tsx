@@ -1,6 +1,7 @@
 "use client";
 import {
   type CosmeticsDto,
+  type FeedPlan,
   type HorseDetailDto,
   type SaddleCloth as Cloth,
   SILK_COLORS,
@@ -211,6 +212,8 @@ function Overview({ h }: { h: HorseDetailDto }) {
           </Button>
         )}
       </Card>
+
+      <FeedCard h={h} />
 
       <SectionTitle>{t("horse.attributes")}</SectionTitle>
       <Card>
@@ -881,5 +884,92 @@ function RaceClasses({ horse }: { horse: HorseDetailDto }) {
         <ClassGuide highlight={classes} />
       </div>
     </div>
+  );
+}
+
+/** Weekly feed plan: recovery between sessions only (no attribute or race-day edge). */
+function FeedCard({ h }: { h: HorseDetailDto }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<FeedPlan | null>(null);
+  const f = h.private!.feed;
+  const until = f.paidUntil
+    ? new Date(f.paidUntil).toLocaleDateString(getLocale() === "uk" ? "uk-UA" : "en", {
+        day: "numeric",
+        month: "short",
+      })
+    : null;
+  const pct = (x: number) => Math.round(Math.abs(x - 1) * 100);
+  const choose = async (plan: FeedPlan, done: string) => {
+    setBusy(plan);
+    try {
+      await post(`/horses/${h.id}/feed`, { plan });
+      haptic.success();
+      toast(done);
+      invalidate(`/horses/${h.id}`, "/wallet");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const pick = (o: (typeof f.options)[number]) => {
+    const name = t(`nutrition.${o.plan}` as MessageKey);
+    if (o.plan === f.plan) return;
+    if (o.plan === "STANDARD") return void choose("STANDARD", t("nutrition.stopped"));
+    const ask = t("nutrition.confirm", { name: h.name, plan: name.toLowerCase(), n: fmt(o.weeklyCost) });
+    if (!window.confirm(f.plan === "STANDARD" ? ask : `${ask} ${t("nutrition.confirmSwitch")}`)) return;
+    void choose(o.plan, t("nutrition.started", { plan: name }));
+  };
+  return (
+    <>
+      <SectionTitle>{t("nutrition.title")}</SectionTitle>
+      <Card>
+        <p className="text-sm text-muted">{t("nutrition.hint")}</p>
+        <div className="mt-3 space-y-2" role="radiogroup" aria-label={t("nutrition.title")}>
+          {f.options.map((o) => (
+            <button
+              key={o.plan}
+              role="radio"
+              aria-checked={f.plan === o.plan}
+              disabled={busy !== null}
+              onClick={() => pick(o)}
+              className={`flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors disabled:opacity-60 ${f.plan === o.plan ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
+            >
+              <span>
+                <span className="block font-semibold">{t(`nutrition.${o.plan}` as MessageKey)}</span>
+                <span className="block text-xs text-muted">
+                  {o.plan === "STANDARD"
+                    ? t("nutrition.basic")
+                    : t("nutrition.effect", { r: pct(o.recovery), h: pct(o.regen), f: pct(o.formDecay) })}
+                </span>
+              </span>
+              <span className="num shrink-0 text-sm text-gold">
+                {o.weeklyCost ? t("nutrition.perWeek", { n: fmt(o.weeklyCost) }) : t("nutrition.free")}
+              </span>
+            </button>
+          ))}
+        </div>
+        {until && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted">
+              {t(f.renews ? "nutrition.renews" : "nutrition.ends", { date: until })}
+            </p>
+            <Button
+              variant="ghost"
+              loading={busy === (f.renews ? "STANDARD" : f.plan)}
+              disabled={busy !== null}
+              onClick={() =>
+                void (f.renews
+                  ? choose("STANDARD", t("nutrition.stopped"))
+                  : choose(f.plan, t("nutrition.resumed")))
+              }
+            >
+              {f.renews ? t("nutrition.stop") : t("nutrition.resume")}
+            </Button>
+          </div>
+        )}
+      </Card>
+    </>
   );
 }

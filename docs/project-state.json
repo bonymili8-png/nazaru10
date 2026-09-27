@@ -1,7 +1,7 @@
 {
   "project_status": "IN_PROGRESS",
   "current_phase": "LIVE_BETA",
-  "last_checkpoint": "PHASE_2_STAFF",
+  "last_checkpoint": "PHASE_2PLUS_NUTRITION",
   "completed_tasks": [
     "0.1.1",
     "0.2.1",
@@ -80,7 +80,10 @@
     "24.2.1-syndicates",
     "24.3.1-news-feed",
     "24.4.1-sponsors",
-    "24.5.1-owners-circle-subscription"
+    "24.5.1-owners-circle-subscription",
+    "25.0.1-race-entry-reasons",
+    "25.0.2-class-bands-and-rating-names",
+    "25.1.1-feed-plans"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
@@ -97,5 +100,5 @@
   "technical_debt": [
     "Economy win-rate gate sits at ~24% (cap 25%, ±1pt cohort noise): any new player edge must re-tune house fields in the same change"
   ],
-  "next_action": "Watch live-economy gem sinks (silks, crest, cloths, pass); set REDIS_URL when running more than one API replica"
+  "next_action": "Equipment (race-day gear with trade-offs, sim-gated); watch live gem sinks; set REDIS_URL when running more than one API replica"
 }

@@ -1,10 +1,12 @@
 import {
+  FEED_PLANS,
   RACE_CLASSES,
   STRATEGIES,
   TRAINING_INTENSITIES,
   TRAINING_TYPES,
   type Aptitudes,
   type Attributes,
+  type FeedPlan,
   type HorseStatus,
   type RaceClass,
   type RaceEventType,
@@ -41,6 +43,10 @@ export const StartTrainingRequest = z.object({
   intensity: z.enum(TRAINING_INTENSITIES),
 });
 export type StartTrainingRequest = z.infer<typeof StartTrainingRequest>;
+
+/** Choose a horse's feed plan. STANDARD stops renewal: a paid week still runs to its end. */
+export const SetFeedRequest = z.object({ plan: z.enum(FEED_PLANS) }).strict();
+export type SetFeedRequest = z.infer<typeof SetFeedRequest>;
 
 export const EnterRaceRequest = z.object({
   horseId: z.string().uuid(),
@@ -639,6 +645,16 @@ export interface ConditionDto {
   hoursToRaceReady: number;
 }
 
+export interface FeedDto {
+  plan: FeedPlan;
+  /** End of the paid week (null on the free standard plan). */
+  paidUntil: string | null;
+  /** Whether the plan renews at paidUntil (false = it falls back to STANDARD then). */
+  renews: boolean;
+  /** Plans on offer with their weekly cost and effect (multipliers). */
+  options: { plan: FeedPlan; weeklyCost: number; recovery: number; regen: number; formDecay: number }[];
+}
+
 export interface TrainingSessionDto {
   id: string;
   horseId: string;
@@ -740,6 +756,7 @@ export interface HorseDetailDto extends HorseSummaryDto {
     /** Stud fee when the stallion stands at stud, else null. */
     studFee: number | null;
     condition: ConditionDto;
+    feed: FeedDto;
     injuredUntil: string | null;
     activeTraining: TrainingSessionDto | null;
     diagnostics: {
@@ -1070,6 +1087,7 @@ export interface HomeDto {
 export type {
   Attributes,
   Aptitudes,
+  FeedPlan,
   HorseStatus,
   RaceClass,
   RaceEventType,
@@ -1082,4 +1100,4 @@ export type {
   Traits,
   Weather,
 };
-export { RACE_CLASSES, STRATEGIES, TRAINING_INTENSITIES, TRAINING_TYPES };
+export { FEED_PLANS, RACE_CLASSES, STRATEGIES, TRAINING_INTENSITIES, TRAINING_TYPES };

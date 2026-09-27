@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type {
   ConditionDto,
+  FeedDto,
   HorseDetailDto,
   HorseSummaryDto,
   ShopHorseDto,
@@ -9,6 +10,9 @@ import type {
 import {
   ageInYears,
   type Condition,
+  FEED_PLANS,
+  feedCost,
+  feedEffect,
   type HorseStatus,
   hoursUntilFatigue,
   lifeStage,
@@ -47,6 +51,7 @@ export class HorsesService {
       now,
       h.attributes.endurance,
       this.config.get(),
+      feedEffect(h.feed_plan, this.config.get()),
     );
   }
 
@@ -79,9 +84,35 @@ export class HorsesService {
       health: round(cond.health, 1),
       form: round(cond.form, 2),
       hoursToRaceReady: round(
-        hoursUntilFatigue(cond.fatigue, cfg.condition.maxFatigueToRace, h.attributes.endurance, cfg),
+        hoursUntilFatigue(
+          cond.fatigue,
+          cfg.condition.maxFatigueToRace,
+          h.attributes.endurance,
+          cfg,
+          feedEffect(h.feed_plan, cfg).recovery,
+        ),
         2,
       ),
+    };
+  }
+
+  /** The horse's feed plan and the plans on offer (see NutritionService). */
+  feedDto(h: HorseRow): FeedDto {
+    const cfg = this.config.get();
+    return {
+      plan: h.feed_plan,
+      paidUntil: h.feed_paid_until?.toISOString() ?? null,
+      renews: h.feed_plan !== "STANDARD" && h.feed_renews,
+      options: FEED_PLANS.map((plan) => {
+        const p = plan === "STANDARD" ? null : cfg.nutrition.plans[plan];
+        return {
+          plan,
+          weeklyCost: feedCost(plan, cfg),
+          recovery: p?.recovery ?? 1,
+          regen: p?.regen ?? 1,
+          formDecay: p?.formDecay ?? 1,
+        };
+      }),
     };
   }
 
@@ -146,6 +177,7 @@ export class HorsesService {
             listingId,
             studFee,
             condition: this.conditionDto(h, now),
+            feed: this.feedDto(h),
             injuredUntil:
               this.effectiveStatus(h, now) === "INJURED" ? (h.injured_until?.toISOString() ?? null) : null,
             activeTraining,

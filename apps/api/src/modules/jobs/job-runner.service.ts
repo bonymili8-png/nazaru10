@@ -5,6 +5,7 @@ import { BreedingService } from "../breeding/breeding.service.js";
 import { SeasonsService } from "../seasons/seasons.service.js";
 import { FraudService } from "../fraud/fraud.service.js";
 import { StaffService } from "../staff/staff.service.js";
+import { NutritionService } from "../horses/nutrition.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
@@ -36,6 +37,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly seasons: SeasonsService,
     private readonly tournaments: TournamentsService,
     private readonly staff: StaffService,
+    private readonly nutrition: NutritionService,
     private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
     private readonly referrals: ReferralsService,
@@ -70,6 +72,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("staff-pool", () => this.staff.restock());
         await this.step("jockey-pool", () => this.staff.restockJockeys());
         await this.step("staff-salaries", () => this.staff.renewDue());
+        await this.step("feed-plans", () => this.nutrition.renewDue());
         await this.step("referrals", () => this.referrals.sweep());
         await this.step("feed-prune", () => this.feed.prune());
         await this.step("sponsor-expiry", () => this.sponsors.expireDue());

@@ -1,5 +1,5 @@
 import type { SaddleCloth } from "@thoroughline/contracts";
-import type { Attributes, Genome, HorseStatus, Rarity, Sex } from "@thoroughline/engine";
+import type { Attributes, FeedPlan, Genome, HorseStatus, Rarity, Sex } from "@thoroughline/engine";
 import { type Queryable, row, rows } from "../../common/db.js";
 import { notFound } from "../../common/errors.js";
 
@@ -38,6 +38,10 @@ export interface HorseRow {
   created_at: Date;
   retired_at: Date | null;
   cloth: SaddleCloth | null;
+  feed_plan: FeedPlan;
+  feed_paid_until: Date | null;
+  feed_renews: boolean;
+  feed_periods: number;
 }
 
 export interface NewHorse {
@@ -140,7 +144,10 @@ export async function transferHorse(
   await c.query("DELETE FROM share_offers WHERE horse_id = $1", [h.id]);
   const res = await c.query<HorseRow>(
     `UPDATE horses SET owner_id = $2, stable_id = $3, is_house = false, house_class = NULL, sale_price = NULL,
-            status = 'IDLE', updated_at = $4 WHERE id = $1 RETURNING *`,
+            status = 'IDLE', updated_at = $4,
+            -- The seller's feed plan does not travel with the horse (no refund of the paid week).
+            feed_plan = 'STANDARD', feed_paid_until = NULL, feed_renews = true, feed_periods = 0
+      WHERE id = $1 RETURNING *`,
     [h.id, to.userId, to.stableId, now],
   );
   await recordOwnership(c, h.id, h.owner_id, to.userId, reason, price);

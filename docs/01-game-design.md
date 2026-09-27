@@ -65,6 +65,13 @@ mechanic.
   blocks racing.
 * **Form** is an exponentially-weighted performance-vs-expectation signal decaying toward
   0 by 5 %/day; ±1 form ≈ ±2 % top speed.
+* **Feed plans** (per horse, weekly, credits, sink `FEED`): STANDARD (free), PREMIUM (200/week:
+  recovery ×1.08, health regen ×1.1, form decay ×0.85), ELITE (500/week: ×1.15, ×1.2, ×0.7).
+  They only change recovery between sessions (readiness, form retention), never attributes or
+  race-day strength. Changing plan folds the condition first, so the new rate applies from that
+  moment. Renewal runs weekly in advance; STANDARD stops renewal (the paid week runs out), an
+  unaffordable renewal lapses to STANDARD with a notification, and a plan never travels with a
+  sold horse. Config `nutrition.*`.
 
 ## G. Breeding System (Phase 2, genetics engine ready in MVP)
 

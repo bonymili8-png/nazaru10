@@ -28,6 +28,7 @@ import { HealthController } from "./modules/health/health.controller.js";
 import { HorseFactory } from "./modules/horses/horse.factory.js";
 import { HorsesController } from "./modules/horses/horses.controller.js";
 import { HorsesService } from "./modules/horses/horses.service.js";
+import { NutritionService } from "./modules/horses/nutrition.service.js";
 import { JobRunnerService } from "./modules/jobs/job-runner.service.js";
 import { LeaderboardController } from "./modules/leaderboard/leaderboard.controller.js";
 import { BreedingController } from "./modules/breeding/breeding.controller.js";
@@ -130,6 +131,7 @@ export class AppModule {
         QuestsService,
         HorseFactory,
         HorsesService,
+        NutritionService,
         StableService,
         TrainingService,
         HouseService,

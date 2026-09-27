@@ -37,6 +37,20 @@ export type Strategy = (typeof STRATEGIES)[number];
 export const FACILITY_TYPES = ["TRAINING_TRACK", "VET_CLINIC"] as const;
 export type FacilityType = (typeof FACILITY_TYPES)[number];
 
+/** Feed plans: STANDARD is free; the others are weekly, per horse, paid in credits. */
+export const FEED_PLANS = ["STANDARD", "PREMIUM", "ELITE"] as const;
+export type FeedPlan = (typeof FEED_PLANS)[number];
+
+export interface FeedPlanConfig {
+  /** Credits per horse per period, charged in advance. */
+  weeklyCost: number;
+  /** Fatigue recovery and health regeneration multipliers. */
+  recovery: number;
+  regen: number;
+  /** Form decay multiplier (< 1 = form holds longer). */
+  formDecay: number;
+}
+
 export const TOURNAMENT_TIERS = ["LOCAL", "REGIONAL", "NATIONAL", "ELITE"] as const;
 export type TournamentTier = (typeof TOURNAMENT_TIERS)[number];
 
@@ -223,6 +237,10 @@ export interface GameConfig {
     /** Rewards by tier number (string keys). */
     free: Record<string, { gems?: number; silk?: string }>;
     premium: Record<string, { gems?: number; silk?: string }>;
+  };
+  nutrition: {
+    periodDays: number;
+    plans: Record<Exclude<FeedPlan, "STANDARD">, FeedPlanConfig>;
   };
   facilities: Record<
     FacilityType,
@@ -477,7 +495,7 @@ export const defaultConfig: GameConfig = {
         maxRating: null,
         maidenOnly: true,
         reputation: [10, 5, 2],
-        houseQuality: [0.18, 0.42],
+        houseQuality: [0.2, 0.44],
         houseJockeySkill: [35, 60],
         houseAge: [2.1, 3.2],
       },
@@ -488,7 +506,7 @@ export const defaultConfig: GameConfig = {
         maxRating: 1099,
         maidenOnly: false,
         reputation: [15, 7, 3],
-        houseQuality: [0.32, 0.52],
+        houseQuality: [0.34, 0.54],
         houseJockeySkill: [40, 66],
         houseAge: [2.5, 4.5],
       },
@@ -671,6 +689,14 @@ export const defaultConfig: GameConfig = {
       "15": { silk: "CROSS" },
       "17": { gems: 50 },
       "20": { silk: "CHECK" },
+    },
+  },
+  nutrition: {
+    periodDays: 7,
+    // Recovery only: horses are ready sooner and hold form longer; no attribute or race-day edge.
+    plans: {
+      PREMIUM: { weeklyCost: 200, recovery: 1.08, regen: 1.1, formDecay: 0.85 },
+      ELITE: { weeklyCost: 500, recovery: 1.15, regen: 1.2, formDecay: 0.7 },
     },
   },
   facilities: {

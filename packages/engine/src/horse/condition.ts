@@ -1,10 +1,29 @@
-import type { GameConfig } from "../config/index.js";
+import type { FeedPlan, GameConfig } from "../config/index.js";
 import { clamp } from "../math.js";
 import type { Condition } from "./types.js";
 
 export interface StoredCondition extends Condition {
   updatedAt: Date;
 }
+
+/** How a feed plan changes recovery between sessions. */
+export interface FeedEffect {
+  recovery: number;
+  regen: number;
+  formDecay: number;
+}
+
+export const NO_FEED: FeedEffect = { recovery: 1, regen: 1, formDecay: 1 };
+
+export function feedEffect(plan: FeedPlan, cfg: GameConfig): FeedEffect {
+  if (plan === "STANDARD") return NO_FEED;
+  const p = cfg.nutrition.plans[plan];
+  return { recovery: p.recovery, regen: p.regen, formDecay: p.formDecay };
+}
+
+/** Weekly cost of a plan for one horse (0 for STANDARD). */
+export const feedCost = (plan: FeedPlan, cfg: GameConfig): number =>
+  plan === "STANDARD" ? 0 : cfg.nutrition.plans[plan].weeklyCost;
 
 /**
  * Lazily project a stored condition to `now`. Fatigue recovers linearly, health regenerates,
@@ -15,14 +34,14 @@ export function projectCondition(
   now: Date,
   endurance: number,
   cfg: GameConfig,
-  recoveryMultiplier = 1,
+  feed: FeedEffect = NO_FEED,
 ): Condition {
   const hours = Math.max(0, (now.getTime() - stored.updatedAt.getTime()) / 3_600_000);
-  const rate = cfg.condition.fatigueRecoveryPerHour * (0.7 + endurance / 250) * recoveryMultiplier;
+  const rate = cfg.condition.fatigueRecoveryPerHour * (0.7 + endurance / 250) * feed.recovery;
   return {
     fatigue: clamp(stored.fatigue - rate * hours, 0, 100),
-    health: clamp(stored.health + cfg.condition.healthRegenPerHour * hours, 0, 100),
-    form: stored.form * (1 - cfg.condition.formDecayPerDay) ** (hours / 24),
+    health: clamp(stored.health + cfg.condition.healthRegenPerHour * feed.regen * hours, 0, 100),
+    form: stored.form * (1 - cfg.condition.formDecayPerDay * feed.formDecay) ** (hours / 24),
   };
 }
 

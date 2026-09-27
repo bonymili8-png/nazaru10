@@ -100,6 +100,21 @@ export class NotificationsService {
             ? `📋 ${name("trainerName")} залишив вашу стайню — не вдалося сплатити тижневу зарплату ${credits(p.salary, lang)}.`
             : `📋 ${name("trainerName")} has left your stable — the weekly salary of ${credits(p.salary, lang)} could not be paid.`,
         };
+      case "feed_lapsed": {
+        const plan = uk
+          ? p.plan === "ELITE"
+            ? "елітний"
+            : "преміум"
+          : p.plan === "ELITE"
+            ? "elite"
+            : "premium";
+        return {
+          userId,
+          text: uk
+            ? `🥕 ${name("horseName")}: ${plan} корм закінчився — не вистачило кредитів на наступний тиждень. Кінь знову на стандартному кормі.`
+            : `🥕 ${name("horseName")}: the ${plan} feed plan has ended — not enough credits for the next week. Back on standard feed.`,
+        };
+      }
       case "sponsor_completed":
         return {
           userId,

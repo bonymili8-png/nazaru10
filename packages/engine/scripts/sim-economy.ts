@@ -27,6 +27,9 @@ import {
   initialAttributes,
   mean,
   projectCondition,
+  feedCost,
+  feedEffect,
+  type FeedPlan,
   raceAftermath,
   randomEntrant,
   resolveTraining,
@@ -69,6 +72,9 @@ interface SimHorse {
   trainedToday: number;
   /** Owner's plan: next race no earlier than this (hours). */
   nextRaceAt: number;
+  /** Feed plan, paid in advance until `feedUntil` (hours). */
+  feed: FeedPlan;
+  feedUntil: number;
 }
 
 interface Player {
@@ -130,11 +136,26 @@ function newHorse(rng: Rng, quality: number, age: number, nowH: number, rarity?:
     injuredUntil: 0,
     trainedToday: 0,
     nextRaceAt: 0,
+    feed: "STANDARD",
+    feedUntil: 0,
   };
 }
 
 function condition(h: SimHorse, nowH: number): Condition {
-  return projectCondition({ ...h.cond, updatedAt: at(h.condAt) }, at(nowH), h.attributes.endurance, cfg);
+  return projectCondition(
+    { ...h.cond, updatedAt: at(h.condAt) },
+    at(nowH),
+    h.attributes.endurance,
+    cfg,
+    feedEffect(h.feed, cfg),
+  );
+}
+
+/** Switch a horse's feed, folding its condition first (as the API does). */
+function setFeed(h: SimHorse, plan: FeedPlan, nowH: number): void {
+  h.cond = condition(h, nowH);
+  h.condAt = nowH;
+  h.feed = plan;
 }
 
 /** House fields are assumed to sit mid-band (the API's house horses carry real Elo ratings). */
@@ -432,6 +453,7 @@ const stats = {
   jockeys: 0,
   facilities: 0,
   vet: 0,
+  feeds: 0,
   positions: [] as number[],
   byClass: {} as Partial<Record<RaceClass, [number, number]>>,
 };
@@ -507,6 +529,14 @@ function session(rng: Rng, p: Player, nowH: number): void {
       p.jockey.paidUntil += week;
     else p.jockey = null;
   }
+  // Feed: renew while comfortably solvent, else drop back to standard.
+  const feedWeek = cfg.nutrition.periodDays * 24;
+  for (const h of p.horses) {
+    if (h.feed === "STANDARD" || nowH < h.feedUntil) continue;
+    const cost = feedCost(h.feed, cfg);
+    if (p.credits >= cost + 1500 && spend(p, "FEED", cost)) h.feedUntil += feedWeek;
+    else setFeed(h, "STANDARD", nowH);
+  }
   // A full stable saves for the next upgrade first.
   const full = p.horses.length >= cfg.economy.stableCapacity[p.level - 1]!;
   const saving = full ? (cfg.economy.stableUpgradeCost[p.level - 1] ?? 0) : 0;
@@ -531,6 +561,28 @@ function session(rng: Rng, p: Player, nowH: number): void {
     if (best && spend(p, "STAFF_SALARY", best.salary)) {
       p.jockey = { skill: best.skill, salary: best.salary, paidUntil: nowH + week };
       stats.jockeys++;
+    }
+  }
+  // Feed the best racing-age horse better once staff are paid for: premium when a month is
+  // affordable, elite for the stable star when it is well funded.
+  const star = p.horses
+    .filter((h) => yearsHours(nowH - h.birthHours) >= cfg.lifecycle.minRacingAge)
+    .sort((a, b) => b.rating - a.rating)[0];
+  if (p.trainer && star) {
+    const want: FeedPlan =
+      p.credits >= 10 * feedCost("ELITE", cfg) + 5000 + saving
+        ? "ELITE"
+        : p.credits >= 6 * feedCost("PREMIUM", cfg) + 4000 + saving
+          ? "PREMIUM"
+          : star.feed;
+    if (
+      want !== star.feed &&
+      feedCost(want, cfg) > feedCost(star.feed, cfg) &&
+      spend(p, "FEED", feedCost(want, cfg))
+    ) {
+      setFeed(star, want, nowH);
+      star.feedUntil = nowH + feedWeek;
+      stats.feeds++;
     }
   }
   // Facilities: build the next level when well funded (after the upgrade savings).
@@ -683,6 +735,11 @@ console.log(
   `tournaments net ${fmt(tournamentNet)} per player-day (${((tournamentNet / Math.max(1, income)) * 100).toFixed(1)}% of income)`,
 );
 const employing = players.filter((p) => p.trainer).length / PLAYERS;
+const feeding = players.filter((p) => p.horses.some((h) => h.feed !== "STANDARD")).length / PLAYERS;
+const feedShare = (ledger.sinks.get("FEED") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
+console.log(
+  `feeding a paid plan at season end ${(feeding * 100).toFixed(1)}% | feed ${(feedShare * 100).toFixed(1)}% of income`,
+);
 const sponsorShare = (ledger.sources.get("SPONSORS") ?? 0) / (PLAYERS * DAYS) / Math.max(1, income);
 console.log(
   `sponsors: ${stats.sponsorsCompleted}/${stats.sponsorsSigned} contracts completed | ${(sponsorShare * 100).toFixed(1)}% of income`,
@@ -715,6 +772,9 @@ const checks: [string, boolean][] = [
   ["tournaments' net mint is below 20% of recurring income", tournamentNet < 0.2 * income],
   // Sponsors reward playing, they must not become the main income.
   ["sponsor payouts are 2–15% of recurring income", sponsorShare >= 0.02 && sponsorShare <= 0.15],
+  // Feed is an optional comfort sink, not a must-have.
+  ["10–70% of owners feed a paid plan at season end", feeding >= 0.1 && feeding <= 0.7],
+  ["feed is 1–10% of recurring income", feedShare >= 0.01 && feedShare <= 0.1],
 ];
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,

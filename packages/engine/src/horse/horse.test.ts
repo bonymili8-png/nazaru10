@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig as cfg } from "../config/index.js";
 import { Rng } from "../rng.js";
-import { projectCondition, fatigueModifier, hoursUntilFatigue } from "./condition.js";
+import { feedCost, feedEffect, projectCondition, fatigueModifier, hoursUntilFatigue } from "./condition.js";
 import { generateGenome, initialAttributes } from "./generate.js";
 import { ageInYears, ageTrainingMultiplier, birthDateForAge, lifeStage } from "./lifecycle.js";
 import { abilityRating } from "./rating.js";
@@ -87,6 +87,27 @@ describe("condition", () => {
     const h = hoursUntilFatigue(80, 20, 50, cfg);
     const at = projectCondition(stored, new Date(stored.updatedAt.getTime() + h * 3_600_000), 50, cfg);
     expect(at.fatigue).toBeCloseTo(20, 5);
+  });
+
+  it("better feed speeds recovery and holds form, in plan order", () => {
+    const t = new Date("2026-01-01T06:00:00Z");
+    const [std, prem, elite] = (["STANDARD", "PREMIUM", "ELITE"] as const).map((p) =>
+      projectCondition(stored, t, 50, cfg, feedEffect(p, cfg)),
+    );
+    expect(std).toEqual(projectCondition(stored, t, 50, cfg));
+    expect(prem!.fatigue).toBeLessThan(std!.fatigue);
+    expect(elite!.fatigue).toBeLessThan(prem!.fatigue);
+    expect(elite!.health).toBeGreaterThan(prem!.health);
+    expect(prem!.health).toBeGreaterThan(std!.health);
+    expect(elite!.form).toBeGreaterThan(prem!.form);
+    expect(prem!.form).toBeGreaterThan(std!.form);
+    expect(hoursUntilFatigue(80, 20, 50, cfg, feedEffect("ELITE", cfg).recovery)).toBeCloseTo(
+      hoursUntilFatigue(80, 20, 50, cfg) / cfg.nutrition.plans.ELITE.recovery,
+      6,
+    );
+    expect([feedCost("STANDARD", cfg), feedCost("PREMIUM", cfg), feedCost("ELITE", cfg)]).toEqual([
+      0, 200, 500,
+    ]);
   });
 
   it("fatigue modifier is 1 when fresh and decreasing", () => {

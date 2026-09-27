@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from "@nestjs/commo
 import {
   type HorseDetailDto,
   type HorseSummaryDto,
+  SetFeedRequest,
   StartTrainingRequest,
   type TrainingSessionDto,
 } from "@thoroughline/contracts";
@@ -14,12 +15,14 @@ import { RacesService } from "../races/races.service.js";
 import { TrainingService } from "../training/training.service.js";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
+import { NutritionService } from "./nutrition.service.js";
 
 @Controller("horses")
 export class HorsesController {
   constructor(
     private readonly db: Db,
     private readonly horses: HorsesService,
+    private readonly nutrition: NutritionService,
     private readonly training: TrainingService,
     private readonly races: RacesService,
     private readonly clock: Clock,
@@ -110,6 +113,18 @@ export class HorsesController {
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<HorseDetailDto> {
     const h = await this.horses.diagnose(user.id, id);
+    return this.horses.detail(h, user.id, this.clock.now(), null, null);
+  }
+
+  /** Choose the horse's feed plan (weekly, credits; recovery only). */
+  @Post(":id/feed")
+  async feed(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<HorseDetailDto> {
+    const req = parse(SetFeedRequest, body);
+    const h = await this.nutrition.set(user.id, id, req.plan);
     return this.horses.detail(h, user.id, this.clock.now(), null, null);
   }
 }

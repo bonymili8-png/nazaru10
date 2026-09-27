@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
+import { RaceReport } from "@/components/RaceReport";
 import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -107,6 +108,12 @@ function RacePage() {
 
       {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
       {(race.status === "RUNNING" || race.status === "COMPLETED") && <LiveRace race={race} />}
+      {race.status === "COMPLETED" &&
+        race.entryList
+          .filter((e) => e.mine && e.position !== null)
+          .map((e) => (
+            <RaceReport key={e.horseId} raceId={race.id} horseId={e.horseId} distance={race.distance} />
+          ))}
 
       {race.status !== "COMPLETED" && (
         <>

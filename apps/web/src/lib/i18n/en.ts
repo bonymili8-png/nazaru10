@@ -1040,6 +1040,37 @@ export const en = {
   "finish.saved": "Finish effect set: {name}",
   "finish.confirmUnlock": "Unlock the {name} finish effect for {n} gems?",
   "finish.unlocked": "{name} unlocked",
+  "report.title": "Race report · {name}",
+  "report.lockedText":
+    "See how {name} ran: position at every quarter, sectional times against the fastest, energy left and what cost it places.",
+  "report.unlock": "Unlock for {n} gems",
+  "report.memberFree": "Free with Owners' Circle",
+  "report.positions": "Position through the race",
+  "report.at": "{m} m",
+  "report.finish": "Finish",
+  "report.sectionals": "Sectional times",
+  "report.quarter": "Quarter {n}",
+  "report.mine": "Yours",
+  "report.best": "Fastest",
+  "report.energy": "Energy left",
+  "report.energy75": "At 3/4",
+  "report.energyEnd": "At the line",
+  "report.topSpeed": "Top speed {n} km/h",
+  "report.plan": "Tactics: {tactic} · Gear: {gear}",
+  "report.insights": "What decided it",
+  "report.none": "A clean run with no trouble.",
+  "report.i.SLOW_START":
+    "Slow away from the gates. If it keeps happening, try a shadow roll or a front-running plan.",
+  "report.i.GOOD_BREAK": "Best break of the field.",
+  "report.i.BLOCKED": "Got blocked in traffic.",
+  "report.i.EMPTY_AT_FINISH":
+    "Ran out of energy at the end: try more conservative tactics or more stamina work.",
+  "report.i.ENERGY_LEFT": "Finished with energy to spare: it could go earlier with a more aggressive plan.",
+  "report.i.FADED_LATE": "Lost ground in the last quarter.",
+  "report.i.STRONG_FINISH": "Strong finish: gained places in the last quarter.",
+  "report.i.RAN_TIRED": "Started the race tired: give it more rest before the next one.",
+  "report.i.OFF_DISTANCE": "This trip is far from its best distance.",
+  "report.i.LED_EARLY": "Led early but could not hold on.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

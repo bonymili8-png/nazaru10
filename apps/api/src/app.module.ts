@@ -57,6 +57,7 @@ import { HouseService } from "./modules/races/house.service.js";
 import { RaceRunnerService } from "./modules/races/race-runner.service.js";
 import { RacesController } from "./modules/races/races.controller.js";
 import { RacesService } from "./modules/races/races.service.js";
+import { ReportsService } from "./modules/races/reports.service.js";
 import { ShopController } from "./modules/shop/shop.controller.js";
 import { ShopService } from "./modules/shop/shop.service.js";
 import { StableController } from "./modules/stable/stable.controller.js";
@@ -143,6 +144,7 @@ export class AppModule {
         SponsorsService,
         SubscriptionsService,
         RacesService,
+        ReportsService,
         ShopService,
         MarketService,
         BreedingService,

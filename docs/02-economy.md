@@ -143,6 +143,9 @@ with competitive horses for real money.
   variant. Credits stay earn-only.
 - **Finish effects** (live): a stable-wide winner celebration drawn over the race picture for every
   viewer — confetti (free), roses 80, fireworks 100, gold rain 120, lightning 150 gems.
+- **Race reports** (live): 10 gems per run (free for Owners' Circle members) — positions at each
+  quarter, sectional times against the fastest, energy left, trouble and advice. Computed from a
+  finished race's recorded frames only (`raceReport` in the engine); never a prediction.
 - **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
   placements, invoiced outside the game (and physical merch if ever sold). It is never used for
   in-app digital goods. The provider stub stays disabled until the owner connects an account

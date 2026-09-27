@@ -12,6 +12,7 @@ import {
   type HorseStatus,
   type RaceClass,
   type RaceEventType,
+  type ReportInsight,
   type Rarity,
   type Sex,
   type Strategy,
@@ -843,6 +844,27 @@ export interface RaceDetailDto extends RaceSummaryDto {
   entryList: RaceEntryDto[];
   eligibility: { minRating: number | null; maxRating: number | null; maidenOnly: boolean };
   seed: string | null;
+}
+
+/** Post-race report on one of the viewer's runs (information about a finished race only). */
+export interface RaceReportDto {
+  horseId: string;
+  horseName: string;
+  locked: boolean;
+  priceGems: number;
+  /** Owners' Circle members read reports for free. */
+  member: boolean;
+  report: {
+    positions: number[];
+    sectionals: { mine: number; best: number }[];
+    topSpeed: number;
+    energyAt75: number;
+    energyAtFinish: number;
+    blockedCount: number;
+    insights: ReportInsight[];
+    strategy: Strategy;
+    gear: GearItem | null;
+  } | null;
 }
 
 export interface LiveRaceDto {

@@ -33,6 +33,7 @@ export type SystemAccount =
   | "FEED"
   | "PROMOTIONS"
   | "EQUIPMENT"
+  | "ANALYTICS"
   | "COSMETICS"
   | "CLUBS"
   | "SPONSORS"

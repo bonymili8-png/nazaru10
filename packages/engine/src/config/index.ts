@@ -201,6 +201,8 @@ export interface GameConfig {
     stableUpgradeCost: number[];
     vetCost: { MINOR: number; MODERATE: number };
     diagnosticsCostGems: number;
+    /** Gems for a post-race report on one of your runs (free for Owners' Circle members). */
+    raceReportGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
   };
@@ -591,6 +593,7 @@ export const defaultConfig: GameConfig = {
     stableUpgradeCost: [3000, 12000, 35000, 90000],
     vetCost: { MINOR: 300, MODERATE: 900 },
     diagnosticsCostGems: 20,
+    raceReportGems: 10,
     allowance: { threshold: 400, amount: 250 },
   },
   cosmetics: {

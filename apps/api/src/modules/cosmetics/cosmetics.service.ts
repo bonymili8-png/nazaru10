@@ -7,7 +7,9 @@ import {
   type Crest,
   type CrestIcon,
   SILK_PATTERNS,
+  MEMBER_COLORS,
   type SaddleCloth,
+  type SilkColor,
   type SilkPattern,
   type Silks,
 } from "@thoroughline/contracts";
@@ -16,6 +18,7 @@ import { Db, row } from "../../common/db.js";
 import { conflict, notFound } from "../../common/errors.js";
 import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
+import { memberSql } from "../../common/membership.js";
 import { LedgerService } from "../economy/ledger.service.js";
 
 export const silkItem = (p: SilkPattern | string) => `silk:${p}`;
@@ -56,6 +59,7 @@ export class CosmeticsService {
       this.db.query<{ item: string }>("SELECT item FROM owned_cosmetics WHERE user_id = $1", [userId]),
       this.ledger.balances(userId),
     ]);
+    const member = await this.isMember(userId);
     if (!stable) throw notFound("Stable");
     const have = new Set(owned.map((o) => o.item));
     return {
@@ -78,6 +82,7 @@ export class CosmeticsService {
         return { pattern, priceGems: price, owned: price <= 0 || have.has(clothItem(pattern)) };
       }),
       gems: balances.GEMS,
+      member,
     };
   }
 
@@ -89,7 +94,22 @@ export class CosmeticsService {
     return this.view(userId);
   }
 
+  private async isMember(userId: string): Promise<boolean> {
+    const r = await row<{ member: boolean }>(this.db.pool, `SELECT ${memberSql("$1", "$2")} AS member`, [
+      userId,
+      this.clock.now(),
+    ]);
+    return r!.member;
+  }
+
+  /** Owners' Circle colours are for members only. */
+  private async assertColours(userId: string, colours: string[]): Promise<void> {
+    if (colours.some((c) => MEMBER_COLORS.includes(c as SilkColor)) && !(await this.isMember(userId)))
+      throw conflict("MEMBERS_ONLY", "This colour is for Owners' Circle members");
+  }
+
   async setSilks(userId: string, silks: Silks): Promise<CosmeticsDto> {
+    await this.assertColours(userId, [silks.primary, silks.secondary]);
     if (this.price(silks.pattern) !== 0) {
       const owned = await row<{ item: string }>(
         this.db.pool,
@@ -112,6 +132,7 @@ export class CosmeticsService {
   }
 
   async setCrest(userId: string, crest: Crest): Promise<CosmeticsDto> {
+    await this.assertColours(userId, [crest.field, crest.charge]);
     if (this.crestPrice(crest.icon) > 0) {
       const owned = await row<{ item: string }>(
         this.db.pool,
@@ -136,6 +157,7 @@ export class CosmeticsService {
 
   /** Dress one of the owner's horses in a saddle cloth (pattern must be unlocked). */
   async setCloth(userId: string, horseId: string, cloth: SaddleCloth): Promise<SaddleCloth> {
+    await this.assertColours(userId, [cloth.color, cloth.trim]);
     if (this.clothPrice(cloth.pattern) > 0) {
       const owned = await row<{ item: string }>(
         this.db.pool,

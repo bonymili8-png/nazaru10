@@ -14,6 +14,7 @@ import { post, put } from "@/lib/api";
 import { errorMessage, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
+import { memberLocked } from "@/lib/member";
 import { haptic } from "@/lib/telegram";
 
 const COLORS = Object.keys(SILK_COLORS) as SilkColor[];
@@ -131,8 +132,12 @@ export default function SilksPage() {
                   key={c}
                   role="radio"
                   aria-checked={silks[slot] === c}
-                  aria-label={titleCase(c)}
-                  disabled={c === other}
+                  aria-label={
+                    memberLocked(c, data.member)
+                      ? `${titleCase(c)} · ${t("circle.memberColour")}`
+                      : titleCase(c)
+                  }
+                  disabled={c === other || memberLocked(c, data.member)}
                   onClick={() => setDraft({ ...silks, [slot]: c })}
                   className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 transition-transform disabled:cursor-not-allowed disabled:opacity-30 ${silks[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
                   style={{ background: SILK_COLORS[c] }}

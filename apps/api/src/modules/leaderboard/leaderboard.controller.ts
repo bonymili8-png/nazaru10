@@ -5,12 +5,17 @@ import {
   type LeaderboardOwnerDto,
   LeaderboardQuery,
 } from "@thoroughline/contracts";
+import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
+import { memberSql } from "../../common/membership.js";
 import { parse } from "../../common/http.js";
 
 @Controller("leaderboard")
 export class LeaderboardController {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    private readonly clock: Clock,
+  ) {}
 
   @Get("horses")
   async horses(@Query() query: unknown): Promise<LeaderboardHorseDto[]> {
@@ -52,11 +57,12 @@ export class LeaderboardController {
       name: string;
       stable_name: string;
       crest: Crest;
+      member: boolean;
       reputation: number;
       earnings: number;
       wins: number;
     }>(
-      `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest,
+      `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest, ${memberSql("u.id", "$2")} AS member,
               COALESCE(a.balance, 0) AS reputation,
               COALESCE(sum(h.earnings), 0)::bigint AS earnings, COALESCE(sum(h.wins), 0)::int AS wins
          FROM users u
@@ -66,7 +72,7 @@ export class LeaderboardController {
         WHERE u.status = 'ACTIVE' AND u.role <> 'SYSTEM'
         GROUP BY u.id, s.name, s.crest, a.balance
         ORDER BY ${order} DESC, u.id LIMIT $1`,
-      [q.limit],
+      [q.limit, this.clock.now()],
     );
     return list.map((r, i) => ({
       rank: i + 1,
@@ -74,6 +80,7 @@ export class LeaderboardController {
       name: r.name,
       stableName: r.stable_name,
       crest: r.crest,
+      member: r.member,
       reputation: r.reputation,
       earnings: r.earnings,
       wins: r.wins,

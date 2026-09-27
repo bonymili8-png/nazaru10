@@ -5,6 +5,7 @@ import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
 import { notFound } from "../../common/errors.js";
 import { parse } from "../../common/http.js";
+import { memberSql } from "../../common/membership.js";
 import { toUserDto } from "../auth/auth.service.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { horsesByOwner } from "../horses/horse.repo.js";
@@ -31,7 +32,10 @@ export class MeController {
   ) {}
 
   private async user(id: string): Promise<UserDto> {
-    const u = await this.db.one<UserRow>("SELECT * FROM users WHERE id = $1", [id]);
+    const u = await this.db.one<UserRow & { member: boolean }>(
+      `SELECT u.*, ${memberSql("u.id", "$2")} AS member FROM users u WHERE u.id = $1`,
+      [id, this.clock.now()],
+    );
     if (!u) throw notFound("User");
     return toUserDto(u);
   }

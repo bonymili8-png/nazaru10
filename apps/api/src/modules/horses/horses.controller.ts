@@ -8,6 +8,7 @@ import {
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
+import { memberSql } from "../../common/membership.js";
 import { parse } from "../../common/http.js";
 import { RacesService } from "../races/races.service.js";
 import { TrainingService } from "../training/training.service.js";
@@ -63,9 +64,18 @@ export class HorsesController {
     );
   }
 
+  /** Race record: the last 20 starts, or up to 100 for Owners' Circle members. */
   @Get(":id/races")
-  async history(@Param("id", ParseUUIDPipe) id: string) {
-    return (await this.races.horseHistory(id)).map((r) => ({ ...r, starts_at: r.starts_at.toISOString() }));
+  async history(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string) {
+    const m = await this.db.one<{ member: boolean }>(`SELECT ${memberSql("$1", "$2")} AS member`, [
+      user.id,
+      this.clock.now(),
+    ]);
+    const limit = m?.member ? 100 : 20;
+    return (await this.races.horseHistory(id, limit)).map((r) => ({
+      ...r,
+      starts_at: r.starts_at.toISOString(),
+    }));
   }
 
   @Get(":id/training")

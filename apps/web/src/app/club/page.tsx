@@ -4,6 +4,7 @@ import { defaultConfig } from "@thoroughline/engine";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Crest } from "@/components/Crest";
+import { MemberBadge } from "@/components/MemberBadge";
 import {
   Badge,
   Button,
@@ -122,6 +123,7 @@ function ClubPage() {
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-2 truncate font-medium">
                 {m.name}
+                {m.member && <MemberBadge />}
                 {m.role === "OWNER" && <Badge tone="gold">{t("club.owner")}</Badge>}
               </p>
               <p className="truncate text-xs text-muted">{m.stableName}</p>

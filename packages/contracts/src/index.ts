@@ -213,9 +213,16 @@ export const SILK_COLORS = {
   pink: "#ec4899",
   navy: "#1e3a8a",
   lime: "#84cc16",
+  // Owners' Circle (subscription) exclusives.
+  platinum: "#d9dce1",
+  burgundy: "#7f1d3a",
+  teal: "#0f9f95",
 } as const;
 export type SilkColor = keyof typeof SILK_COLORS;
 const SILK_COLOR_NAMES = Object.keys(SILK_COLORS) as [SilkColor, ...SilkColor[]];
+
+/** Colours only Owners' Circle members may use (silks, crest, saddle cloths). */
+export const MEMBER_COLORS: readonly SilkColor[] = ["platinum", "burgundy", "teal"];
 
 export interface Silks {
   pattern: SilkPattern;
@@ -301,6 +308,8 @@ export interface CosmeticsDto {
   crestIcons: { icon: CrestIcon; priceGems: number; owned: boolean }[];
   clothPatterns: { pattern: ClothPattern; priceGems: number; owned: boolean }[];
   gems: number;
+  /** Whether the viewer may use MEMBER_COLORS. */
+  member: boolean;
 }
 
 export interface PassRewardDto {
@@ -525,6 +534,7 @@ export interface ClubMemberDto {
   name: string;
   stableName: string;
   crest: Crest;
+  member: boolean;
   role: ClubRole;
   points: number;
   joinedAt: string;
@@ -567,6 +577,8 @@ export interface UserDto {
   referralCode: string;
   createdAt: string;
   settings: UserSettingsDto;
+  /** Owners' Circle member (subscription benefits active). */
+  member: boolean;
 }
 
 export interface AuthResponse {
@@ -825,6 +837,7 @@ export interface LeaderboardOwnerDto {
   name: string;
   stableName: string;
   crest: Crest;
+  member: boolean;
   reputation: number;
   earnings: number;
   wins: number;
@@ -932,6 +945,7 @@ export interface SeasonOwnerRowDto {
   name: string;
   stableName: string;
   crest: Crest;
+  member: boolean;
   points: number;
   races: number;
   wins: number;
@@ -1005,6 +1019,23 @@ export interface ProductDto {
   description: string;
   priceStars: number;
   grants: { gems?: number };
+  /** Set for subscriptions: renews automatically every period (Telegram Stars subscription). */
+  subscriptionDays?: number;
+}
+
+export type SubscriptionStatus = "ACTIVE" | "CANCELED" | "EXPIRED";
+
+/** The viewer's Owners' Circle membership. */
+export interface SubscriptionDto {
+  productId: string;
+  priceStars: number;
+  periodDays: number;
+  gemsPerPeriod: number;
+  /** Null when the viewer never subscribed. */
+  status: SubscriptionStatus | null;
+  /** Member benefits apply (active, or cancelled but paid until periodEnd). */
+  member: boolean;
+  periodEnd: string | null;
 }
 
 export interface PaymentDto {

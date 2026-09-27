@@ -14,6 +14,7 @@ import { TrainingService } from "../training/training.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { FeedService } from "../feed/feed.service.js";
 import { SponsorsService } from "../sponsors/sponsors.service.js";
+import { SubscriptionsService } from "../payments/subscriptions.service.js";
 
 /**
  * Background sweeps. Each step claims work with row locks (FOR UPDATE SKIP LOCKED) and is
@@ -40,6 +41,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly referrals: ReferralsService,
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
+    private readonly subscriptions: SubscriptionsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
@@ -71,6 +73,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("referrals", () => this.referrals.sweep());
         await this.step("feed-prune", () => this.feed.prune());
         await this.step("sponsor-expiry", () => this.sponsors.expireDue());
+        await this.step("membership-expiry", () => this.subscriptions.expireDue());
       }
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;

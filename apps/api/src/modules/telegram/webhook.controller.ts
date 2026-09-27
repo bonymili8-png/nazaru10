@@ -59,6 +59,7 @@ const TEXT = {
       "• Gems and all in-game currencies have no cash value, cannot be exchanged for money or Stars and cannot be withdrawn.",
       "• Gems cannot buy credits, horses or race advantages; race results never depend on payments.",
       "• If a purchase went wrong, use /paysupport. Refunds are issued in Stars; gems already spent may make a refund impossible.",
+      "• The Owners' Circle is a monthly Stars subscription that renews automatically until you cancel it (Market → Gems in the game, or in Telegram's settings). Benefits last until the end of the paid month.",
     ],
   },
   uk: {
@@ -81,6 +82,7 @@ const TEXT = {
       "• Самоцвіти та всі ігрові валюти не мають грошової вартості, їх не можна обміняти на гроші чи Stars і не можна вивести.",
       "• За самоцвіти не можна купити кредити, коней чи переваги в забігах; результати забігів ніколи не залежать від платежів.",
       "• Якщо з покупкою щось не так, скористайтеся /paysupport. Повернення здійснюються в Stars; якщо самоцвіти вже витрачено, повернення може бути неможливим.",
+      "• «Коло власників» — щомісячна підписка в Stars, яка продовжується автоматично, доки ви її не скасуєте (у грі: Ринок → Самоцвіти, або в налаштуваннях Telegram). Переваги діють до кінця оплаченого місяця.",
     ],
   },
 } satisfies Record<Lang, unknown>;

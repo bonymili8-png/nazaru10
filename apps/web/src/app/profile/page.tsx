@@ -1,6 +1,7 @@
 "use client";
 import type { LedgerLineDto, ReferralDto, UserDto, WalletDto } from "@thoroughline/contracts";
 import { Copy, Languages, LifeBuoy, Share2, Shield, ShieldCheck, Shirt } from "lucide-react";
+import { MemberBadge } from "@/components/MemberBadge";
 import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { put } from "@/lib/api";
 import { countdown, errorMessage, fmt, has, titleCase } from "@/lib/format";
@@ -22,6 +23,12 @@ export default function ProfilePage() {
       <h1 className="font-display text-3xl font-bold">
         {me.data?.firstName ?? me.data?.username ?? t("common.owner")}
       </h1>
+      {me.data?.member && (
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-gold">
+          <MemberBadge />
+          {t("circle.member")}
+        </p>
+      )}
       <div className="mt-3 grid grid-cols-2 gap-2">
         {b ? (
           (

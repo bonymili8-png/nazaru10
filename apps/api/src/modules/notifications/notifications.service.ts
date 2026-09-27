@@ -107,6 +107,13 @@ export class NotificationsService {
             ? `🤝 Контракт зі спонсором «${escape(p.sponsor)}» виконано! На гаманець зараховано ${credits(p.reward, lang)}.`
             : `🤝 Sponsor contract with ${escape(p.sponsor)} complete! ${credits(p.reward, lang)} added to your wallet.`,
         };
+      case "subscription_renewed":
+        return {
+          userId,
+          text: uk
+            ? `👑 Членство в «Колі власників» продовжено — ${Number(p.gems)} самоцвітів уже на гаманці.`
+            : `👑 Your Owners' Circle membership renewed — ${Number(p.gems)} gems are in your wallet.`,
+        };
       case "payment_completed":
         return {
           userId,

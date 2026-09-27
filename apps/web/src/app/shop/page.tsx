@@ -1,5 +1,6 @@
 "use client";
 import type {
+  SubscriptionDto,
   MarketListingDto,
   MyShareDto,
   ShareOfferDto,
@@ -9,7 +10,7 @@ import type {
   ShopHorseDto,
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
-import { Gem } from "lucide-react";
+import { Check, Crown, Gem } from "lucide-react";
 import { useState } from "react";
 import { HorseCard } from "@/components/HorseCard";
 import { ListingCard } from "@/components/ListingCard";
@@ -26,7 +27,7 @@ import {
 import { api, post } from "@/lib/api";
 import { errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
-import { type MessageKey, t } from "@/lib/i18n";
+import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { haptic, tg } from "@/lib/telegram";
 
 type Tab = "players" | "shares" | "ring" | "mine" | "gems";
@@ -214,7 +215,7 @@ function Gems() {
           if (s?.status === "COMPLETED") {
             haptic.success();
             toast(t("shop.added", { title: productText(p, "title") }));
-            invalidate("/wallet");
+            invalidate("/wallet", "/subscription", "/me", "/cosmetics");
             setBusy(null);
           } else if (tries++ < 10) setTimeout(check, 1500);
           else {
@@ -231,23 +232,30 @@ function Gems() {
   };
   return (
     <>
+      {products.data
+        ?.filter((p) => p.subscriptionDays)
+        .map((p) => (
+          <OwnersCircle key={p.id} product={p} busy={busy === p.id} onSubscribe={() => buyGems(p)} />
+        ))}
       <p className="mb-2 mt-3 text-xs text-muted">{t("shop.gemsNote")}</p>
       <div className="grid grid-cols-2 gap-2">
-        {products.data?.map((p) => (
-          <Card key={p.id} className="flex flex-col">
-            <Gem className="size-6 text-gold" aria-hidden />
-            <p className="mt-2 font-semibold">{productText(p, "title")}</p>
-            <p className="flex-1 text-xs text-muted">{productText(p, "description")}</p>
-            <Button
-              variant="secondary"
-              className="mt-3 text-sm"
-              loading={busy === p.id}
-              onClick={() => buyGems(p)}
-            >
-              {t("shop.stars", { n: p.priceStars })}
-            </Button>
-          </Card>
-        ))}
+        {products.data
+          ?.filter((p) => !p.subscriptionDays)
+          .map((p) => (
+            <Card key={p.id} className="flex flex-col">
+              <Gem className="size-6 text-gold" aria-hidden />
+              <p className="mt-2 font-semibold">{productText(p, "title")}</p>
+              <p className="flex-1 text-xs text-muted">{productText(p, "description")}</p>
+              <Button
+                variant="secondary"
+                className="mt-3 text-sm"
+                loading={busy === p.id}
+                onClick={() => buyGems(p)}
+              >
+                {t("shop.stars", { n: p.priceStars })}
+              </Button>
+            </Card>
+          ))}
       </div>
     </>
   );
@@ -303,5 +311,80 @@ function Shares() {
         ))}
       </div>
     </>
+  );
+}
+
+function OwnersCircle({
+  product,
+  busy,
+  onSubscribe,
+}: {
+  product: ProductDto;
+  busy: boolean;
+  onSubscribe: () => void;
+}) {
+  const sub = useApi<SubscriptionDto>("/subscription");
+  const [acting, setActing] = useState(false);
+  const toast = useToast();
+  const s = sub.data;
+  const date = s?.periodEnd
+    ? new Date(s.periodEnd).toLocaleDateString(getLocale() === "uk" ? "uk-UA" : "en-GB")
+    : "";
+  const act = async (path: "cancel" | "resume") => {
+    if (path === "cancel" && !window.confirm(t("circle.confirmCancel", { date }))) return;
+    setActing(true);
+    try {
+      await post(`/subscription/${path}`);
+      haptic.success();
+      toast(path === "cancel" ? t("circle.cancelled") : t("circle.resumed"));
+      sub.reload();
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setActing(false);
+    }
+  };
+  return (
+    <Card className="mt-3 border-gold/50 bg-gradient-to-br from-surface to-surface-2">
+      <p className="flex items-center gap-2 font-display text-xl font-bold">
+        <Crown className="size-5 text-gold" aria-hidden />
+        {t("circle.title")}
+      </p>
+      <p className="mt-1 text-xs text-muted">{t("circle.perks")}</p>
+      <ul className="mt-3 space-y-1 text-sm">
+        {[
+          t("circle.perk1", { n: product.grants.gems ?? 0 }),
+          t("circle.perk2"),
+          t("circle.perk3"),
+          t("circle.perk4"),
+        ].map((line) => (
+          <li key={line} className="flex items-start gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-good" aria-hidden />
+            {line}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted">{t("circle.noPower")}</p>
+      {s?.member ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-gold" role="status">
+            {s.status === "CANCELED" ? t("circle.endsOn", { date }) : t("circle.renewsOn", { date })}
+          </p>
+          <Button
+            variant={s.status === "CANCELED" ? "primary" : "ghost"}
+            className="w-full text-sm"
+            loading={acting}
+            onClick={() => act(s.status === "CANCELED" ? "resume" : "cancel")}
+          >
+            {s.status === "CANCELED" ? t("circle.resume") : t("circle.cancel")}
+          </Button>
+        </div>
+      ) : (
+        <Button className="mt-3 w-full" loading={busy} onClick={onSubscribe}>
+          {t("circle.subscribe", { n: product.priceStars })}
+        </Button>
+      )}
+    </Card>
   );
 }

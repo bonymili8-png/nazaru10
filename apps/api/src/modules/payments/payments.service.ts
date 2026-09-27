@@ -1,12 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { PaymentDto, ProductDto } from "@thoroughline/contracts";
 import { Clock } from "../../common/clock.js";
-import { Db, row } from "../../common/db.js";
+import { Db, type Queryable, row } from "../../common/db.js";
 import { conflict, notFound } from "../../common/errors.js";
 import { AuditService, EventsService } from "../../common/events.js";
 import { LOGGER, type Logger } from "../../common/logger.js";
 import { LedgerService } from "../economy/ledger.service.js";
-import { productById, PRODUCTS } from "./catalog.js";
+import { type Product, productById, PRODUCTS } from "./catalog.js";
 import { TelegramStarsProvider } from "./payment-provider.js";
 
 interface PaymentRow {
@@ -35,6 +35,11 @@ export interface SuccessfulPayment {
   invoice_payload: string;
   telegram_payment_charge_id: string;
   provider_payment_charge_id?: string;
+  /** Subscriptions: unix time the paid period ends. */
+  subscription_expiration_date?: number;
+  /** Subscriptions: true for automatic renewals (the first payment is not recurring). */
+  is_recurring?: boolean;
+  is_first_recurring?: boolean;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,6 +78,13 @@ export class PaymentsService {
   async create(userId: string, productId: string): Promise<PaymentDto> {
     const product = productById(productId);
     if (!product) throw notFound("Product");
+    if (product.subscriptionDays) {
+      const active = await this.db.one(
+        "SELECT 1 FROM subscriptions WHERE user_id = $1 AND status <> 'EXPIRED' AND period_end > $2",
+        [userId, this.clock.now()],
+      );
+      if (active) throw conflict("ALREADY_SUBSCRIBED", "You are already an Owners' Circle member");
+    }
     if (product.oncePerUser) {
       const prior = await this.db.one(
         "SELECT 1 FROM payments WHERE user_id = $1 AND product_id = $2 AND status IN ('COMPLETED','REFUNDED')",
@@ -150,6 +162,15 @@ export class PaymentsService {
         return "REJECTED";
       }
       if (p.provider_charge_id === sp.telegram_payment_charge_id) return "DUPLICATE";
+      const product = productById(p.product_id)!;
+      // Automatic subscription renewal: Telegram reuses the first invoice's payload.
+      if (product.subscriptionDays && sp.is_recurring && p.status === "COMPLETED") {
+        if (p.telegram_id !== fromTelegramId || p.currency !== sp.currency || p.amount !== sp.total_amount) {
+          this.logger.error({ paymentId: p.id, sp }, "subscription renewal does not match the order");
+          return "REJECTED";
+        }
+        return this.renew(c, p, product, sp, now);
+      }
       if (p.status === "COMPLETED" || p.status === "REFUNDED") {
         this.logger.error({ paymentId: p.id, sp }, "second charge for an already completed payment");
         return "DUPLICATE";
@@ -162,7 +183,6 @@ export class PaymentsService {
         );
         return "REJECTED";
       }
-      const product = productById(p.product_id)!;
       await c.query(
         `UPDATE payments SET status = 'COMPLETED', provider_charge_id = $2, provider_payload = $3, completed_at = $4, updated_at = $4
           WHERE id = $1`,
@@ -180,6 +200,7 @@ export class PaymentsService {
           metadata: { paymentId: p.id, productId: p.product_id },
         });
       }
+      if (product.subscriptionDays) await this.startPeriod(c, p.user_id, product, sp, now);
       await this.events.emit(c, {
         type: "payment_completed",
         aggregateType: "payment",
@@ -189,6 +210,78 @@ export class PaymentsService {
       });
       return "COMPLETED";
     });
+  }
+
+  /** Record the paid period of a subscription (first payment or renewal). */
+  private async startPeriod(
+    c: Queryable,
+    userId: string,
+    product: Product,
+    sp: SuccessfulPayment,
+    now: Date,
+  ) {
+    const periodEnd = sp.subscription_expiration_date
+      ? new Date(sp.subscription_expiration_date * 1000)
+      : new Date(now.getTime() + product.subscriptionDays! * 86_400_000);
+    await c.query(
+      `INSERT INTO subscriptions (user_id, product_id, status, period_end, charge_id, started_at, updated_at)
+       VALUES ($1,$2,'ACTIVE',$3,$4,$5,$5)
+       ON CONFLICT (user_id) DO UPDATE SET product_id = EXCLUDED.product_id, status = 'ACTIVE',
+         period_end = GREATEST(EXCLUDED.period_end, subscriptions.period_end), charge_id = EXCLUDED.charge_id,
+         canceled_at = NULL, updated_at = EXCLUDED.updated_at,
+         started_at = CASE WHEN subscriptions.status = 'EXPIRED' THEN EXCLUDED.started_at ELSE subscriptions.started_at END`,
+      [userId, product.id, periodEnd, sp.telegram_payment_charge_id, now],
+    );
+  }
+
+  /** A renewal charge: its own payment row (child of the first), gems for the period, a longer period. */
+  private async renew(
+    c: Queryable,
+    first: PaymentRow,
+    product: Product,
+    sp: SuccessfulPayment,
+    now: Date,
+  ): Promise<"COMPLETED" | "DUPLICATE"> {
+    const seen = await row(c, "SELECT 1 FROM payments WHERE provider_charge_id = $1", [
+      sp.telegram_payment_charge_id,
+    ]);
+    if (seen) return "DUPLICATE";
+    const renewal = await row<{ id: string }>(
+      c,
+      `INSERT INTO payments (user_id, provider, product_id, amount, currency, status, provider_charge_id,
+                             provider_payload, completed_at, parent_id)
+       VALUES ($1,'TELEGRAM_STARS',$2,$3,$4,'COMPLETED',$5,$6,$7,$8) RETURNING id`,
+      [
+        first.user_id,
+        first.product_id,
+        first.amount,
+        first.currency,
+        sp.telegram_payment_charge_id,
+        JSON.stringify(sp),
+        now,
+        first.id,
+      ],
+    );
+    if (product.grants.gems)
+      await this.ledger.credit(c, {
+        userId: first.user_id,
+        currency: "GEMS",
+        amount: product.grants.gems,
+        source: "PAYMENTS",
+        key: `payment:${renewal!.id}`,
+        type: "PURCHASE",
+        reason: `${product.title} — renewal`,
+        metadata: { paymentId: renewal!.id, productId: product.id, parentId: first.id },
+      });
+    await this.startPeriod(c, first.user_id, product, sp, now);
+    await this.events.emit(c, {
+      type: "subscription_renewed",
+      aggregateType: "payment",
+      aggregateId: renewal!.id,
+      actorId: first.user_id,
+      payload: { userId: first.user_id, productId: product.id, gems: product.grants.gems ?? 0 },
+    });
+    return "COMPLETED";
   }
 
   /** Support/finance refund: claws back the granted gems, then refunds the Stars. */
@@ -219,6 +312,16 @@ export class PaymentsService {
         "UPDATE payments SET status = 'REFUNDED', refunded_at = $2, updated_at = $2 WHERE id = $1",
         [p.id, now],
       );
+      // Refunding a membership payment ends the membership (and stops renewals at Telegram).
+      let stopRenewals: string | null = null;
+      if (product.subscriptionDays) {
+        const sub = await row<{ charge_id: string; status: string }>(
+          c,
+          "UPDATE subscriptions SET status = 'EXPIRED', period_end = $2, updated_at = $2 WHERE user_id = $1 RETURNING charge_id, status",
+          [p.user_id, now],
+        );
+        stopRenewals = sub?.charge_id ?? null;
+      }
       await this.audit.log(c, {
         actorId,
         action: "PAYMENT_REFUND",
@@ -236,6 +339,12 @@ export class PaymentsService {
       });
       // External call last: if Telegram rejects the refund the whole transaction rolls back.
       await this.stars.refund({ userTelegramId: p.telegram_id, chargeId: p.provider_charge_id! });
+      if (stopRenewals)
+        await this.stars
+          .cancelSubscription(p.telegram_id, stopRenewals)
+          .catch((err: unknown) =>
+            this.logger.warn({ err, paymentId: p.id }, "could not cancel subscription"),
+          );
       return this.toDto({ ...p, status: "REFUNDED" });
     });
   }

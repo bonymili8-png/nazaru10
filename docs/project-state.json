@@ -79,15 +79,16 @@
     "24.1.1-clubs",
     "24.2.1-syndicates",
     "24.3.1-news-feed",
-    "24.4.1-sponsors"
+    "24.4.1-sponsors",
+    "24.5.1-owners-circle-subscription"
   ],
   "active_tasks": [],
   "blocked_tasks": [],
   "failed_tasks": [],
   "test_status": {
     "engine": "61/61",
-    "api": "159/159 (+1 Redis test in CI)",
-    "web": "Playwright E2E: 19 journeys (incl. Ukrainian UI) — CI job",
+    "api": "167/167 (+1 Redis test in CI)",
+    "web": "Playwright E2E: 20 journeys (incl. Ukrainian UI) — CI job",
     "simulations": "sim:races 10k, sim:economy 300x28 — CI gates"
   },
   "security_status": "MVP audit done (docs/07); XFF trust fixed; referral hardening; fraud signals + review queue",

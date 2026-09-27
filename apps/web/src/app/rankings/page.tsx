@@ -11,6 +11,7 @@ import { Crown, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClubsBoard } from "@/components/ClubsBoard";
 import { Crest } from "@/components/Crest";
+import { MemberBadge } from "@/components/MemberBadge";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { countdown, fmt, ordinal } from "@/lib/format";
 import { useApi, useNow } from "@/lib/hooks";
@@ -116,6 +117,7 @@ function SeasonBoard() {
                     key={r.userId}
                     rank={r.rank}
                     crest={<Crest crest={r.crest} size={26} />}
+                    member={r.member}
                     title={r.name}
                     sub={`${r.stableName} · ${t("common.wins", { n: r.wins })}`}
                     value={fmt(r.points)}
@@ -257,6 +259,7 @@ function AllTime() {
                     key={r.userId}
                     rank={r.rank}
                     crest={<Crest crest={r.crest} size={26} />}
+                    member={r.member}
                     title={r.name}
                     sub={r.stableName}
                     value={
@@ -279,9 +282,11 @@ function Row({
   href,
   highlight,
   crest,
+  member,
 }: {
   rank: number;
   crest?: React.ReactNode;
+  member?: boolean;
   title: string;
   sub: string;
   value: string;
@@ -295,7 +300,10 @@ function Row({
       </span>
       {crest}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{title}</p>
+        <p className="flex items-center gap-1 truncate font-medium">
+          {title}
+          {member && <MemberBadge />}
+        </p>
         <p className="truncate text-xs text-muted">{sub}</p>
       </div>
       <span className="num font-semibold">{value}</span>

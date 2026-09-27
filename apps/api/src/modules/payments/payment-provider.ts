@@ -32,12 +32,21 @@ export class TelegramStarsProvider implements PaymentProvider {
       payload: paymentId,
       currency: "XTR",
       prices: [{ label: product.title, amount: product.priceStars }],
+      ...(product.subscriptionDays ? { subscription_period: product.subscriptionDays * 86_400 } : {}),
     });
     return { invoiceLink };
   }
 
   refund(p: { userTelegramId: number; chargeId: string }): Promise<void> {
     return this.bot.refundStarPayment(p.userTelegramId, p.chargeId);
+  }
+
+  cancelSubscription(userTelegramId: number, chargeId: string): Promise<void> {
+    return this.bot.editUserStarSubscription(userTelegramId, chargeId, true);
+  }
+
+  resumeSubscription(userTelegramId: number, chargeId: string): Promise<void> {
+    return this.bot.editUserStarSubscription(userTelegramId, chargeId, false);
   }
 }
 

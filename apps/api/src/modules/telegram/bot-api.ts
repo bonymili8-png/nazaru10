@@ -15,7 +15,11 @@ export interface BotApi {
     payload: string;
     currency: "XTR";
     prices: { label: string; amount: number }[];
+    /** Seconds between automatic renewals (Telegram Stars subscriptions: 2592000 = 30 days). */
+    subscription_period?: number;
   }): Promise<string>;
+  /** Cancel (true) or re-enable (false) a user's Stars subscription by its latest charge id. */
+  editUserStarSubscription(userTelegramId: number, chargeId: string, isCanceled: boolean): Promise<void>;
   answerPreCheckoutQuery(id: string, ok: boolean, errorMessage?: string): Promise<void>;
   sendMessage(chatId: number, text: string, buttons?: InlineWebAppButton[][]): Promise<void>;
   refundStarPayment(userTelegramId: number, chargeId: string): Promise<void>;
@@ -79,6 +83,18 @@ export class HttpBotApi implements BotApi {
     await this.call("setMyCommands", { commands, ...(languageCode ? { language_code: languageCode } : {}) });
   }
 
+  async editUserStarSubscription(
+    userTelegramId: number,
+    chargeId: string,
+    isCanceled: boolean,
+  ): Promise<void> {
+    await this.call("editUserStarSubscription", {
+      user_id: userTelegramId,
+      telegram_payment_charge_id: chargeId,
+      is_canceled: isCanceled,
+    });
+  }
+
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
     await this.call("refundStarPayment", { user_id: userTelegramId, telegram_payment_charge_id: chargeId });
   }
@@ -103,6 +119,13 @@ export class FakeBotApi implements BotApi {
     languageCode?: string,
   ): Promise<void> {
     this.calls.push({ method: "setMyCommands", args: [commands, languageCode] });
+  }
+  async editUserStarSubscription(
+    userTelegramId: number,
+    chargeId: string,
+    isCanceled: boolean,
+  ): Promise<void> {
+    this.calls.push({ method: "editUserStarSubscription", args: [userTelegramId, chargeId, isCanceled] });
   }
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
     this.calls.push({ method: "refundStarPayment", args: [userTelegramId, chargeId] });

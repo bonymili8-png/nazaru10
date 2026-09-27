@@ -12,7 +12,7 @@ import { InitDataError, verifyInitData } from "./telegram-init-data.js";
 export const ipHash = (ip: string, secret: string) =>
   createHmac("sha256", secret).update(`ip:${ip}`).digest("hex").slice(0, 32);
 
-export const toUserDto = (u: UserRow): UserDto => ({
+export const toUserDto = (u: UserRow & { member?: boolean }): UserDto => ({
   id: u.id,
   firstName: u.first_name,
   username: u.username,
@@ -23,6 +23,7 @@ export const toUserDto = (u: UserRow): UserDto => ({
     locale: u.settings.locale === "en" || u.settings.locale === "uk" ? u.settings.locale : null,
     notifications: u.settings.notifications !== false,
   },
+  member: u.member === true,
 });
 
 @Injectable()

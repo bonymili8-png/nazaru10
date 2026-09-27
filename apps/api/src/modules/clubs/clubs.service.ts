@@ -15,6 +15,7 @@ import { Db, type Queryable, row, rows } from "../../common/db.js";
 import { conflict, forbidden, notFound } from "../../common/errors.js";
 import { AuditService, EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
+import { memberSql } from "../../common/membership.js";
 import { LedgerService } from "../economy/ledger.service.js";
 
 interface ClubRow {
@@ -118,16 +119,17 @@ export class ClubsService {
       name: string;
       stable_name: string;
       crest: Crest;
+      member: boolean;
       role: ClubRole;
       points: number;
       joined_at: Date;
     }>(
       `SELECT m.user_id, COALESCE(u.first_name, u.username, 'Owner') AS name, s.name AS stable_name, s.crest,
-              m.role, COALESCE((SELECT sum(points)::int FROM season_points p
+              ${memberSql("m.user_id", "$3")} AS member, m.role, COALESCE((SELECT sum(points)::int FROM season_points p
                                  WHERE p.owner_id = m.user_id AND p.season = $2), 0) AS points, m.joined_at
          FROM club_members m JOIN users u ON u.id = m.user_id JOIN stables s ON s.owner_id = m.user_id
         WHERE m.club_id = $1 ORDER BY points DESC, m.joined_at`,
-      [clubId, season],
+      [clubId, season, this.clock.now()],
     );
     const me = await this.mine(viewerId);
     const myRole = members.find((m) => m.user_id === viewerId)?.role ?? null;
@@ -148,6 +150,7 @@ export class ClubsService {
         name: m.name,
         stableName: m.stable_name,
         crest: m.crest,
+        member: m.member,
         role: m.role,
         points: m.points,
         joinedAt: m.joined_at.toISOString(),

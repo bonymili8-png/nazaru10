@@ -214,3 +214,15 @@ finishes on turf, 3 starts at 1,800 m+, 1 win, 6 starts. Progress is counted whe
 unfinished contracts expire without penalty. Modelled in `sim:economy`: ~54% of contracts
 complete and sponsors are ~11% of recurring income (new gate: 2–15%); all 14 gates pass at 300
 and 500 owners. Config: `sponsors.offersPerWeek`, `contractDays`, `catalog`.
+
+## Owners' Circle subscription (Phase 3)
+
+A Telegram Stars subscription (`OWNERS_CIRCLE`, 150 ⭐ per 30 days, `subscription_period`
+2592000). Each paid period (first payment and every automatic renewal, recorded as a child
+payment) grants 300 gems; members get three extra colours (platinum, burgundy, teal) for silks,
+crest and saddle cloths, a crown badge in rankings and clubs, and up to 100 starts of race history
+(20 otherwise). No credits, horses, training or race effects (anti pay-to-win). Members cancel or
+resume in-game (`editUserStarSubscription`); benefits last until `period_end`, then a daily job
+expires the membership after a 1-day grace for late renewals. Refunding a membership payment
+claws back its gems, ends the membership and cancels renewals. `/terms` explains renewal and
+cancellation (EN/UK).

@@ -54,6 +54,7 @@ import {
 } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { getLocale, t } from "@/lib/i18n";
+import { memberLocked } from "@/lib/member";
 import { haptic } from "@/lib/telegram";
 
 export default function HorsePageWrapper() {
@@ -786,8 +787,10 @@ function ClothEditor({ h }: { h: HorseDetailDto }) {
             key={c}
             role="radio"
             aria-checked={cloth[slot] === c}
-            aria-label={titleCase(c)}
-            disabled={c === (slot === "color" ? cloth.trim : cloth.color)}
+            aria-label={
+              memberLocked(c, data.member) ? `${titleCase(c)} · ${t("circle.memberColour")}` : titleCase(c)
+            }
+            disabled={c === (slot === "color" ? cloth.trim : cloth.color) || memberLocked(c, data.member)}
             onClick={() => setDraft({ ...cloth, [slot]: c })}
             className={`aspect-square min-h-11 cursor-pointer rounded-full border-2 disabled:cursor-not-allowed disabled:opacity-30 ${cloth[slot] === c ? "scale-110 border-gold" : "border-line/60"}`}
             style={{ background: SILK_COLORS[c] }}

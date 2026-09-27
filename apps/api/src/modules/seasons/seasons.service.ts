@@ -9,6 +9,7 @@ import {
 } from "@thoroughline/contracts";
 import { type RaceClass, seasonAt, seasonPoints, seasonReward, seasonWindow } from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
+import { memberSql } from "../../common/membership.js";
 import { Db, type Queryable, row, rows } from "../../common/db.js";
 import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
@@ -110,10 +111,11 @@ export class SeasonsService {
     if (list.length === 0) return [];
     const names = new Map(
       (
-        await this.db.query<{ id: string; name: string; stable_name: string; crest: Crest }>(
-          `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest
+        await this.db.query<{ id: string; name: string; stable_name: string; crest: Crest; member: boolean }>(
+          `SELECT u.id, COALESCE(u.username, u.first_name, 'Owner') AS name, s.name AS stable_name, s.crest,
+                  ${memberSql("u.id", "$2")} AS member
              FROM users u JOIN stables s ON s.owner_id = u.id WHERE u.id = ANY($1::uuid[])`,
-          [list.map((r) => r.owner_id)],
+          [list.map((r) => r.owner_id), this.clock.now()],
         )
       ).map((r) => [r.id, r] as const),
     );
@@ -123,6 +125,7 @@ export class SeasonsService {
       name: names.get(r.owner_id)?.name ?? "Owner",
       stableName: names.get(r.owner_id)?.stable_name ?? "",
       crest: names.get(r.owner_id)?.crest ?? DEFAULT_CREST,
+      member: names.get(r.owner_id)?.member ?? false,
       points: r.points,
       races: r.races,
       wins: r.wins,

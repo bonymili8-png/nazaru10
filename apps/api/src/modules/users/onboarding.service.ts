@@ -91,6 +91,11 @@ export class OnboardingService {
         await c.query("RELEASE SAVEPOINT upsert_user");
         const { inserted, ...user } = r!;
         if (inserted) await this.bootstrap(c, user, p, startParam, now);
+        // Daily activity for retention analytics (one row per UTC day).
+        await c.query(
+          "INSERT INTO user_activity (user_id, day) VALUES ($1, ($2::timestamptz AT TIME ZONE 'UTC')::date) ON CONFLICT DO NOTHING",
+          [user.id, now],
+        );
         return { user, isNew: inserted };
       } catch (err) {
         await c.query("ROLLBACK TO SAVEPOINT upsert_user");

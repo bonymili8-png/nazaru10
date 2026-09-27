@@ -374,4 +374,47 @@ export class AdminController {
       gemSinks,
     };
   }
+
+  /**
+   * Player analytics: active players (day / week / month), sign-ups per day and D1 / D7 retention
+   * by signup cohort (share of a day's new players who came back one / seven days later).
+   */
+  @Get("players")
+  @Roles("ECONOMY_ADMIN", "FINANCE_ADMIN", "GAME_ADMIN")
+  async players() {
+    const active = await this.db.one<{ dau: number; wau: number; mau: number; total: number }>(
+      `SELECT count(DISTINCT user_id) FILTER (WHERE day = current_date)::int AS dau,
+              count(DISTINCT user_id) FILTER (WHERE day > current_date - 7)::int AS wau,
+              count(DISTINCT user_id) FILTER (WHERE day > current_date - 30)::int AS mau,
+              (SELECT count(*)::int FROM users) AS total
+         FROM user_activity WHERE day > current_date - 30`,
+    );
+    const cohorts = await this.db.query<{
+      day: string;
+      signups: number;
+      d1: number | null;
+      d7: number | null;
+      dau: number;
+    }>(
+      `WITH days AS (SELECT generate_series(current_date - 20, current_date, interval '1 day')::date AS day),
+            cohort AS (SELECT id, (created_at AT TIME ZONE 'UTC')::date AS day FROM users
+                        WHERE created_at > now() - interval '22 days')
+       SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+              (SELECT count(*)::int FROM cohort c WHERE c.day = d.day) AS signups,
+              CASE WHEN d.day + 1 < current_date THEN
+                (SELECT count(*)::int FROM cohort c JOIN user_activity a ON a.user_id = c.id AND a.day = c.day + 1
+                  WHERE c.day = d.day) END AS d1,
+              CASE WHEN d.day + 7 < current_date THEN
+                (SELECT count(*)::int FROM cohort c JOIN user_activity a ON a.user_id = c.id AND a.day = c.day + 7
+                  WHERE c.day = d.day) END AS d7,
+              (SELECT count(*)::int FROM user_activity a WHERE a.day = d.day) AS dau
+         FROM days d ORDER BY d.day DESC`,
+    );
+    const sum = (k: "d1" | "d7") => {
+      const done = cohorts.filter((c) => c[k] !== null && c.signups > 0);
+      const n = done.reduce((s, c) => s + c.signups, 0);
+      return n ? Math.round((done.reduce((s, c) => s + (c[k] ?? 0), 0) / n) * 1000) / 10 : null;
+    };
+    return { active: active!, retention: { d1: sum("d1"), d7: sum("d7") }, cohorts };
+  }
 }

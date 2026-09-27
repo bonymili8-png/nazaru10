@@ -13,6 +13,8 @@ FRAUD_ANALYST.
 | Suspend (SUPPORT, FRAUD) / reinstate (SUPPORT) user | SUPPORT, FRAUD | ✅ console |
 | Audit log viewer | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
 | Economy dashboard (supply, mint/burn by reason, daily) | ECONOMY, FINANCE | ✅ console |
+| Revenue (Stars 7/30 days, payers, products, members, gem sinks) | ECONOMY, FINANCE | ✅ console |
+| Players (DAU/WAU/MAU, signups, D1/D7 retention by cohort from `user_activity`) | ECONOMY, FINANCE, GAME | ✅ console |
 | Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |
 | Payments list; refund (Telegram Stars refund + gem clawback, atomic, reason required) | FINANCE | ✅ console |
 | Races list (upcoming/live/recent); create special race (distance validated per track); cancel with refunds | GAME, TOURNAMENT | ✅ console |

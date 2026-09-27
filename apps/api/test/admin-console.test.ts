@@ -183,6 +183,37 @@ describe("admin console — payments and races", () => {
     expect(r.body.gemSinks).toEqual([{ code: "COSMETICS", gems: 60, buyers: 1 }]);
   });
 
+  it("reports active players and D1 / D7 retention by signup cohort", async () => {
+    expect((await t.get("/admin/players", player.token)).status).toBe(403);
+    // A cohort of three players who signed up ten days ago: two came back the next day, one a week later.
+    const cohort: string[] = [];
+    for (let i = 0; i < 3; i++) cohort.push((await t.login(9830 + i, `Cohort${i}`)).userId);
+    await t.db.query(
+      "UPDATE users SET created_at = (current_date - 10)::timestamp + interval '12 hours' WHERE id = ANY($1::uuid[])",
+      [cohort],
+    );
+    await t.db.query("DELETE FROM user_activity WHERE user_id = ANY($1::uuid[])", [cohort]);
+    await t.db.query(
+      `INSERT INTO user_activity (user_id, day) VALUES
+         ($1, current_date - 10), ($2, current_date - 10), ($3, current_date - 10),
+         ($1, current_date - 9), ($2, current_date - 9), ($3, current_date - 3), ($1, current_date)`,
+      cohort,
+    );
+    const r = await t.get<{
+      active: { dau: number; wau: number; mau: number; total: number };
+      retention: { d1: number | null; d7: number | null };
+      cohorts: { day: string; signups: number; d1: number | null; d7: number | null }[];
+    }>("/admin/players", game.token);
+    expect(r.status).toBe(200);
+    expect(r.body.active.dau).toBeGreaterThanOrEqual(1);
+    expect(r.body.active.mau).toBeGreaterThanOrEqual(3);
+    const tenDaysAgo = r.body.cohorts[10]!;
+    expect(tenDaysAgo).toMatchObject({ signups: 3, d1: 2, d7: 1 });
+    // Today's cohort cannot have D1 / D7 yet.
+    expect(r.body.cohorts[0]).toMatchObject({ d1: null, d7: null });
+    expect(r.body.retention.d1).not.toBeNull();
+  });
+
   it("creates a special race (validated) and cancels it with refunds", async () => {
     const startsAt = new Date(t.clock.now().getTime() + 60 * 60_000).toISOString();
     const bad = await t.post<{ error: { code: string } }>(

@@ -21,9 +21,10 @@ import { invalidate, useApi } from "@/lib/hooks";
  * Operator console. The API enforces every permission; the role lists here only decide which
  * tabs are shown.
  */
-type Tab = "revenue" | "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
+type Tab = "revenue" | "players" | "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
   revenue: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
+  players: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "GAME_ADMIN"],
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   users: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
   fraud: ["FRAUD_ANALYST"],
@@ -41,7 +42,7 @@ export default function AdminPage() {
   if (!me.data) return <Skeleton className="h-40" />;
   const role = me.data.role;
   const tabs = (
-    ["revenue", "economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]
+    ["revenue", "players", "economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]
   ).filter((t) => can(role, t));
   if (tabs.length === 0)
     return <EmptyState title="No console access" body="This area is for the operations team." />;
@@ -64,6 +65,7 @@ export default function AdminPage() {
         ))}
       </div>
       {active === "revenue" && <Revenue />}
+      {active === "players" && <Players />}
       {active === "economy" && <Economy />}
       {active === "users" && <Users role={role} />}
       {active === "fraud" && <Fraud />}
@@ -178,6 +180,69 @@ function Revenue() {
             <span className="num text-right">{fmt(d.stars)}</span>
           </div>
         ))}
+      </Card>
+    </>
+  );
+}
+
+/* ───────────────────────────── players ───────────────────────────── */
+
+interface PlayersDto {
+  active: { dau: number; wau: number; mau: number; total: number };
+  retention: { d1: number | null; d7: number | null };
+  cohorts: { day: string; signups: number; d1: number | null; d7: number | null; dau: number }[];
+}
+
+function Players() {
+  const { data, error, reload } = useApi<PlayersDto>("/admin/players", { refreshMs: 60_000 });
+  if (error) return <ErrorState error={error} retry={reload} />;
+  if (!data) return <Skeleton className="mt-3 h-64" />;
+  const pct = (n: number | null, of: number) => (n === null || !of ? "—" : `${Math.round((n / of) * 100)}%`);
+  const tiles: [string, string, string][] = [
+    ["Active today", fmt(data.active.dau), `${fmt(data.active.total)} players in total`],
+    ["Active · 7 / 30 days", `${fmt(data.active.wau)} / ${fmt(data.active.mau)}`, "distinct players"],
+    ["D1 retention", data.retention.d1 === null ? "—" : `${data.retention.d1}%`, "back the next day"],
+    ["D7 retention", data.retention.d7 === null ? "—" : `${data.retention.d7}%`, "back a week later"],
+  ];
+  return (
+    <>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {tiles.map(([label, value, sub]) => (
+          <Card key={label}>
+            <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+            <p className="num mt-1 font-display text-2xl font-bold text-gold">{value}</p>
+            <p className="text-xs text-muted">{sub}</p>
+          </Card>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        Retention is weighted over the last three weeks of signup cohorts (UTC days); a cohort counts once its
+        day 1 / day 7 has passed.
+      </p>
+      <SectionTitle>Signup cohorts</SectionTitle>
+      <Card className="overflow-x-auto p-0">
+        <table className="w-full text-xs">
+          <thead className="text-left text-[10px] uppercase tracking-wider text-muted">
+            <tr>
+              {["Day", "New", "D1", "D7", "Active"].map((h) => (
+                <th key={h} className="px-3 py-2 font-medium">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="num">
+            {data.cohorts.map((c) => (
+              <tr key={c.day} className="border-t border-line/40">
+                <td className="px-3 py-2 text-muted">{c.day.slice(5)}</td>
+                <td className="px-3 py-2">{fmt(c.signups)}</td>
+                <td className="px-3 py-2">{pct(c.d1, c.signups)}</td>
+                <td className="px-3 py-2">{pct(c.d7, c.signups)}</td>
+                <td className="px-3 py-2">{fmt(c.dau)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
     </>
   );

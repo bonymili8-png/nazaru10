@@ -44,6 +44,9 @@ test("an economy admin reads the dashboard, adjusts a balance and cannot publish
   // Revenue opens first: Stars, members and where gems go.
   await expect(page.getByText("Stars · 30 days")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Where gems go · 30 days" })).toBeVisible();
+  await page.getByRole("tab", { name: "players" }).click();
+  await expect(page.getByText("D7 retention")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Signup cohorts" })).toBeVisible();
   await page.getByRole("tab", { name: "economy" }).click();
   await expect(page.getByRole("heading", { name: "Supply" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Credits" })).toBeVisible();

@@ -882,12 +882,16 @@ export interface MarketListingDto {
   sellerName: string | null;
   mine: boolean;
   iAmLeading: boolean;
+  /** Pinned at the top of the market until then (null when not featured). */
+  featuredUntil: string | null;
   horse: ShopHorseDto;
 }
 
 export interface MarketListingDetailDto extends MarketListingDto {
   bids: { amount: number; bidderName: string | null; createdAt: string; mine: boolean }[];
   feeRate: number;
+  /** Price and length of one featuring (for the seller's button). */
+  feature: { gems: number; hours: number };
 }
 
 export interface MarketMineDto {

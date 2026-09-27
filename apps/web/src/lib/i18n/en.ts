@@ -998,6 +998,14 @@ export const en = {
   "nutrition.resume": "Resume renewal",
   "nutrition.stopped": "Renewal stopped",
   "nutrition.resumed": "Renewal resumed",
+  "listing.featured": "Featured",
+  "listing.feature": "Feature for {n} gems · {h} h",
+  "listing.featureMore": "Extend featuring · {n} gems",
+  "listing.featuredFor": "Featured at the top of the market for {time}",
+  "listing.featureHint":
+    "Featured listings are shown first to every buyer. Visibility only — the price and the sale rules stay the same.",
+  "listing.featureDone": "Your listing is featured",
+  "ledger.LISTING_FEATURED": "Featured listing",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

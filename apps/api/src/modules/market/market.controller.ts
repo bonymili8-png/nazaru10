@@ -51,6 +51,14 @@ export class MarketController {
     return this.market.cancel(user.id, id);
   }
 
+  @Post("listings/:id/feature")
+  feature(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<MarketListingDetailDto> {
+    return this.market.feature(user.id, id);
+  }
+
   @Post("listings/:id/buy")
   buy(
     @CurrentUser() user: AuthUser,

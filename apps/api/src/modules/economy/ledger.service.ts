@@ -31,6 +31,7 @@ export type SystemAccount =
   | "STAFF_SALARY"
   | "FACILITIES"
   | "FEED"
+  | "PROMOTIONS"
   | "COSMETICS"
   | "CLUBS"
   | "SPONSORS"

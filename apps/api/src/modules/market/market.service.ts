@@ -35,6 +35,8 @@ interface ListingRow {
   fee: number | null;
   created_at: Date;
   closed_at: Date | null;
+  featured_until: Date | null;
+  featured_count: number;
 }
 
 interface BidRow {
@@ -160,6 +162,40 @@ export class MarketService {
         aggregateId: l.id,
         actorId: sellerId,
       });
+    });
+    return this.detail(listingId, sellerId);
+  }
+
+  /**
+   * Feature a live listing: pinned at the top of the market for `featureHours` (extends a running
+   * featuring, never past the listing's end). Gems, sink `PROMOTIONS`; visibility only.
+   */
+  async feature(sellerId: string, listingId: string): Promise<MarketListingDetailDto> {
+    const now = this.clock.now();
+    const cfg = this.cfg;
+    await this.db.tx(async (c) => {
+      const l = await this.lockListing(c, listingId);
+      if (l.seller_id !== sellerId) throw forbidden("Not your listing");
+      this.assertOpen(l, now);
+      const from = l.featured_until && l.featured_until > now ? l.featured_until : now;
+      if (from >= l.ends_at) throw conflict("ALREADY_FEATURED", "Featured until the listing ends");
+      const until = new Date(Math.min(from.getTime() + cfg.featureHours * 3_600_000, l.ends_at.getTime()));
+      const n = l.featured_count + 1;
+      await this.ledger.debit(c, {
+        userId: sellerId,
+        currency: "GEMS",
+        amount: cfg.featureGems,
+        sink: "PROMOTIONS",
+        key: `listing:${l.id}:feature:${n}`,
+        type: "LISTING_FEATURED",
+        reason: "Featured market listing",
+        metadata: { listingId: l.id },
+      });
+      await c.query("UPDATE market_listings SET featured_until = $2, featured_count = $3 WHERE id = $1", [
+        l.id,
+        until,
+        n,
+      ]);
     });
     return this.detail(listingId, sellerId);
   }
@@ -432,6 +468,10 @@ export class MarketService {
       sellerName: l.seller_name,
       mine: viewerId === l.seller_id,
       iAmLeading: viewerId !== null && l.highest_bidder === viewerId,
+      featuredUntil:
+        l.status === "ACTIVE" && l.featured_until && l.featured_until > now
+          ? l.featured_until.toISOString()
+          : null,
       horse: this.horses.marketCard(horses.get(l.horse_id)!, now, l.highest_bid ?? l.price, l.seller_name),
     }));
   }
@@ -448,7 +488,8 @@ export class MarketService {
       this.db.pool,
       "l.status = 'ACTIVE' AND l.ends_at > $1 AND ($2::text IS NULL OR l.type = $2)",
       [this.clock.now(), q.type ?? null],
-      order,
+      // Featured listings first, each group in the chosen order.
+      `(l.featured_until IS NOT NULL AND l.featured_until > $1) DESC, ${order}`,
       q.limit,
     );
     return this.toDtos(list, viewerId);
@@ -466,6 +507,7 @@ export class MarketService {
     return {
       ...dto!,
       feeRate: this.cfg.saleFeeRate,
+      feature: { gems: this.cfg.featureGems, hours: this.cfg.featureHours },
       bids: bids.map((b) => ({
         amount: b.amount,
         bidderName: b.bidder_name,

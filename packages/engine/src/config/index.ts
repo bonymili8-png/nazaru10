@@ -325,6 +325,9 @@ export interface GameConfig {
     antiSnipeMinutes: number;
     minIncrementRate: number;
     minIncrement: number;
+    /** Gems to pin a live listing at the top of the market for `featureHours` (visibility only). */
+    featureGems: number;
+    featureHours: number;
   };
   generation: {
     rarityWeights: Record<Rarity, number>;
@@ -810,6 +813,8 @@ export const defaultConfig: GameConfig = {
     antiSnipeMinutes: 5,
     minIncrementRate: 0.05,
     minIncrement: 50,
+    featureGems: 30,
+    featureHours: 24,
   },
   generation: {
     rarityWeights: { COMMON: 60, UNCOMMON: 25, RARE: 10, EPIC: 4, LEGENDARY: 1 },

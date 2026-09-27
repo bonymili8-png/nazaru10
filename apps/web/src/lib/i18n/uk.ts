@@ -1001,4 +1001,12 @@ export const uk: Record<MessageKey, Msg> = {
   "nutrition.resume": "Відновити продовження",
   "nutrition.stopped": "Продовження зупинено",
   "nutrition.resumed": "Продовження відновлено",
+  "listing.featured": "Рекомендовано",
+  "listing.feature": "Просунути за {n} самоцвітів · {h} год",
+  "listing.featureMore": "Продовжити просування · {n} самоцвітів",
+  "listing.featuredFor": "Показується першим на ринку ще {time}",
+  "listing.featureHint":
+    "Просунуті лоти бачить першими кожен покупець. Це лише видимість — ціна й правила продажу не змінюються.",
+  "listing.featureDone": "Лот просунуто",
+  "ledger.LISTING_FEATURED": "Просування лота",
 };

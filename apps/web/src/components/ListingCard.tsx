@@ -1,6 +1,6 @@
 "use client";
 import type { MarketListingDto } from "@thoroughline/contracts";
-import { Gavel, Tag } from "lucide-react";
+import { Gavel, Sparkles, Tag } from "lucide-react";
 import Link from "next/link";
 import { countdown, fmt, titleCase } from "@/lib/format";
 import { useNow } from "@/lib/hooks";
@@ -16,7 +16,7 @@ export function ListingCard({ l }: { l: MarketListingDto }) {
   return (
     <Link
       href={`/listing/?id=${l.id}`}
-      className="block rounded-[var(--radius-card)] border border-line/60 bg-surface p-3.5 transition-colors hover:border-gold/40"
+      className={`block rounded-[var(--radius-card)] border p-3.5 transition-colors hover:border-gold/40 ${l.featuredUntil ? "border-gold/70 bg-surface-2" : "border-line/60 bg-surface"}`}
     >
       <div className="flex items-center gap-3">
         <div
@@ -38,6 +38,12 @@ export function ListingCard({ l }: { l: MarketListingDto }) {
               {auction ? <Gavel className="size-3" aria-hidden /> : <Tag className="size-3" aria-hidden />}
               {auction ? t("listing.auctionBids", { n: l.bidCount }) : t("listing.buyNow")}
             </Badge>
+            {l.featuredUntil && (
+              <Badge tone="gold">
+                <Sparkles className="size-3" aria-hidden />
+                {t("listing.featured")}
+              </Badge>
+            )}
             {l.iAmLeading && <Badge tone="good">{t("listing.youLead")}</Badge>}
             {l.mine && <Badge>{t("listing.yours")}</Badge>}
             <Stars n={h.potentialStars} />

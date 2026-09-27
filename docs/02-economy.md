@@ -119,7 +119,7 @@ hard-coded outside config.
 | Information economy | Vet diagnostics reveal hidden traits, genetic reports, race probability distribution | Gems or Credits | low (information, not power) | MVP (diagnostics), P2 |
 | Cosmetics | Silks, horse coats/markings, tack skins, stable decorations, finish effects | Gems | none | P2 |
 | Marketplace fees | 5–10 % sale/auction, 5 % lease/breeding (Credits sink) | Credits | none | P2 |
-| Promotions | Featured listing / stable / race (visibility only) | Gems | none | P3 |
+| Promotions | Featured market listing (**live**: 30 gems / 24 h, pinned first); featured stable / race later (visibility only) | Gems | none | P3 |
 | Spectator | Premium camera, advanced stats, collectible race posters | Gems | none | P3 |
 | Sponsorship | Sponsor contracts, branded races (B2B, Stripe/external) | fiat (external) | none | P3–P4 |
 | Rewarded ads | Small credits / analytics token, capped daily | — | low | P3 |
@@ -127,6 +127,22 @@ hard-coded outside config.
 
 Forbidden: selling race wins, selling stats directly, selling qualification, loot boxes
 with competitive horses for real money.
+
+### L.1 Revenue model and payment rails (decided)
+
+- **Players pay only in Telegram Stars** (gem packs, Rookie pack, Owners' Circle). Telegram
+  requires Stars for digital goods in Mini Apps; the developer withdraws Stars via Fragment (TON)
+  or spends them on Telegram Ads.
+- **Gems never buy competitive power.** Anything that changes race results or readiness (feed
+  plans, training, staff, facilities) is priced in earn-only credits. Elite feed stays on credits:
+  selling it for gems would create a pay → power → prize loop (legal and retention risk).
+- **Gem sinks** are cosmetics (silks, crest, cloths), the Racing Pass, information (diagnostics)
+  and visibility (featured listings). Further candidates: advanced race analytics, convenience
+  (multi-week auto-renew), finish effects.
+- **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
+  placements, invoiced outside the game (and physical merch if ever sold). It is never used for
+  in-app digital goods. The provider stub stays disabled until the owner connects an account
+  (keys only in the hosting settings).
 
 ## M. Marketplace (Phase 2)
 

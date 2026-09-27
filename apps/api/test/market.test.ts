@@ -301,6 +301,77 @@ describe("player market", () => {
     expect(statuses).toEqual([201, 201, 201, 409]);
   });
 
+  it("pins a featured listing to the top for gems (visibility only)", async () => {
+    const promoter = await t.login(7300, "Promoter");
+    const h = await horseOf(promoter);
+    const ref = await reference(h.id, promoter);
+    const l = await t.post<MarketListingDetailDto>(
+      "/market/listings",
+      { horseId: h.id, type: "FIXED", price: ref * 19 },
+      promoter.token,
+    );
+    expect(l.body.featuredUntil).toBeNull();
+    expect(l.body.feature).toEqual({ gems: 30, hours: 24 });
+    const gems = async () =>
+      (await t.get<{ balances: { GEMS: number } }>("/wallet", promoter.token)).body.balances.GEMS;
+    const start = await gems();
+    if (start < 60)
+      await t.db.tx((c) =>
+        t.service(LedgerService).credit(c, {
+          userId: promoter.userId,
+          currency: "GEMS",
+          amount: 60 - start,
+          source: "ADMIN_ADJUSTMENT",
+          key: "test:gems:promoter",
+          type: "TEST",
+        }),
+      );
+    const before = await gems();
+    expect((await t.post(`/market/listings/${l.body.id}/feature`, {}, buyers[0]!.token)).status).toBe(403);
+
+    const f = await t.post<MarketListingDetailDto>(
+      `/market/listings/${l.body.id}/feature`,
+      {},
+      promoter.token,
+    );
+    expect(f.status).toBe(201);
+    const until = new Date(f.body.featuredUntil!).getTime() - t.clock.now().getTime();
+    expect(until).toBeGreaterThan(24 * 3_600_000 - 5000);
+    expect(await gems()).toBe(before - 30);
+
+    // The most expensive listing still comes first when sorted by price ascending.
+    const list = (await t.get<MarketListingDto[]>("/market/listings?sort=price_asc", seller.token)).body;
+    expect(list.length).toBeGreaterThan(1);
+    expect(list[0]!.id).toBe(l.body.id);
+    expect(list.slice(1).every((x) => x.featuredUntil === null)).toBe(true);
+
+    // Featuring again extends it by another day.
+    const again = await t.post<MarketListingDetailDto>(
+      `/market/listings/${l.body.id}/feature`,
+      {},
+      promoter.token,
+    );
+    expect(new Date(again.body.featuredUntil!).getTime() - new Date(f.body.featuredUntil!).getTime()).toBe(
+      24 * 3_600_000,
+    );
+    expect(await gems()).toBe(before - 60);
+    // Out of gems.
+    const broke = await t.post<{ error: { code: string } }>(
+      `/market/listings/${l.body.id}/feature`,
+      {},
+      promoter.token,
+    );
+    expect(broke.body.error.code).toBe("INSUFFICIENT_FUNDS");
+
+    const c = await t.post<MarketListingDetailDto>(
+      `/market/listings/${l.body.id}/cancel`,
+      {},
+      promoter.token,
+    );
+    expect(c.body.featuredUntil).toBeNull();
+    expect((await t.post(`/market/listings/${l.body.id}/feature`, {}, promoter.token)).status).toBe(409);
+  });
+
   it("lists active listings with sorting and keeps the ledger balanced", async () => {
     const list = await t.get<MarketListingDto[]>("/market/listings?sort=price_asc", seller.token);
     expect(list.status).toBe(200);

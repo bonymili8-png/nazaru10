@@ -1,6 +1,6 @@
 "use client";
 import type { MarketListingDetailDto, WalletDto } from "@thoroughline/contracts";
-import { Crown, Gavel, ShieldCheck } from "lucide-react";
+import { Crown, Gavel, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -152,6 +152,29 @@ function ListingPage() {
           </div>
         )}
 
+        {open && l.mine && (
+          <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-3">
+            <p className="flex items-center gap-2 text-sm">
+              <Sparkles className="size-4 text-gold" aria-hidden />
+              {l.featuredUntil
+                ? t("listing.featuredFor", { time: countdown(l.featuredUntil, now) })
+                : t("listing.featureHint")}
+            </p>
+            <Button
+              variant="secondary"
+              className="mt-2 w-full"
+              disabled={busy !== null || (l.featuredUntil !== null && l.featuredUntil >= l.endsAt)}
+              loading={busy === "feature"}
+              onClick={() =>
+                act("feature", () => post(`/market/listings/${l.id}/feature`), t("listing.featureDone"))
+              }
+            >
+              {l.featuredUntil
+                ? t("listing.featureMore", { n: l.feature.gems })
+                : t("listing.feature", { n: l.feature.gems, h: l.feature.hours })}
+            </Button>
+          </div>
+        )}
         {open && l.mine && (
           <Button
             variant="danger"

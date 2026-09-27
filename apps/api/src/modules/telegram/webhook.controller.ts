@@ -21,6 +21,7 @@ import {
 } from "../payments/payments.service.js";
 import { productById } from "../payments/catalog.js";
 import { type Lang, langOf } from "../../common/i18n.js";
+import { inviteCodeOf } from "../../common/invite.js";
 import { BOT_API, type BotApi } from "./bot-api.js";
 
 const COMMANDS: Record<Lang, { command: string; description: string }[]> = {
@@ -154,7 +155,7 @@ export class TelegramWebhookController implements OnApplicationBootstrap {
     const T = TEXT[lang];
     if (text.startsWith("/start")) {
       const param = text.split(/\s+/)[1] ?? "";
-      if (/^ref_[A-Za-z0-9]{1,16}$/.test(param) && msg.from) {
+      if (inviteCodeOf(param) && msg.from) {
         // Remember the invite until the first sign-in; an existing player keeps their referrer.
         await this.db.query(
           `INSERT INTO pending_start_params (telegram_id, param) VALUES ($1, $2)

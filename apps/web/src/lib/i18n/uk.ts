@@ -1072,4 +1072,7 @@ export const uk: Record<MessageKey, Msg> = {
   "report.i.RAN_TIRED": "Почав забіг утомленим: дайте більше відпочити перед наступним.",
   "report.i.OFF_DISTANCE": "Ця дистанція далека від його найкращої.",
   "report.i.LED_EARLY": "Лідирував на початку, але не втримав.",
+  "horse.share": "Поділитися",
+  "horse.shareText": "Знайомтеся: {name}, мій скакун у Thoroughline 🏇",
+  "horse.shareOther": "Подивіться на {name} у Thoroughline 🏇",
 };

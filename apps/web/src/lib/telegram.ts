@@ -60,3 +60,8 @@ export function shareToTelegram(text: string, url: string): void {
   if (app?.openTelegramLink) app.openTelegramLink(share);
   else window.open(share, "_blank", "noopener");
 }
+
+/** A Mini App link to a race or horse that also credits the sharer as the inviter. */
+export function sharedLink(kind: "race" | "horse", id: string, referralCode?: string | null): string {
+  return appLink(`${kind}_${id}${referralCode ? `_r${referralCode}` : ""}`) ?? window.location.href;
+}

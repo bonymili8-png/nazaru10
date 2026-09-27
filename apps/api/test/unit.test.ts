@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../src/config/env.js";
 import { type InitDataError, signInitData, verifyInitData } from "../src/modules/auth/telegram-init-data.js";
+import { inviteCodeOf } from "../src/common/invite.js";
 import { createLogger } from "../src/common/logger.js";
 import { MemoryRateStore, RedisRateStore } from "../src/common/rate-limit.js";
 
@@ -181,5 +182,27 @@ describe("CORS", () => {
       await app.close();
       await db.close();
     }
+  });
+});
+
+describe("invite codes in start parameters", () => {
+  const id = "7f0c4a52-3f7e-4d0a-9d8b-1c2e3f4a5b6c";
+  it("reads plain invites and shared race / horse links", () => {
+    expect(inviteCodeOf("ref_abc123")).toBe("ABC123");
+    expect(inviteCodeOf(`race_${id}_rAB12CD34`)).toBe("AB12CD34");
+    expect(inviteCodeOf(`horse_${id}_rAB12CD34`)).toBe("AB12CD34");
+  });
+  it("ignores anything else", () => {
+    for (const p of [
+      null,
+      "",
+      "ref_",
+      `race_${id}`,
+      `race_${id}_r`,
+      "club_x_rABC",
+      "ref_bad-code",
+      `race_${id}_rTOO_LONG`,
+    ])
+      expect(inviteCodeOf(p)).toBeNull();
   });
 });

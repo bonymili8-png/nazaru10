@@ -5,6 +5,7 @@ import {
   type RaceDetailDto,
   type StableDto,
   STRATEGIES,
+  type UserDto,
   type Strategy,
 } from "@thoroughline/contracts";
 import { canRaceAtAge, defaultConfig, trackByCode } from "@thoroughline/engine";
@@ -31,7 +32,7 @@ import {
 } from "@/lib/format";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
-import { appLink, haptic, shareToTelegram } from "@/lib/telegram";
+import { haptic, sharedLink, shareToTelegram } from "@/lib/telegram";
 
 export default function RacePageWrapper() {
   return (
@@ -48,6 +49,7 @@ function RacePage() {
     error,
     reload,
   } = useApi<RaceDetailDto>(id ? `/races/${id}` : null, { refreshMs: 5000 });
+  const me = useApi<UserDto>("/me");
   const now = useNow(1000);
   if (!id) return <ErrorState error={new Error(t("race.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
@@ -159,7 +161,7 @@ function RacePage() {
           className="mt-4 w-full"
           onClick={() => {
             const best = mine.reduce((a, b) => ((a.position ?? 99) <= (b.position ?? 99) ? a : b));
-            const link = appLink(`race_${race.id}`) ?? window.location.href;
+            const link = sharedLink("race", race.id, me.data?.referralCode);
             shareToTelegram(
               t(best.position === 1 ? "race.shareFirst" : "race.sharePlace", {
                 horse: best.horseName,

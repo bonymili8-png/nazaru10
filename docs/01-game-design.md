@@ -324,6 +324,13 @@ fraction, straight length, elevation, going sensitivity, prestige.
 Weather: SUNNY, CLOUDY, RAIN, HEAVY_RAIN, WIND, FOG, HEAT, COLD — rain moves the going
 softer; wind taxes leaders; heat increases drain; fog increases positioning noise.
 
+## Sharing and invites
+
+Shared race and horse links carry the sharer's referral code (`race_<uuid>_r<CODE>`,
+`horse_<uuid>_r<CODE>`, ≤ 64 characters as Telegram requires), so a newcomer who opens one is
+recorded as that owner's referral exactly like a `ref_<CODE>` invite (same 24-hour activity check
+and fraud rules). The web app routes on the `kind_uuid` prefix and ignores the suffix.
+
 ## Clubs (Phase 3, v1)
 
 Players found a club (5,000 credits, sink `CLUBS`) with a unique name and a 2–4 character tag,

@@ -8,6 +8,7 @@ import { type Lang, langOf } from "../../common/i18n.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
 import { recordOwnership } from "../horses/horse.repo.js";
+import { inviteCodeOf } from "../../common/invite.js";
 import { QuestsService } from "../quests/quests.service.js";
 
 export interface TelegramProfile {
@@ -114,9 +115,8 @@ export class OnboardingService {
       "DELETE FROM pending_start_params WHERE telegram_id = $1 RETURNING param, created_at > $2 AS fresh",
       [p.telegramId, new Date(now.getTime() - 7 * 86_400_000)],
     );
-    const invite = startParam?.startsWith("ref_") ? startParam : pending?.fresh ? pending.param : null;
-    if (invite) {
-      const code = invite.slice(4, 20).toUpperCase();
+    const code = inviteCodeOf(startParam) ?? (pending?.fresh ? inviteCodeOf(pending.param) : null);
+    if (code) {
       await c.query(
         "UPDATE users SET referred_by = (SELECT id FROM users WHERE referral_code = $2 AND id <> $1 AND status = 'ACTIVE') WHERE id = $1",
         [user.id, code],

@@ -1071,6 +1071,9 @@ export const en = {
   "report.i.RAN_TIRED": "Started the race tired: give it more rest before the next one.",
   "report.i.OFF_DISTANCE": "This trip is far from its best distance.",
   "report.i.LED_EARLY": "Led early but could not hold on.",
+  "horse.share": "Share",
+  "horse.shareText": "Meet {name}, my racehorse on Thoroughline 🏇",
+  "horse.shareOther": "Look at {name} on Thoroughline 🏇",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

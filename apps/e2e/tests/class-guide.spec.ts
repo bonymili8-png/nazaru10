@@ -9,6 +9,8 @@ test("an owner sees which race classes a horse can enter and why", async ({ page
   await expect(page.getByText("Ability", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Race rating", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Can race in")).toBeVisible();
+  // Owners can share their horse (the link also credits them as the inviter).
+  await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
   await expect(page.getByText("Maiden", { exact: true }).first()).toBeVisible();
 
   // The races page explains every class's race-rating band, with no overlaps.

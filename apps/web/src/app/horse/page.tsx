@@ -12,6 +12,7 @@ import {
   TRAINING_TYPES,
   type TrainingIntensity,
   type TrainingType,
+  type UserDto,
 } from "@thoroughline/contracts";
 import {
   bestTrainerFor,
@@ -29,6 +30,7 @@ import {
   HeartPulse,
   Lock,
   Microscope,
+  Share2,
   Stethoscope,
   Tag,
   Timer,
@@ -65,7 +67,7 @@ import {
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { memberLocked } from "@/lib/member";
-import { haptic } from "@/lib/telegram";
+import { haptic, sharedLink, shareToTelegram } from "@/lib/telegram";
 
 export default function HorsePageWrapper() {
   return (
@@ -84,6 +86,7 @@ function HorsePage() {
     error,
     reload,
   } = useApi<HorseDetailDto>(id ? `/horses/${id}` : null, { refreshMs: 10_000 });
+  const me = useApi<UserDto>("/me");
   const [tab, setTab] = useState<Tab>("overview");
   if (!id) return <ErrorState error={new Error(t("horse.noneSelected"))} />;
   if (error) return <ErrorState error={error} retry={reload} />;
@@ -102,7 +105,23 @@ function HorsePage() {
             {h.name.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-2xl font-bold">{h.name}</h1>
+            <div className="flex items-start justify-between gap-2">
+              <h1 className="truncate font-display text-2xl font-bold">{h.name}</h1>
+              {!h.isHouse && (
+                <button
+                  onClick={() =>
+                    shareToTelegram(
+                      t(mine ? "horse.shareText" : "horse.shareOther", { name: h.name }),
+                      sharedLink("horse", h.id, me.data?.referralCode),
+                    )
+                  }
+                  aria-label={t("horse.share")}
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-colors hover:text-gold"
+                >
+                  <Share2 className="size-5" aria-hidden />
+                </button>
+              )}
+            </div>
             <p className="text-sm text-muted">
               {t("horse.ageLine", { age: h.age.toFixed(1), sex: titleCase(h.sex) })} · {titleCase(h.coat)} ·{" "}
               {h.bloodline}

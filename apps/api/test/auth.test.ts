@@ -74,6 +74,28 @@ describe("authentication & onboarding", () => {
     expect(row2!.referred_by).toBeNull();
   });
 
+  it("credits the sharer when a newcomer opens a shared race or horse link", async () => {
+    const sharer = await t.login(1006, "Fedir");
+    const code = (await t.get<{ referralCode: string }>("/me", sharer.token)).body.referralCode;
+    const raceLink = `race_7f0c4a52-3f7e-4d0a-9d8b-1c2e3f4a5b6c_r${code}`;
+    expect(raceLink.length).toBeLessThanOrEqual(64);
+    const fan = await t.login(1007, "Galya", raceLink);
+    const horseFan = await t.login(1008, "Ihor", `horse_7f0c4a52-3f7e-4d0a-9d8b-1c2e3f4a5b6c_r${code}`);
+    for (const u of [fan, horseFan]) {
+      const r = await t.db.one<{ referred_by: string | null }>(
+        "SELECT referred_by FROM users WHERE id = $1",
+        [u.userId],
+      );
+      expect(r!.referred_by).toBe(sharer.userId);
+    }
+    // A plain race link (no code) credits nobody.
+    const plain = await t.login(1009, "Oles", "race_7f0c4a52-3f7e-4d0a-9d8b-1c2e3f4a5b6c");
+    const r = await t.db.one<{ referred_by: string | null }>("SELECT referred_by FROM users WHERE id = $1", [
+      plain.userId,
+    ]);
+    expect(r!.referred_by).toBeNull();
+  });
+
   it("keeps an invite that arrived through the bot's /start until the first sign-in", async () => {
     const host = await t.login(1010, "Hana");
     const code = (await t.get<{ referralCode: string }>("/me", host.token)).body.referralCode;

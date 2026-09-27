@@ -65,3 +65,10 @@ export function shareToTelegram(text: string, url: string): void {
 export function sharedLink(kind: "race" | "horse", id: string, referralCode?: string | null): string {
   return appLink(`${kind}_${id}${referralCode ? `_r${referralCode}` : ""}`) ?? window.location.href;
 }
+
+/** Open a t.me link inside Telegram (falls back to a new tab outside it). */
+export function openTelegramLink(url: string): void {
+  const app = tg();
+  if (app?.openTelegramLink) app.openTelegramLink(url);
+  else window.open(url, "_blank", "noopener");
+}

@@ -223,7 +223,13 @@ export interface GameConfig {
   clubs: {
     /** Credits to found a club (sink). */
     createCost: number;
+    /** Member cap at level 1; higher levels use `levelMaxMembers`. */
     maxMembers: number;
+    /** Member cap by club level (index 0 = level 1). */
+    levelMaxMembers: number[];
+    /** Treasury credits to reach level 2, 3, … (spent from donations, never withdrawn). */
+    upgradeCosts: number[];
+    minDonation: number;
     /** Hours before a player who left a club can join another (stops club hopping). */
     rejoinCooldownHours: number;
   };
@@ -633,7 +639,14 @@ export const defaultConfig: GameConfig = {
     clothPatternPrices: { PLAIN: 0, STRIPE: 40, CHECK: 60, STARS: 90 },
     finishEffectPrices: { NONE: 0, CONFETTI: 0, ROSES: 80, FIREWORKS: 100, GOLD_RAIN: 120, LIGHTNING: 150 },
   },
-  clubs: { createCost: 5000, maxMembers: 20, rejoinCooldownHours: 24 },
+  clubs: {
+    createCost: 5000,
+    maxMembers: 20,
+    levelMaxMembers: [20, 30, 40],
+    upgradeCosts: [30000, 90000],
+    minDonation: 100,
+    rejoinCooldownHours: 24,
+  },
   sponsors: {
     offersPerWeek: 3,
     contractDays: 7,

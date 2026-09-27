@@ -17,6 +17,14 @@ test("an owner founds a club, sees it ranked and leaves it", async ({ page }) =>
   await expect.poll(() => headerCredits(page)).toBe(before - 5000);
   await page.screenshot({ path: "/tmp/claude-0/shots/club.png" });
 
+  // Members see the treasury; the owner links the club's Telegram group.
+  await expect(page.getByRole("heading", { name: "Club treasury" })).toBeVisible();
+  await expect(page.getByText("Level 1 · up to 20 members")).toBeVisible();
+  await page.getByLabel("Telegram group link (t.me/…)").fill("https://t.me/+E2eClubChat");
+  await page.getByRole("button", { name: "Save link" }).click();
+  await expect(page.getByText("Chat link saved")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open the club's Telegram group" })).toBeVisible();
+
   // Founding a club makes the racing news (the job runner ingests events every few seconds).
   await page.goto("/feed/");
   await expect(async () => {

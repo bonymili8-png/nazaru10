@@ -47,7 +47,9 @@ export type EscrowAccount = "MARKET";
 export type AccountRef =
   | { user: string; currency: Currency }
   | { system: SystemAccount; currency: Currency }
-  | { escrow: EscrowAccount; currency: Currency };
+  | { escrow: EscrowAccount; currency: Currency }
+  /** A club treasury (non-negative; donations in, club upgrades out). */
+  | { club: string; currency: Currency };
 
 export interface Posting {
   idempotencyKey: string;
@@ -68,7 +70,9 @@ const refKey = (r: AccountRef) =>
     ? `U:${r.user}:${r.currency}`
     : "system" in r
       ? `S:${r.system}:${r.currency}`
-      : `E:${r.escrow}:${r.currency}`;
+      : "club" in r
+        ? `C:${r.club}:${r.currency}`
+        : `E:${r.escrow}:${r.currency}`;
 
 /**
  * The only writer of balances. Every change is a balanced double-entry transaction with a
@@ -242,7 +246,11 @@ export class LedgerService {
       return r.rows[0]!.id;
     }
     const [kind, code] =
-      "system" in ref ? (["SYSTEM", ref.system] as const) : (["ESCROW", ref.escrow] as const);
+      "system" in ref
+        ? (["SYSTEM", ref.system] as const)
+        : "club" in ref
+          ? (["CLUB", ref.club] as const)
+          : (["ESCROW", ref.escrow] as const);
     await c.query(
       `INSERT INTO accounts (owner_type, code, currency) VALUES ($1, $2, $3)
        ON CONFLICT (owner_type, code, currency) WHERE owner_type <> 'USER' DO NOTHING`,

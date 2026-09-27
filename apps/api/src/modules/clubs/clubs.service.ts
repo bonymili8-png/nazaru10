@@ -26,6 +26,8 @@ interface ClubRow {
   owner_id: string;
   members: number;
   points: number;
+  level: number;
+  chat_url: string | null;
 }
 
 /**
@@ -56,7 +58,7 @@ export class ClubsService {
   private async ranked(c: Queryable, filter = "", params: unknown[] = []): Promise<ClubRow[]> {
     return rows<ClubRow>(
       c,
-      `SELECT k.id, k.name, k.tag, k.description, k.owner_id,
+      `SELECT k.id, k.name, k.tag, k.description, k.owner_id, k.level, k.chat_url,
               (SELECT count(*)::int FROM club_members m WHERE m.club_id = k.id) AS members,
               COALESCE((SELECT sum(p.points)::int FROM club_members m
                           JOIN season_points p ON p.owner_id = m.user_id AND p.season = $1
@@ -67,6 +69,101 @@ export class ClubsService {
     );
   }
 
+  /** Member cap for a club level. */
+  maxMembers(level: number): number {
+    return this.cfg.levelMaxMembers[level - 1] ?? this.cfg.levelMaxMembers.at(-1) ?? this.cfg.maxMembers;
+  }
+
+  private async treasury(c: Queryable, clubId: string): Promise<number> {
+    const r = await row<{ balance: string }>(
+      c,
+      "SELECT balance FROM accounts WHERE owner_type = 'CLUB' AND code = $1 AND currency = 'CREDITS'",
+      [clubId],
+    );
+    return r ? Number(r.balance) : 0;
+  }
+
+  /** Donate credits to the viewer's club treasury (members only; one-way, never withdrawn). */
+  async donate(userId: string, amount: number): Promise<ClubDetailDto> {
+    if (amount < this.cfg.minDonation)
+      throw conflict("DONATION_TOO_SMALL", `Donate at least ${this.cfg.minDonation} credits`);
+    const now = this.clock.now();
+    const clubId = await this.db.tx(async (c) => {
+      const m = await row<{ club_id: string }>(c, "SELECT club_id FROM club_members WHERE user_id = $1", [
+        userId,
+      ]);
+      if (!m) throw conflict("NOT_IN_CLUB", "Join a club first");
+      await this.ledger.post(c, {
+        idempotencyKey: `club:${m.club_id}:donation:${userId}:${now.getTime()}`,
+        type: "CLUB_DONATION",
+        reason: "Club treasury donation",
+        actorId: userId,
+        metadata: { clubId: m.club_id },
+        entries: [
+          { account: { user: userId, currency: "CREDITS" }, amount: -amount },
+          { account: { club: m.club_id, currency: "CREDITS" }, amount },
+        ],
+      });
+      await this.events.emit(c, {
+        type: "club_donation",
+        aggregateType: "club",
+        aggregateId: m.club_id,
+        actorId: userId,
+        payload: { amount },
+      });
+      return m.club_id;
+    });
+    return this.detail(clubId, userId);
+  }
+
+  /** The owner spends the treasury on the next club level (more members). */
+  async upgrade(ownerId: string): Promise<ClubDetailDto> {
+    const clubId = await this.db.tx(async (c) => {
+      const k = await row<{ id: string; level: number; owner_id: string }>(
+        c,
+        `SELECT k.id, k.level, k.owner_id FROM clubs k JOIN club_members m ON m.club_id = k.id
+          WHERE m.user_id = $1 AND k.disbanded_at IS NULL FOR UPDATE OF k`,
+        [ownerId],
+      );
+      if (!k) throw conflict("NOT_IN_CLUB", "Join a club first");
+      if (k.owner_id !== ownerId) throw forbidden("Only the club owner can upgrade the club");
+      const cost = this.cfg.upgradeCosts[k.level - 1];
+      if (cost === undefined) throw conflict("MAX_LEVEL", "The club is at its highest level");
+      await this.ledger.post(c, {
+        idempotencyKey: `club:${k.id}:level:${k.level + 1}`,
+        type: "CLUB_UPGRADE",
+        reason: `Club level ${k.level + 1}`,
+        actorId: ownerId,
+        metadata: { clubId: k.id, level: k.level + 1 },
+        entries: [
+          { account: { club: k.id, currency: "CREDITS" }, amount: -cost },
+          { account: { system: "CLUBS", currency: "CREDITS" }, amount: cost },
+        ],
+      });
+      await c.query("UPDATE clubs SET level = level + 1 WHERE id = $1", [k.id]);
+      await this.events.emit(c, {
+        type: "club_upgraded",
+        aggregateType: "club",
+        aggregateId: k.id,
+        actorId: ownerId,
+        payload: { level: k.level + 1, cost },
+      });
+      return k.id;
+    });
+    return this.detail(clubId, ownerId);
+  }
+
+  /** The owner sets (or clears) the club's Telegram group link, shown to members only. */
+  async setChat(ownerId: string, url: string | null): Promise<ClubDetailDto> {
+    const k = await row<{ id: string }>(
+      this.db.pool,
+      "UPDATE clubs SET chat_url = $2 WHERE owner_id = $1 AND disbanded_at IS NULL RETURNING id",
+      [ownerId, url],
+    );
+    if (!k) throw forbidden("Only the club owner can set the chat link");
+    return this.detail(k.id, ownerId);
+  }
+
   private summary(k: ClubRow, rank: number | null): ClubSummaryDto {
     return {
       id: k.id,
@@ -74,7 +171,7 @@ export class ClubsService {
       tag: k.tag,
       description: k.description,
       members: k.members,
-      maxMembers: this.cfg.maxMembers,
+      maxMembers: this.maxMembers(k.level),
       points: k.points,
       rank: k.points > 0 ? rank : null,
     };
@@ -139,9 +236,10 @@ export class ClubsService {
         ? "IN_CLUB"
         : me.cooldownUntil
           ? "COOLDOWN"
-          : k.members >= this.cfg.maxMembers
+          : k.members >= this.maxMembers(k.level)
             ? "FULL"
             : null;
+    const member = myRole !== null;
     return {
       ...this.summary(k, rank >= 0 ? rank + 1 : null),
       season,
@@ -156,6 +254,11 @@ export class ClubsService {
         joinedAt: m.joined_at.toISOString(),
       })),
       myRole,
+      level: k.level,
+      treasury: member ? await this.treasury(this.db.pool, k.id) : null,
+      nextLevelCost: this.cfg.upgradeCosts[k.level - 1] ?? null,
+      minDonation: this.cfg.minDonation,
+      chatUrl: member ? k.chat_url : null,
       joinBlocked,
       cooldownUntil: joinBlocked === "COOLDOWN" ? me.cooldownUntil : null,
     };
@@ -211,9 +314,9 @@ export class ClubsService {
     const now = this.clock.now();
     await this.db.tx(async (c) => {
       // Lock the club so concurrent joins cannot overfill it.
-      const k = await row<{ id: string }>(
+      const k = await row<{ id: string; level: number }>(
         c,
-        "SELECT id FROM clubs WHERE id = $1 AND disbanded_at IS NULL FOR UPDATE",
+        "SELECT id, level FROM clubs WHERE id = $1 AND disbanded_at IS NULL FOR UPDATE",
         [clubId],
       );
       if (!k) throw notFound("Club");
@@ -223,7 +326,7 @@ export class ClubsService {
         "SELECT count(*)::int AS n FROM club_members WHERE club_id = $1",
         [clubId],
       );
-      if (n!.n >= this.cfg.maxMembers) throw conflict("CLUB_FULL", "This club is full");
+      if (n!.n >= this.maxMembers(k.level)) throw conflict("CLUB_FULL", "This club is full");
       await c.query(
         "INSERT INTO club_members (user_id, club_id, role, joined_at) VALUES ($1,$2,'MEMBER',$3)",
         [userId, clubId, now],

@@ -1,6 +1,7 @@
 import type { ClubDetailDto, ClubSummaryDto, MyClubDto } from "@thoroughline/contracts";
 import { defaultConfig, seasonAt } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { LedgerService } from "../src/modules/economy/ledger.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
 
 type User = { token: string; userId: string };
@@ -66,6 +67,60 @@ describe("clubs", () => {
     expect(full.body.error.code).toBe("CLUB_FULL");
     const view = (await t.get<ClubDetailDto>(`/clubs/${club.id}`, cat.token)).body;
     expect(view.joinBlocked).toBe("FULL");
+  });
+
+  it("grows through its treasury: donations in, levels out, never withdrawn", async () => {
+    const fund = (u: User, amount: number) =>
+      t.db.tx((c) =>
+        t.service(LedgerService).credit(c, {
+          userId: u.userId,
+          currency: "CREDITS",
+          amount,
+          source: "ADMIN_ADJUSTMENT",
+          key: `club-fund:${u.userId}:${amount}`,
+          type: "TEST",
+        }),
+      );
+    await fund(ann, 40_000);
+    await fund(ben, 10_000);
+    const small = await t.post<{ error: { code: string } }>("/clubs/donate", { amount: 10 }, ben.token);
+    expect(small.body.error.code).toBe("DONATION_TOO_SMALL");
+    expect((await t.post("/clubs/donate", { amount: 500 }, cat.token)).status).toBe(409); // not a member
+    const benBefore = await credits(ben);
+    await t.post("/clubs/donate", { amount: 5_000 }, ben.token);
+    expect(await credits(ben)).toBe(benBefore - 5_000);
+    let v = (await t.post<ClubDetailDto>("/clubs/donate", { amount: 25_000 }, ann.token)).body;
+    expect(v).toMatchObject({
+      level: 1,
+      treasury: 30_000,
+      nextLevelCost: cfg.upgradeCosts[0],
+      maxMembers: 20,
+    });
+    // Outsiders do not see the treasury.
+    expect((await t.get<ClubDetailDto>(`/clubs/${club.id}`, cat.token)).body.treasury).toBeNull();
+
+    expect((await t.post("/clubs/upgrade", {}, ben.token)).status).toBe(403);
+    v = (await t.post<ClubDetailDto>("/clubs/upgrade", {}, ann.token)).body;
+    expect(v).toMatchObject({ level: 2, treasury: 0, maxMembers: cfg.levelMaxMembers[1] });
+    const broke = await t.post<{ error: { code: string } }>("/clubs/upgrade", {}, ann.token);
+    expect(broke.body.error.code).toBe("INSUFFICIENT_FUNDS");
+
+    // Room again: a newcomer can join the full club now.
+    const newcomer = await t.login(8191, "Newcomer");
+    expect((await t.post(`/clubs/${club.id}/join`, {}, newcomer.token)).status).toBe(201);
+  });
+
+  it("shows the club's Telegram group link to members only", async () => {
+    expect((await t.put("/clubs/chat", { url: "https://evil.example/join" }, ann.token)).status).toBe(400);
+    expect((await t.put("/clubs/chat", { url: "https://t.me/+AbCdEf123" }, ben.token)).status).toBe(403);
+    const r = await t.put<ClubDetailDto>("/clubs/chat", { url: "https://t.me/+AbCdEf123" }, ann.token);
+    expect(r.body.chatUrl).toBe("https://t.me/+AbCdEf123");
+    expect((await t.get<ClubDetailDto>(`/clubs/${club.id}`, ben.token)).body.chatUrl).toBe(
+      "https://t.me/+AbCdEf123",
+    );
+    const outsider = await t.login(8190, "Outsider");
+    expect((await t.get<ClubDetailDto>(`/clubs/${club.id}`, outsider.token)).body.chatUrl).toBeNull();
+    expect((await t.put<ClubDetailDto>("/clubs/chat", { url: null }, ann.token)).body.chatUrl).toBeNull();
   });
 
   it("ranks clubs by their members' season points", async () => {

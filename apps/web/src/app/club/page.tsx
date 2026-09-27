@@ -15,11 +15,11 @@ import {
   Skeleton,
   useToast,
 } from "@/components/ui";
-import { post } from "@/lib/api";
+import { post, put } from "@/lib/api";
 import { countdown, errorMessage, fmt } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
-import { haptic } from "@/lib/telegram";
+import { haptic, openTelegramLink } from "@/lib/telegram";
 
 export default function ClubPageWrapper() {
   return (
@@ -115,6 +115,8 @@ function ClubPage() {
         )}
       </Card>
 
+      {k.myRole && <Treasury k={k} onChange={reload} />}
+
       <SectionTitle>{t("club.membersTitle")}</SectionTitle>
       <Card className="divide-y divide-line/40 p-0">
         {k.memberList.map((m) => (
@@ -153,5 +155,125 @@ function ClubPage() {
         {t("common.back")}
       </LinkButton>
     </div>
+  );
+}
+
+/** Members-only: treasury (donations, level upgrades) and the club's Telegram group link. */
+function Treasury({ k, onChange }: { k: ClubDetailDto; onChange: () => void }) {
+  const cfg = defaultConfig.clubs;
+  const [amount, setAmount] = useState(String(Math.max(k.minDonation, 1000)));
+  const [chat, setChat] = useState(k.chatUrl ?? "");
+  const [busy, setBusy] = useState<string | null>(null);
+  const toast = useToast();
+  const owner = k.myRole === "OWNER";
+  const n = Math.round(Number(amount || 0));
+  const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
+    setBusy(key);
+    try {
+      await fn();
+      haptic.success();
+      toast(ok);
+      invalidate("/clubs", "/wallet");
+      onChange();
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const nextMax = cfg.levelMaxMembers[k.level] ?? k.maxMembers;
+  const progress = k.nextLevelCost ? Math.min(100, ((k.treasury ?? 0) / k.nextLevelCost) * 100) : 100;
+  const field = "mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
+  return (
+    <>
+      <SectionTitle>{t("club.treasury")}</SectionTitle>
+      <Card className="space-y-2 text-sm">
+        <p className="font-semibold">{t("club.level", { n: k.level, max: k.maxMembers })}</p>
+        <p className="num text-gold">{t("club.balance", { n: fmt(k.treasury ?? 0) })}</p>
+        {k.nextLevelCost ? (
+          <>
+            <div className="h-2 rounded-full bg-surface-2" aria-hidden>
+              <div className="h-2 rounded-full bg-gold" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="text-muted">
+              {t("club.nextLevel", { n: k.level + 1, max: nextMax, cost: fmt(k.nextLevelCost) })}
+            </p>
+          </>
+        ) : (
+          <p className="text-muted">{t("club.maxLevel")}</p>
+        )}
+        <p className="text-xs text-muted">{t("club.treasuryHint")}</p>
+        <label htmlFor="donation" className="block text-muted">
+          {t("club.donateAmount")}
+        </label>
+        <input
+          id="donation"
+          inputMode="numeric"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))}
+          className={`num ${field}`}
+        />
+        <div className={`grid gap-2 ${owner && k.nextLevelCost ? "grid-cols-2" : "grid-cols-1"}`}>
+          <Button
+            variant="secondary"
+            disabled={n < k.minDonation || busy !== null}
+            loading={busy === "donate"}
+            onClick={() =>
+              void run("donate", () => post("/clubs/donate", { amount: n }), t("club.donated", { n: fmt(n) }))
+            }
+          >
+            {t("club.donate", { n: fmt(n) })}
+          </Button>
+          {owner && k.nextLevelCost && (
+            <Button
+              disabled={(k.treasury ?? 0) < k.nextLevelCost || busy !== null}
+              loading={busy === "upgrade"}
+              onClick={() =>
+                void run("upgrade", () => post("/clubs/upgrade"), t("club.upgraded", { n: k.level + 1 }))
+              }
+            >
+              {t("club.upgrade", { n: k.level + 1 })}
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <SectionTitle>{t("club.chat")}</SectionTitle>
+      <Card className="space-y-2 text-sm">
+        {k.chatUrl ? (
+          <Button className="w-full" onClick={() => openTelegramLink(k.chatUrl!)}>
+            {t("club.openChat")}
+          </Button>
+        ) : (
+          <p className="text-muted">{t("club.chatNone")}</p>
+        )}
+        {owner && (
+          <>
+            <label htmlFor="chat" className="block text-muted">
+              {t("club.chatUrl")}
+            </label>
+            <input
+              id="chat"
+              value={chat}
+              placeholder="https://t.me/+…"
+              onChange={(e) => setChat(e.target.value)}
+              className={field}
+            />
+            <p className="text-xs text-muted">{t("club.chatHint")}</p>
+            <Button
+              variant="secondary"
+              className="w-full"
+              loading={busy === "chat"}
+              onClick={() =>
+                void run("chat", () => put("/clubs/chat", { url: chat.trim() || null }), t("club.chatSaved"))
+              }
+            >
+              {t("club.chatSave")}
+            </Button>
+          </>
+        )}
+      </Card>
+    </>
   );
 }

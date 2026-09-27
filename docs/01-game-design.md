@@ -363,6 +363,13 @@ the removed player). When the owner leaves, the longest-serving member takes ove
 member out disbands the club and frees its name. Config: `clubs.createCost`, `maxMembers`,
 `rejoinCooldownHours`. No club rewards yet — to be added with a live-data economy review.
 
+**Treasury and chat (v2).** Each club has a treasury — a ledger account owned by the club (`CLUB`
+owner type, non-negative). Members donate credits (minimum 100); donations are one-way (nothing can
+be withdrawn, so a club is never a channel for moving credits between players) and the owner spends
+the treasury on club levels: level 2 (30 members) for 30 000, level 3 (40 members) for 90 000 (sink
+`CLUBS`). The owner can link the club's Telegram group (`t.me/+…`, `t.me/joinchat/…` or
+`t.me/name`), shown to members only.
+
 ## Syndicates (Phase 3, v1)
 
 A horse's owner (the manager) can sell up to 5 of its 10 shares to other players at a fixed price

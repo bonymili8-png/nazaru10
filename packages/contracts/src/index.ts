@@ -557,6 +557,18 @@ export interface MyShareDto {
 
 /* ───────────────────────────── clubs ───────────────────────────── */
 
+export const ClubDonateRequest = z.object({ amount: z.number().int().positive() }).strict();
+/** A Telegram group or channel invite link (t.me/+code, t.me/joinchat/code or t.me/name); null clears it. */
+export const ClubChatRequest = z
+  .object({
+    url: z
+      .string()
+      .trim()
+      .regex(/^https:\/\/t\.me\/(\+|joinchat\/)?[A-Za-z0-9_-]{4,64}$/, "A t.me link")
+      .nullable(),
+  })
+  .strict();
+
 export const CreateClubRequest = z.object({
   name: z
     .string()
@@ -608,6 +620,13 @@ export interface ClubMemberDto {
 
 export interface ClubDetailDto extends ClubSummaryDto {
   season: number;
+  level: number;
+  /** Treasury balance and next level's cost (members only; null otherwise / at max level). */
+  treasury: number | null;
+  nextLevelCost: number | null;
+  minDonation: number;
+  /** Telegram group link (members only). */
+  chatUrl: string | null;
   memberList: ClubMemberDto[];
   myRole: ClubRole | null;
   /** Why the viewer cannot join right now (null = can join, or already a member). */

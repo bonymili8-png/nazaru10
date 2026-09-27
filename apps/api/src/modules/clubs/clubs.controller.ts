@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, Req } from "@nestjs/common";
 import {
+  ClubChatRequest,
+  ClubDonateRequest,
   type ClubDetailDto,
   ClubListQuery,
   type ClubSummaryDto,
@@ -54,5 +56,23 @@ export class ClubsController {
     @Req() req: AuthedRequest,
   ): Promise<ClubDetailDto> {
     return this.clubs.kick(user.id, userId, req.ip);
+  }
+
+  /** Donate credits to your club's treasury (one-way; spent on club levels). */
+  @Post("donate")
+  donate(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<ClubDetailDto> {
+    return this.clubs.donate(user.id, parse(ClubDonateRequest, body).amount);
+  }
+
+  /** The owner spends the treasury on the next club level. */
+  @Post("upgrade")
+  upgrade(@CurrentUser() user: AuthUser): Promise<ClubDetailDto> {
+    return this.clubs.upgrade(user.id);
+  }
+
+  /** The owner sets or clears the club's Telegram group link. */
+  @Put("chat")
+  chat(@CurrentUser() user: AuthUser, @Body() body: unknown): Promise<ClubDetailDto> {
+    return this.clubs.setChat(user.id, parse(ClubChatRequest, body).url);
   }
 }

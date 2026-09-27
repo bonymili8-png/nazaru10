@@ -42,6 +42,8 @@ export interface HorseRow {
   feed_paid_until: Date | null;
   feed_renews: boolean;
   feed_periods: number;
+  /** End of a limited shop listing (live-ops drops). */
+  sale_ends_at?: Date | null;
 }
 
 export interface NewHorse {
@@ -146,7 +148,8 @@ export async function transferHorse(
     `UPDATE horses SET owner_id = $2, stable_id = $3, is_house = false, house_class = NULL, sale_price = NULL,
             status = 'IDLE', updated_at = $4,
             -- The seller's feed plan does not travel with the horse (no refund of the paid week).
-            feed_plan = 'STANDARD', feed_paid_until = NULL, feed_renews = true, feed_periods = 0
+            feed_plan = 'STANDARD', feed_paid_until = NULL, feed_renews = true, feed_periods = 0,
+            sale_ends_at = NULL
       WHERE id = $1 RETURNING *`,
     [h.id, to.userId, to.stableId, now],
   );

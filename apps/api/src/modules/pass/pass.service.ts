@@ -8,6 +8,7 @@ import { EventsService } from "../../common/events.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { silkItem } from "../cosmetics/cosmetics.service.js";
 import { LedgerService } from "../economy/ledger.service.js";
+import { LiveEventsService } from "../events/live-events.service.js";
 
 type Track = "FREE" | "PREMIUM";
 
@@ -24,11 +25,14 @@ export class PassService {
     private readonly ledger: LedgerService,
     private readonly events: EventsService,
     private readonly clock: Clock,
+    private readonly liveEvents: LiveEventsService,
   ) {}
 
   /** Award XP inside the caller's transaction; idempotent per key. */
-  async addXp(c: Queryable, userId: string, key: string, xp: number, at: Date): Promise<void> {
-    if (xp <= 0) return;
+  async addXp(c: Queryable, userId: string, key: string, base: number, at: Date): Promise<void> {
+    if (base <= 0) return;
+    // A live XP-boost event multiplies what is earned while it runs.
+    const xp = Math.round(base * (await this.liveEvents.xpMultiplier(c, at)));
     const { season } = seasonAt(at, this.config.get());
     const r = await c.query(
       "INSERT INTO pass_xp_events (key, season, user_id, xp, created_at) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING",

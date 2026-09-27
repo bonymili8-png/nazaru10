@@ -35,6 +35,7 @@ import { SponsorsService } from "../sponsors/sponsors.service.js";
 import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
+import { LiveEventsService } from "../events/live-events.service.js";
 import {
   CLASS_LABEL,
   type EntryRow,
@@ -67,6 +68,7 @@ export class RaceRunnerService {
     private readonly audit: AuditService,
     private readonly clock: Clock,
     @Inject(ENV) private readonly env: Env,
+    private readonly liveEvents: LiveEventsService,
   ) {}
 
   raceSeed(raceId: string): string {
@@ -165,12 +167,18 @@ export class RaceRunnerService {
     const weather = rollWeather(track, a.rng);
     const wetness = rollWetness(track, weather, a.rng);
     const id = randomUUID();
+    // Regular card races pick up a live purse-boost event covering their start.
+    const boost =
+      a.special || a.tournament
+        ? null
+        : await this.liveEvents.purseBoost(a.c ?? this.db.pool, a.cls, a.startsAt);
+    const purse = a.purse ?? cc.purse;
     const r = await row<{ id: string }>(
       a.c ?? this.db.pool,
       `INSERT INTO races (id, name, class, track_code, surface, distance, weather, wetness, going, entry_fee, purse,
                           min_rating, max_rating, maiden_only, min_field, max_field, locks_at, starts_at, seed_hash,
-                          is_special, created_by, tournament_id, stage)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+                          is_special, created_by, tournament_id, stage, event_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
        ON CONFLICT DO NOTHING RETURNING id`,
       [
         id,
@@ -183,7 +191,7 @@ export class RaceRunnerService {
         wetness,
         goingLabel(track.surface, wetness),
         a.entryFee ?? cc.entryFee,
-        a.purse ?? cc.purse,
+        boost ? Math.round(purse * boost.multiplier) : purse,
         cc.minRating,
         cc.maxRating,
         cc.maidenOnly,
@@ -196,6 +204,7 @@ export class RaceRunnerService {
         a.createdBy ?? null,
         a.tournament?.id ?? null,
         a.tournament?.stage ?? null,
+        boost?.id ?? null,
       ],
     );
     return r?.id ?? null;

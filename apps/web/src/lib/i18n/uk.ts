@@ -1108,4 +1108,11 @@ export const uk: Record<MessageKey, Msg> = {
   "follow.next": "Далі: {race} · {time}",
   "follow.noRace": "Не заявлений на забіг",
   "follow.done": "Ви стежите за {name}",
+  "event.PASS_XP_BOOST": "×{m} XP у Racing Pass",
+  "event.PURSE_BOOST": "×{m} призові забігів",
+  "event.PURSE_BOOST.classes": "×{m} призові: {classes}",
+  "event.endsIn": "закінчиться через {time}",
+  "event.startsIn": "почнеться через {time}",
+  "shop.limited": "Лімітований",
+  "shop.limitedEnds": "зникне через {time}",
 };

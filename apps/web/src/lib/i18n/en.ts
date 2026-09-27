@@ -1107,6 +1107,13 @@ export const en = {
   "follow.next": "Next: {race} · {time}",
   "follow.noRace": "No race entered",
   "follow.done": "Following {name}",
+  "event.PASS_XP_BOOST": "×{m} Racing Pass XP",
+  "event.PURSE_BOOST": "×{m} race purses",
+  "event.PURSE_BOOST.classes": "×{m} purses: {classes}",
+  "event.endsIn": "ends in {time}",
+  "event.startsIn": "starts in {time}",
+  "shop.limited": "Limited",
+  "shop.limitedEnds": "leaves in {time}",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
 import {
+  CreateLimitedHorseRequest,
+  CreateLiveEventRequest,
   AdminAdjustRequest,
   AdminAuditQuery,
   AdminConfigRequest,
@@ -19,6 +21,8 @@ import { parse } from "../../common/http.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { PaymentsService } from "../payments/payments.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
+import { LiveEventsService } from "../events/live-events.service.js";
+import { ShopService } from "../shop/shop.service.js";
 
 /** Internal operations. Every mutation is RBAC-protected and written to the append-only audit log. */
 @Controller("admin")
@@ -30,6 +34,8 @@ export class AdminController {
     private readonly payments: PaymentsService,
     private readonly runner: RaceRunnerService,
     private readonly config: GameConfigService,
+    private readonly liveEvents: LiveEventsService,
+    private readonly shop: ShopService,
   ) {}
 
   @Get("users")
@@ -416,5 +422,79 @@ export class AdminController {
       return n ? Math.round((done.reduce((s, c) => s + (c[k] ?? 0), 0) / n) * 1000) / 10 : null;
     };
     return { active: active!, retention: { d1: sum("d1"), d7: sum("d7") }, cohorts };
+  }
+
+  /* ───────────────────────────── live ops ───────────────────────────── */
+
+  @Get("events")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN", "ECONOMY_ADMIN")
+  listEvents() {
+    return this.liveEvents.all();
+  }
+
+  /** Start a live event (XP or purse boost), bounded by EVENT_LIMITS; audited. */
+  @Post("events")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN")
+  async createEvent(@CurrentUser() actor: AuthUser, @Body() body: unknown, @Req() req: AuthedRequest) {
+    const b = parse(CreateLiveEventRequest, body);
+    const e = await this.liveEvents.create(actor.id, {
+      kind: b.kind,
+      title: b.title,
+      multiplier: b.multiplier,
+      classes: b.kind === "PURSE_BOOST" ? b.classes : null,
+      startsAt: new Date(b.startsAt),
+      endsAt: new Date(b.endsAt),
+    });
+    await this.db.tx((c) =>
+      this.audit.log(c, {
+        actorId: actor.id,
+        action: "LIVE_EVENT_CREATE",
+        targetType: "live_event",
+        targetId: e.id,
+        after: e,
+        ip: req.ip,
+      }),
+    );
+    return e;
+  }
+
+  @Post("events/:id/cancel")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN")
+  async cancelEvent(
+    @CurrentUser() actor: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Req() req: AuthedRequest,
+  ) {
+    const e = await this.liveEvents.cancel(id);
+    await this.db.tx((c) =>
+      this.audit.log(c, {
+        actorId: actor.id,
+        action: "LIVE_EVENT_CANCEL",
+        targetType: "live_event",
+        targetId: id,
+        after: e,
+        ip: req.ip,
+      }),
+    );
+    return e;
+  }
+
+  /** List a limited horse in the shop for a few hours or days; audited. */
+  @Post("limited-horses")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN")
+  async limitedHorse(@CurrentUser() actor: AuthUser, @Body() body: unknown, @Req() req: AuthedRequest) {
+    const b = parse(CreateLimitedHorseRequest, body);
+    const h = await this.shop.createLimited(actor.id, b);
+    await this.db.tx((c) =>
+      this.audit.log(c, {
+        actorId: actor.id,
+        action: "LIMITED_HORSE_LIST",
+        targetType: "horse",
+        targetId: h.id,
+        after: { ...b, name: h.name },
+        ip: req.ip,
+      }),
+    );
+    return h;
   }
 }

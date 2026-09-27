@@ -9,6 +9,7 @@ import type {
 } from "@thoroughline/contracts";
 import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Handshake, Store, Ticket } from "lucide-react";
 import { Crest } from "@/components/Crest";
+import { EventBanner } from "@/components/EventBanner";
 import { FeedList } from "@/components/Feed";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
@@ -36,6 +37,7 @@ export default function HomePage() {
 
   return (
     <div>
+      <EventBanner />
       <Card className="bg-gradient-to-br from-surface to-surface-2">
         <div className="flex items-center gap-3">
           <a href="/crest/" aria-label={t("profile.crest")} className="rounded-lg">

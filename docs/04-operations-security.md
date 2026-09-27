@@ -18,7 +18,7 @@ FRAUD_ANALYST.
 | Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |
 | Payments list; refund (Telegram Stars refund + gem clawback, atomic, reason required) | FINANCE | ✅ console |
 | Races list (upcoming/live/recent); create special race (distance validated per track); cancel with refunds | GAME, TOURNAMENT | ✅ console |
-| Live-ops events, promotions, limited horses | CONTENT, GAME | planned |
+| Live-ops events: Racing Pass XP boost (≤ ×3) or purse boost (≤ ×1.5, optionally per class), ≤ 7 days, cancellable (open races get their purse back); limited horse drops in the shop (rarity, quality, price, hours); audited | GAME, CONTENT | ✅ console |
 | Fraud queue: review flags (dismiss/confirm with audited note); trust scores | FRAUD_ANALYST | ✅ console |
 
 SUPER_ADMIN passes every check. The console (`/admin/`, linked from Profile for non-player

@@ -149,6 +149,8 @@ with competitive horses for real money.
 - **Renames** (live): horse 50 gems, stable 80 gems (sink `RENAMES`). Names are Latin letters,
   digits, spaces and ' & . - only (horse ≤ 24, stable ≤ 30 characters), whitespace collapsed, unique
   case-insensitively among active horses / stables. Default and generated names are unaffected.
+- **Live events** are run by the game team within hard limits (purse ≤ ×1.5, XP ≤ ×3, ≤ 7 days) and
+  are temporary credit sources to watch on the economy tab; limited horse drops are credit sinks.
 - **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
   placements, invoiced outside the game (and physical merch if ever sold). It is never used for
   in-app digital goods. The provider stub stays disabled until the owner connects an account

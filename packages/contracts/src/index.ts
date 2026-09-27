@@ -156,6 +156,42 @@ export const AdminConfigRequest = z.object({
 });
 export type AdminConfigRequest = z.infer<typeof AdminConfigRequest>;
 
+/** Live-ops events (game team). */
+export interface LiveEventDto {
+  id: string;
+  kind: "PASS_XP_BOOST" | "PURSE_BOOST";
+  title: string;
+  multiplier: number;
+  /** Purse boosts may target some classes (null = all). */
+  classes: RaceClass[] | null;
+  startsAt: string;
+  endsAt: string;
+  cancelled: boolean;
+}
+
+export const CreateLiveEventRequest = z
+  .object({
+    kind: z.enum(["PASS_XP_BOOST", "PURSE_BOOST"]),
+    title: z.string().trim().min(3).max(60),
+    multiplier: z.number().gt(1).max(3),
+    classes: z.array(z.enum(RACE_CLASSES)).min(1).nullable().default(null),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+  })
+  .strict();
+export type CreateLiveEventRequest = z.infer<typeof CreateLiveEventRequest>;
+
+/** A limited horse drop for the shop (game team). */
+export const CreateLimitedHorseRequest = z
+  .object({
+    rarity: z.enum(["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]),
+    quality: z.number().min(0.2).max(0.95),
+    price: z.number().int().min(500).max(1_000_000),
+    hours: z.number().int().min(1).max(168),
+  })
+  .strict();
+export type CreateLimitedHorseRequest = z.infer<typeof CreateLimitedHorseRequest>;
+
 export const AdminCreateRaceRequest = z.object({
   name: z.string().trim().min(3).max(80),
   class: z.enum(RACE_CLASSES),
@@ -942,6 +978,8 @@ export interface LeaderboardOwnerDto {
 
 export interface ShopHorseDto extends HorseSummaryDto {
   price: number;
+  /** Limited-time listing (live-ops drop): gone from the shop after this. */
+  limitedUntil?: string | null;
   potentialStars: number;
   optimalDistance: number;
   favouriteSurface: Surface;

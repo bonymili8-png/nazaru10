@@ -1,5 +1,11 @@
 "use client";
-import { type Currency, RACE_CLASSES, type UserDto } from "@thoroughline/contracts";
+import {
+  type Currency,
+  type LiveEventDto,
+  RACE_CLASSES,
+  type RaceClass,
+  type UserDto,
+} from "@thoroughline/contracts";
 import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
 import { useState } from "react";
@@ -14,17 +20,28 @@ import {
   useToast,
 } from "@/components/ui";
 import { ApiRequestError, post } from "@/lib/api";
-import { CLASS_NAMES, fmt, titleCase } from "@/lib/format";
+import { CLASS_NAMES, errorMessage, fmt, titleCase } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 
 /**
  * Operator console. The API enforces every permission; the role lists here only decide which
  * tabs are shown.
  */
-type Tab = "revenue" | "players" | "economy" | "users" | "fraud" | "payments" | "races" | "audit" | "config";
+type Tab =
+  | "revenue"
+  | "players"
+  | "liveops"
+  | "economy"
+  | "users"
+  | "fraud"
+  | "payments"
+  | "races"
+  | "audit"
+  | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
   revenue: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   players: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "GAME_ADMIN"],
+  liveops: ["GAME_ADMIN", "CONTENT_ADMIN"],
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   users: ["SUPPORT_ADMIN", "FINANCE_ADMIN", "ECONOMY_ADMIN", "FRAUD_ANALYST"],
   fraud: ["FRAUD_ANALYST"],
@@ -42,7 +59,18 @@ export default function AdminPage() {
   if (!me.data) return <Skeleton className="h-40" />;
   const role = me.data.role;
   const tabs = (
-    ["revenue", "players", "economy", "users", "fraud", "payments", "races", "audit", "config"] as Tab[]
+    [
+      "revenue",
+      "players",
+      "liveops",
+      "economy",
+      "users",
+      "fraud",
+      "payments",
+      "races",
+      "audit",
+      "config",
+    ] as Tab[]
   ).filter((t) => can(role, t));
   if (tabs.length === 0)
     return <EmptyState title="No console access" body="This area is for the operations team." />;
@@ -66,6 +94,7 @@ export default function AdminPage() {
       </div>
       {active === "revenue" && <Revenue />}
       {active === "players" && <Players />}
+      {active === "liveops" && <LiveOps />}
       {active === "economy" && <Economy />}
       {active === "users" && <Users role={role} />}
       {active === "fraud" && <Fraud />}
@@ -243,6 +272,219 @@ function Players() {
             ))}
           </tbody>
         </table>
+      </Card>
+    </>
+  );
+}
+
+/* ───────────────────────────── live ops ───────────────────────────── */
+
+function LiveOps() {
+  const events = useApi<LiveEventDto[]>("/admin/events", { refreshMs: 30_000 });
+  const toast = useToast();
+  const [kind, setKind] = useState<LiveEventDto["kind"]>("PASS_XP_BOOST");
+  const [title, setTitle] = useState("");
+  const [mult, setMult] = useState("1.5");
+  const [hours, setHours] = useState("48");
+  const [classes, setClasses] = useState<RaceClass[]>([]);
+  const [horse, setHorse] = useState({ rarity: "EPIC", quality: "0.8", price: "15000", hours: "24" });
+  const [busy, setBusy] = useState<string | null>(null);
+  const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
+    setBusy(key);
+    try {
+      await fn();
+      toast(ok);
+      invalidate("/admin/events", "/events", "/shop/horses", "/races");
+    } catch (e) {
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const create = () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + Number(hours) * 3_600_000);
+    return run(
+      "create",
+      () =>
+        post("/admin/events", {
+          kind,
+          title: title.trim(),
+          multiplier: Number(mult),
+          classes: kind === "PURSE_BOOST" && classes.length ? classes : null,
+          startsAt: start.toISOString(),
+          endsAt: end.toISOString(),
+        }),
+      "Event started",
+    );
+  };
+  const field = "mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
+  return (
+    <>
+      <SectionTitle>Start an event</SectionTitle>
+      <Card className="space-y-3 text-sm">
+        <label className="block">
+          <span className="text-muted">Kind</span>
+          <select
+            className={field}
+            value={kind}
+            onChange={(e) => setKind(e.target.value as LiveEventDto["kind"])}
+          >
+            <option value="PASS_XP_BOOST">Racing Pass XP boost (up to ×3)</option>
+            <option value="PURSE_BOOST">Purse boost (up to ×1.5)</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-muted">Title shown to players</span>
+          <input className={field} value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="text-muted">Multiplier</span>
+            <input
+              className={field}
+              inputMode="decimal"
+              value={mult}
+              onChange={(e) => setMult(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="text-muted">Hours from now (max 168)</span>
+            <input
+              className={field}
+              inputMode="numeric"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+            />
+          </label>
+        </div>
+        {kind === "PURSE_BOOST" && (
+          <fieldset>
+            <legend className="text-muted">Classes (none = all)</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {RACE_CLASSES.map((c) => (
+                <label key={c} className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={classes.includes(c)}
+                    onChange={(e) =>
+                      setClasses((xs) => (e.target.checked ? [...xs, c] : xs.filter((x) => x !== c)))
+                    }
+                  />
+                  {titleCase(c)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <Button
+          className="w-full"
+          loading={busy === "create"}
+          disabled={title.trim().length < 3}
+          onClick={create}
+        >
+          Start event now
+        </Button>
+      </Card>
+
+      <SectionTitle>Events</SectionTitle>
+      <Card className="divide-y divide-line/40 p-0">
+        {events.data?.length === 0 && <p className="p-4 text-sm text-muted">No events yet.</p>}
+        {events.data?.map((e) => {
+          const live = !e.cancelled && new Date(e.endsAt).getTime() > Date.now();
+          return (
+            <div key={e.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{e.title}</p>
+                <p className="text-xs text-muted">
+                  {e.kind === "PASS_XP_BOOST" ? "XP" : "Purses"} ×{e.multiplier}
+                  {e.classes ? ` · ${e.classes.map(titleCase).join(", ")}` : ""} · until{" "}
+                  {new Date(e.endsAt).toLocaleString()}
+                  {e.cancelled ? " · cancelled" : ""}
+                </p>
+              </div>
+              {live && (
+                <Button
+                  variant="danger"
+                  className="min-h-9 shrink-0 px-3 text-xs"
+                  loading={busy === e.id}
+                  onClick={() => {
+                    if (window.confirm(`Cancel "${e.title}"? Open races go back to their normal purse.`))
+                      void run(e.id, () => post(`/admin/events/${e.id}/cancel`), "Event cancelled");
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </Card>
+
+      <SectionTitle>Limited horse drop</SectionTitle>
+      <Card className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="text-muted">Rarity</span>
+            <select
+              className={field}
+              value={horse.rarity}
+              onChange={(e) => setHorse({ ...horse, rarity: e.target.value })}
+            >
+              {["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"].map((r) => (
+                <option key={r} value={r}>
+                  {titleCase(r)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-muted">Quality 0.2–0.95</span>
+            <input
+              className={field}
+              inputMode="decimal"
+              value={horse.quality}
+              onChange={(e) => setHorse({ ...horse, quality: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="text-muted">Price (credits)</span>
+            <input
+              className={field}
+              inputMode="numeric"
+              value={horse.price}
+              onChange={(e) => setHorse({ ...horse, price: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="text-muted">On sale for (hours)</span>
+            <input
+              className={field}
+              inputMode="numeric"
+              value={horse.hours}
+              onChange={(e) => setHorse({ ...horse, hours: e.target.value })}
+            />
+          </label>
+        </div>
+        <Button
+          className="w-full"
+          loading={busy === "horse"}
+          onClick={() =>
+            run(
+              "horse",
+              () =>
+                post("/admin/limited-horses", {
+                  rarity: horse.rarity,
+                  quality: Number(horse.quality),
+                  price: Number(horse.price),
+                  hours: Number(horse.hours),
+                }),
+              "Limited horse listed in the shop",
+            )
+          }
+        >
+          List limited horse
+        </Button>
       </Card>
     </>
   );

@@ -10,7 +10,7 @@ import type {
   ShopHorseDto,
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
-import { Check, Crown, Gem } from "lucide-react";
+import { Check, Crown, Gem, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { HorseCard } from "@/components/HorseCard";
 import { ListingCard } from "@/components/ListingCard";
@@ -25,8 +25,8 @@ import {
   useToast,
 } from "@/components/ui";
 import { api, post } from "@/lib/api";
-import { errorMessage, fmt, titleCase } from "@/lib/format";
-import { invalidate, useApi } from "@/lib/hooks";
+import { countdown, errorMessage, fmt, titleCase } from "@/lib/format";
+import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { haptic, tg } from "@/lib/telegram";
 
@@ -145,6 +145,7 @@ function MyMarket() {
 
 function SalesRing() {
   const horses = useApi<ShopHorseDto[]>("/shop/horses", { refreshMs: 30_000 });
+  const now = useNow(1000);
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const buyHorse = async (h: ShopHorseDto) => {
@@ -173,6 +174,15 @@ function SalesRing() {
         )}
         {horses.data?.map((h) => (
           <div key={h.id}>
+            {h.limitedUntil && (
+              <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold">
+                <Sparkles className="size-3.5" aria-hidden />
+                {t("shop.limited")}
+                <span className="num font-normal normal-case tracking-normal text-muted">
+                  {t("shop.limitedEnds", { time: countdown(h.limitedUntil, now) })}
+                </span>
+              </p>
+            )}
             <HorseCard horse={h} />
             <div className="-mt-2 flex items-center justify-between gap-2 rounded-b-[var(--radius-card)] border border-t-0 border-line/60 bg-surface-2 px-3.5 pb-3 pt-4 text-sm">
               <div className="text-muted">

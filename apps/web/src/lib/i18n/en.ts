@@ -1226,6 +1226,7 @@ export const en = {
   "home.dailyBonus": "First race of the day pays a {amount} bonus, whatever the result.",
   "home.dailyBonusGo": "Go racing",
   "home.dailyBonusDone": "Today's first-race bonus ({amount}) is yours. Next one tomorrow.",
+  "shell.back": "Back",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

@@ -9,6 +9,7 @@ import { errorMessage, fmt } from "@/lib/format";
 import { getLocale, type MessageKey, t, useLocale } from "@/lib/i18n";
 import { useApi } from "@/lib/hooks";
 import { initTelegram, tg } from "@/lib/telegram";
+import { BackNav, markReplace } from "./BackNav";
 import { HorseIcon } from "./icons";
 import { Button, ToastProvider } from "./ui";
 
@@ -47,7 +48,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         if (user.settings.locale && user.settings.locale !== getLocale()) setLocale(user.settings.locale);
         setPhase("ready");
         const target = routeForStartParam(app.initDataUnsafe.start_param);
-        if (target) router.replace(target);
+        if (target) {
+          markReplace();
+          router.replace(target);
+        }
       } else if (getToken()) setPhase("ready");
       else setPhase(process.env.NEXT_PUBLIC_DEV_AUTH === "true" ? "login" : "outside");
     } catch (e) {
@@ -150,9 +154,13 @@ function Chrome({ children }: { children: ReactNode }) {
         className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line/40 bg-bg/90 px-4 py-2.5 backdrop-blur"
         style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
       >
-        <Link href="/" className="font-display text-lg font-bold tracking-wide text-gold">
-          Thoroughline
-        </Link>
+        <BackNav
+          root={
+            <Link href="/" className="font-display text-lg font-bold tracking-wide text-gold">
+              Thoroughline
+            </Link>
+          }
+        />
         <div className="flex items-center gap-2">
           <Link
             href="/profile/"

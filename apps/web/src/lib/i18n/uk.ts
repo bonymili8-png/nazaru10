@@ -1228,4 +1228,5 @@ export const uk: Record<MessageKey, Msg> = {
   "home.dailyBonus": "Перша гонка дня приносить бонус {amount} — за будь-якого результату.",
   "home.dailyBonusGo": "До гонок",
   "home.dailyBonusDone": "Бонус за першу гонку сьогодні ({amount}) отримано. Наступний — завтра.",
+  "shell.back": "Назад",
 };

@@ -1216,4 +1216,11 @@ export const uk: Record<MessageKey, Msg> = {
   "expert.byTactics": "За тактикою",
   "expert.bySurface": "За покриттям",
   "expert.byTrip": "За дистанцією",
+  "homeScreen.title": "Ярлик на головному екрані",
+  "homeScreen.bannerTitle": "Thoroughline — в один дотик",
+  "homeScreen.hint": "Додайте гру на головний екран телефона і відкривайте її як звичайний застосунок.",
+  "homeScreen.already": "Гра вже є на вашому головному екрані.",
+  "homeScreen.add": "Додати",
+  "homeScreen.added": "Додано на головний екран",
+  "homeScreen.dismiss": "Приховати",
 };

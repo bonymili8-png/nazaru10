@@ -1,6 +1,7 @@
 "use client";
 import type { LedgerLineDto, ReferralDto, UserDto, WalletDto } from "@thoroughline/contracts";
 import { Copy, Languages, LifeBuoy, Share2, Shield, ShieldCheck, Shirt } from "lucide-react";
+import { HomeScreenSetting } from "@/components/HomeScreen";
 import { MemberBadge } from "@/components/MemberBadge";
 import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { put } from "@/lib/api";
@@ -114,6 +115,7 @@ export default function ProfilePage() {
           </button>
         </Card>
       )}
+      <HomeScreenSetting />
 
       <SectionTitle>{t("profile.invite")}</SectionTitle>
       <Card>

@@ -43,7 +43,9 @@ pnpm --filter @thoroughline/e2e e2e
 
 ## Telegram setup (production)
 
-1. Create a bot with @BotFather, enable a Mini App pointing at the deployed web build.
+1. Create a bot with @BotFather, enable a Mini App pointing at the deployed web build. Also set the
+   bot's **Main App** URL (Bot Settings → Configure Mini App): home-screen shortcuts, which players
+   add from Profile or the home-page banner (Telegram clients with Bot API 8.0+), open the Main App.
 2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `WEBAPP_URL`, strong `JWT_SECRET` /
    `RACE_SEED_SECRET`; `ALLOW_DEV_AUTH` must be `false` (the API refuses to start otherwise).
    Optional but recommended for Stars payments: `SUPPORT_CONTACT` (an @handle or email shown by

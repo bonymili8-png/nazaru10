@@ -1214,6 +1214,13 @@ export const en = {
   "expert.byTactics": "By tactics",
   "expert.bySurface": "By surface",
   "expert.byTrip": "By trip",
+  "homeScreen.title": "Home screen shortcut",
+  "homeScreen.bannerTitle": "Keep Thoroughline one tap away",
+  "homeScreen.hint": "Add the game to your phone's home screen and open it like an app.",
+  "homeScreen.already": "The game is already on your home screen.",
+  "homeScreen.add": "Add",
+  "homeScreen.added": "Added to your home screen",
+  "homeScreen.dismiss": "Hide",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

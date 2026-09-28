@@ -1,4 +1,6 @@
 /** Minimal typed wrapper over the Telegram Mini App SDK (telegram-web-app.js). */
+export type HomeScreenStatus = "unsupported" | "unknown" | "added" | "missed";
+
 interface TelegramWebApp {
   initData: string;
   initDataUnsafe: {
@@ -14,6 +16,11 @@ interface TelegramWebApp {
   setBackgroundColor?(color: string): void;
   openInvoice?(url: string, cb?: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
   openTelegramLink?(url: string): void;
+  isVersionAtLeast?(version: string): boolean;
+  addToHomeScreen?(): void;
+  checkHomeScreenStatus?(cb: (status: HomeScreenStatus) => void): void;
+  onEvent?(event: string, cb: () => void): void;
+  offEvent?(event: string, cb: () => void): void;
   HapticFeedback?: {
     impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
     notificationOccurred(type: "error" | "success" | "warning"): void;
@@ -71,4 +78,37 @@ export function openTelegramLink(url: string): void {
   const app = tg();
   if (app?.openTelegramLink) app.openTelegramLink(url);
   else window.open(url, "_blank", "noopener");
+}
+
+/** Whether this Telegram client can pin the Mini App to the device home screen (Bot API 8.0+). */
+export function canAddToHomeScreen(): boolean {
+  const app = tg();
+  return !!app?.addToHomeScreen && !!app.checkHomeScreenStatus && (app.isVersionAtLeast?.("8.0") ?? false);
+}
+
+/** Resolves the shortcut status; "unsupported" outside Telegram or on old clients. */
+export function homeScreenStatus(): Promise<HomeScreenStatus> {
+  const app = tg();
+  if (!app || !canAddToHomeScreen()) return Promise.resolve("unsupported");
+  return new Promise((resolve) => {
+    try {
+      app.checkHomeScreenStatus!((status) => resolve(status));
+    } catch {
+      resolve("unsupported");
+    }
+  });
+}
+
+/** Ask Telegram to show its native "Add to Home Screen" dialog; `onAdded` fires once the shortcut exists. */
+export function addToHomeScreen(onAdded?: () => void): void {
+  const app = tg();
+  if (!app?.addToHomeScreen) return;
+  if (onAdded && app.onEvent && app.offEvent) {
+    const handler = () => {
+      app.offEvent!("homeScreenAdded", handler);
+      onAdded();
+    };
+    app.onEvent("homeScreenAdded", handler);
+  }
+  app.addToHomeScreen();
 }

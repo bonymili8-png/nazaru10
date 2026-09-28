@@ -58,6 +58,12 @@ function useBack(): { show: boolean; back: () => void } {
   return { show: !ROOTS.has(path), back };
 }
 
+/** Telegram clients from Bot API 6.1 draw a Back button in the Mini App header. */
+const hasNativeBack = () => {
+  const app = tg();
+  return !!app?.BackButton && (app.isVersionAtLeast?.("6.1") ?? true);
+};
+
 function Inner({ root }: { root: ReactNode }) {
   const { show, back } = useBack();
 
@@ -74,7 +80,8 @@ function Inner({ root }: { root: ReactNode }) {
     return () => button.offClick(back);
   }, [show, back]);
 
-  if (!show) return root;
+  // Inside Telegram its header already shows "Back"; a second one in the page would be noise.
+  if (!show || hasNativeBack()) return root;
   return (
     <button
       onClick={back}

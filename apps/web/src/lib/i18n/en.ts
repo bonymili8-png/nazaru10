@@ -1227,6 +1227,8 @@ export const en = {
   "home.dailyBonusGo": "Go racing",
   "home.dailyBonusDone": "Today's first-race bonus ({amount}) is yours. Next one tomorrow.",
   "shell.back": "Back",
+  "horse.formHintOut": "Finished below expectations lately. Form moves speed by at most 2% and clears by itself within days, or with a good run. It is separate from fatigue and health.",
+  "horse.formHintIn": "Beat expectations lately: up to +2% speed while the form lasts. Separate from fatigue and health.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

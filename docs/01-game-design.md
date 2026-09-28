@@ -63,10 +63,14 @@ mechanic.
 * **Performance impact:** `1 − 0.25·(fatigue/100)^1.5` on top speed and energy.
 * **Health** regenerates `+2/h`; injuries have a `healsAt` timestamp. Health < 60
   blocks racing.
-* **Form** is an exponentially-weighted performance-vs-expectation signal decaying toward
-  0 by 5 %/day; ±1 form ≈ ±2 % top speed.
+* **Form** is an exponentially-weighted performance-vs-expectation signal; ±1 form ≈ ±2 % top
+  speed. It is separate from fatigue and health: a rested horse can be out of form after a run
+  below expectations. A streak (positive form) fades by 5 %/day; a slump (negative form) clears
+  by 20 %/day, so "out of form" after one bad race lasts under a week. Feed holds a streak longer
+  and clears a slump faster (never the reverse). The horse page explains the current form.
 * **Feed plans** (per horse, weekly, credits, sink `FEED`): STANDARD (free), PREMIUM (200/week:
-  recovery ×1.08, health regen ×1.1, form decay ×0.85), ELITE (500/week: ×1.15, ×1.2, ×0.7).
+  recovery ×1.08, health regen ×1.1, streak decay ×0.85 / slump recovery ÷0.85), ELITE (500/week:
+  ×1.15, ×1.2, ×0.7).
   They only change recovery between sessions (readiness, form retention), never attributes or
   race-day strength. Changing plan folds the condition first, so the new rate applies from that
   moment. Renewal runs weekly in advance; STANDARD stops renewal (the paid week runs out), an

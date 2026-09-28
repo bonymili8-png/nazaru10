@@ -59,6 +59,8 @@ test("Telegram's own Back button mirrors the in-app one", async ({ page }) => {
   await page.locator("a[href^='/horse/?id=']").first().click();
   await expect(page.getByRole("tab", { name: "overview" })).toBeVisible();
   await expect.poll(state).toBe(true);
+  // Telegram draws "Back" in its header, so the page doesn't show a second one.
+  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
 
   // Pressing it in Telegram's header goes back like the in-app button.
   await page.evaluate(() => (window as unknown as { __back: { cb: () => void } }).__back.cb());

@@ -27,7 +27,7 @@ export const feedCost = (plan: FeedPlan, cfg: GameConfig): number =>
 
 /**
  * Lazily project a stored condition to `now`. Fatigue recovers linearly, health regenerates,
- * form decays toward zero. Pure function → no cron needed and always explainable.
+ * form decays toward zero (slumps faster than streaks). Pure function → no cron needed and always explainable.
  */
 export function projectCondition(
   stored: StoredCondition,
@@ -41,7 +41,14 @@ export function projectCondition(
   return {
     fatigue: clamp(stored.fatigue - rate * hours, 0, 100),
     health: clamp(stored.health + cfg.condition.healthRegenPerHour * feed.regen * hours, 0, 100),
-    form: stored.form * (1 - cfg.condition.formDecayPerDay * feed.formDecay) ** (hours / 24),
+    // A hot streak fades slowly (better feed holds it longer); a slump clears faster, and better
+    // feed speeds that up too — feed never prolongs bad form.
+    form:
+      stored.form *
+      (stored.form >= 0
+        ? 1 - cfg.condition.formDecayPerDay * feed.formDecay
+        : 1 - Math.min(0.9, cfg.condition.formRecoveryPerDay / feed.formDecay)) **
+        (hours / 24),
   };
 }
 

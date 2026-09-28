@@ -127,6 +127,8 @@ export interface GameConfig {
     fatigueRecoveryPerHour: number;
     healthRegenPerHour: number;
     formDecayPerDay: number;
+    /** Daily share of negative form (a slump) that clears: slumps pass faster than streaks. */
+    formRecoveryPerDay: number;
     minHealthToRace: number;
     maxFatigueToRace: number;
     maxFatigueToTrain: number;
@@ -430,6 +432,7 @@ export const defaultConfig: GameConfig = {
     fatigueRecoveryPerHour: 1.6,
     healthRegenPerHour: 2,
     formDecayPerDay: 0.05,
+    formRecoveryPerDay: 0.2,
     minHealthToRace: 60,
     maxFatigueToRace: 50,
     maxFatigueToTrain: 85,

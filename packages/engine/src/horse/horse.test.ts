@@ -78,6 +78,19 @@ describe("condition", () => {
     expect(much.health).toBe(100);
   });
 
+  it("clears a slump within days, faster than a hot streak fades; feed never prolongs a slump", () => {
+    const at = (days: number) => new Date(stored.updatedAt.getTime() + days * 86_400_000);
+    const slump = { ...stored, form: -0.5 };
+    // "Out of form" (below −0.15) lasts under a week after a bad race…
+    expect(projectCondition(slump, at(6), 50, cfg).form).toBeGreaterThan(-0.15);
+    // …while the same streak upwards still shows after a week.
+    expect(projectCondition({ ...stored, form: 0.5 }, at(7), 50, cfg).form).toBeGreaterThan(0.15);
+    const std = projectCondition(slump, at(2), 50, cfg).form;
+    const elite = projectCondition(slump, at(2), 50, cfg, feedEffect("ELITE", cfg)).form;
+    expect(elite).toBeGreaterThan(std);
+    expect(elite).toBeLessThan(0);
+  });
+
   it("never goes backwards in time", () => {
     const earlier = projectCondition(stored, new Date("2025-12-31T00:00:00Z"), 50, cfg);
     expect(earlier.fatigue).toBe(80);

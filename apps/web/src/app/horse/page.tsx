@@ -248,6 +248,11 @@ function Overview({ h }: { h: HorseDetailDto }) {
             {c.form > 0.15 ? t("horse.inForm") : c.form < -0.15 ? t("horse.outOfForm") : t("horse.steady")}
           </span>
         </div>
+        {Math.abs(c.form) > 0.15 && (
+          <p className="mt-1 text-xs text-muted">
+            {c.form > 0 ? t("horse.formHintIn") : t("horse.formHintOut")}
+          </p>
+        )}
         <p className="mt-2 flex items-center gap-2 text-sm text-muted">
           <HeartPulse className="size-4" aria-hidden />
           {c.hoursToRaceReady > 0

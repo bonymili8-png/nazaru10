@@ -920,10 +920,28 @@ function RaceClasses({ horse }: { horse: HorseDetailDto }) {
   const classes = canRaceAtAge(horse.age, defaultConfig)
     ? eligibleClasses(horse.raceRating, horse.record.wins, defaultConfig)
     : [];
+  const { minRacingAge, realDaysPerGameYear } = defaultConfig.lifecycle;
+  // Too young: say when it can race instead of a bare "no class available".
+  const tooYoung = horse.age < minRacingAge;
+  const daysLeft = Math.max(1, Math.ceil((minRacingAge - horse.age) * realDaysPerGameYear));
+  const from = new Date(Date.now() + (minRacingAge - horse.age) * realDaysPerGameYear * 86_400_000);
   return (
     <div className="mt-3">
       <p className="text-sm">
-        <span className="text-muted">{classes.length ? t("horse.classesNow") : t("horse.classesNone")}</span>
+        <span className="text-muted">
+          {classes.length
+            ? t("horse.classesNow")
+            : tooYoung
+              ? t("horse.classesTooYoung", {
+                  age: minRacingAge,
+                  days: daysLeft,
+                  date: from.toLocaleDateString(getLocale() === "uk" ? "uk-UA" : "en", {
+                    day: "numeric",
+                    month: "long",
+                  }),
+                })
+              : t("horse.classesNone")}
+        </span>
         {classes.map((c) => (
           <span key={c} className="ml-1.5 inline-block">
             <Badge tone="gold">{CLASS_NAMES[c]}</Badge>

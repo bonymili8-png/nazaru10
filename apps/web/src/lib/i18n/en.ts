@@ -1229,6 +1229,7 @@ export const en = {
   "shell.back": "Back",
   "horse.formHintOut": "Finished below expectations lately. Form moves speed by at most 2% and clears by itself within days, or with a good run. It is separate from fatigue and health.",
   "horse.formHintIn": "Beat expectations lately: up to +2% speed while the form lasts. Separate from fatigue and health.",
+  "horse.classesTooYoung": "Too young to race: horses race from age {age}. Ready in {days} days ({date}); training now builds it up for then.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

@@ -1,0 +1,14 @@
+# Cloudflare static-asset headers (copied to out/ by `next build`).
+
+# Next.js build files are content-hashed: a new build gets new names, so they can be cached for
+# good. Re-opening the Mini App then loads its JavaScript and CSS from the device, not the network.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Everything (HTML pages revalidate by default, so a new release shows up on the next open).
+# Framing stays allowed for Telegram's web clients, which host the Mini App in an iframe.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'

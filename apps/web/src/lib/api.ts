@@ -50,6 +50,8 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
+      // A hung request fails fast with the usual network message instead of spinning forever.
+      signal: AbortSignal.timeout?.(20_000),
       method: init.method ?? "GET",
       headers: {
         ...(init.body !== undefined ? { "content-type": "application/json" } : {}),

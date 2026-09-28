@@ -1,5 +1,6 @@
 "use client";
 import type { SponsorContractDto, SponsorsDto } from "@thoroughline/contracts";
+import { TRACKS } from "@thoroughline/engine";
 import { Handshake } from "lucide-react";
 import { useState } from "react";
 import { sponsorGoalText } from "@/components/SponsorGoal";
@@ -97,6 +98,16 @@ function ActiveContract({ k, now }: { k: SponsorContractDto; now: number }) {
       <p className="text-xs uppercase tracking-[0.2em] text-gold">{t("sponsor.active")}</p>
       <p className="mt-1 font-display text-xl font-bold">{k.name}</p>
       <p className="text-sm text-muted">{sponsorGoalText(k.goal)}</p>
+      {k.goal.surface && (
+        // Track names are what race cards show, so the player can spot qualifying races.
+        <p className="mt-1 text-xs text-muted">
+          {t("sponsor.tracks", {
+            tracks: TRACKS.filter((tr) => tr.surface === k.goal.surface)
+              .map((tr) => tr.name)
+              .join(", "),
+          })}
+        </p>
+      )}
       <div
         className="mt-3 h-2 rounded-full bg-bg/60"
         role="progressbar"

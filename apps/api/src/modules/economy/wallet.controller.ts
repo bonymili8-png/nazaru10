@@ -7,6 +7,7 @@ import { Clock } from "../../common/clock.js";
 import { Db, type Queryable, rows } from "../../common/db.js";
 import { conflict } from "../../common/errors.js";
 import { GameConfigService } from "../../common/game-config.js";
+import { dailyRaceBonusKey } from "./daily-bonus.js";
 import { LedgerService } from "./ledger.service.js";
 
 @Controller("wallet")
@@ -39,8 +40,13 @@ export class WalletController {
     const claimed = await this.db.one("SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1", [
       this.allowanceKey(user.id),
     ]);
+    const bonus = this.config.get().economy.dailyRaceBonus;
+    const raced = await this.db.one("SELECT 1 FROM ledger_transactions WHERE idempotency_key = $1", [
+      dailyRaceBonusKey(user.id, this.clock.now()),
+    ]);
     return {
       balances,
+      dailyRaceBonus: { amount: bonus, earnedToday: !!raced },
       allowance: {
         amount: await this.amount(this.db.pool, user.id, balances.CREDITS),
         threshold: a.threshold,

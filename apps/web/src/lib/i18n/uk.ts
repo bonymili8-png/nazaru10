@@ -662,6 +662,7 @@ export const uk: Record<MessageKey, Msg> = {
   "ledger.BREEDING": "Розведення",
   "ledger.COSMETIC_UNLOCK": "Косметика",
   "ledger.DAILY_ALLOWANCE": "Щоденна допомога",
+  "ledger.DAILY_RACE_BONUS": "Бонус за першу гонку дня",
   "ledger.DIAGNOSTICS": "Діагностика",
   "ledger.FACILITY_BUILD": "Будівництво споруди",
   "ledger.HORSE_PURCHASE": "Купівля коня",
@@ -1224,4 +1225,7 @@ export const uk: Record<MessageKey, Msg> = {
   "homeScreen.added": "Додано на головний екран",
   "homeScreen.dismiss": "Приховати",
   "error.LAST_HORSE": "У стайні має лишитися хоча б один кінь — спершу купіть іншого, а потім продавайте цього.",
+  "home.dailyBonus": "Перша гонка дня приносить бонус {amount} — за будь-якого результату.",
+  "home.dailyBonusGo": "До гонок",
+  "home.dailyBonusDone": "Бонус за першу гонку сьогодні ({amount}) отримано. Наступний — завтра.",
 };

@@ -38,14 +38,17 @@ export class NotificationsService {
         const pos = Number(p.position);
         const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "🏁";
         const earned = Number(p.prize) > 0;
+        const bonus = Number(p.dailyBonus ?? 0);
         const text = uk
           ? `${medal} ${name("horseName")}: ${place(pos)} з ${Number(p.field)} у забігу «${escape(p.raceName)}»` +
             (earned ? `, виграш ${credits(p.prize, lang)}` : "") +
             "." +
+            (bonus > 0 ? `\n🎁 Бонус за першу гонку дня: +${credits(bonus, lang)}.` : "") +
             (p.injury ? `\n⚠️ Отримано ${injuryUk(p.injury)} травму — зверніться до ветеринара.` : "")
           : `${medal} ${name("horseName")} finished ${ordinal(pos, lang)} of ${Number(p.field)} in ${escape(p.raceName)}` +
             (earned ? ` and earned ${credits(p.prize, lang)}` : "") +
             "." +
+            (bonus > 0 ? `\n🎁 First race of the day bonus: +${credits(bonus, lang)}.` : "") +
             (p.injury ? `\n⚠️ Picked up a ${String(p.injury).toLowerCase()} injury — check the vet.` : "");
         return { userId, text };
       }

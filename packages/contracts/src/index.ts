@@ -675,6 +675,8 @@ export interface AuthResponse {
 
 export interface WalletDto {
   balances: Record<Currency, number>;
+  /** Flat credits for the owner's first race of the UTC day; `earnedToday` once paid. */
+  dailyRaceBonus?: { amount: number; earnedToday: boolean };
   /** Daily safety-net allowance for owners who are nearly out of credits. */
   allowance?: { amount: number; threshold: number; eligible: boolean };
 }

@@ -660,6 +660,7 @@ export const en = {
   "ledger.BREEDING": "Breeding",
   "ledger.COSMETIC_UNLOCK": "Cosmetic unlock",
   "ledger.DAILY_ALLOWANCE": "Daily allowance",
+  "ledger.DAILY_RACE_BONUS": "First race of the day",
   "ledger.DIAGNOSTICS": "Diagnostics",
   "ledger.FACILITY_BUILD": "Facility build",
   "ledger.HORSE_PURCHASE": "Horse purchase",
@@ -1222,6 +1223,9 @@ export const en = {
   "homeScreen.added": "Added to your home screen",
   "homeScreen.dismiss": "Hide",
   "error.LAST_HORSE": "Keep at least one horse in your stable — buy another before selling this one.",
+  "home.dailyBonus": "First race of the day pays a {amount} bonus, whatever the result.",
+  "home.dailyBonusGo": "Go racing",
+  "home.dailyBonusDone": "Today's first-race bonus ({amount}) is yours. Next one tomorrow.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

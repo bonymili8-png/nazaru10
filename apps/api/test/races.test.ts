@@ -1,4 +1,5 @@
 import type { HorseSummaryDto, LiveRaceDto, RaceDetailDto, RaceSummaryDto } from "@thoroughline/contracts";
+import { defaultConfig } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
@@ -139,8 +140,20 @@ describe("race lifecycle", () => {
     expect(horse!.starts).toBe(1);
     expect(horse!.earnings).toBe(mine.prize);
     expect(["IDLE", "INJURED"]).toContain(horse!.status);
-    const wallet = await t.get<{ balances: { CREDITS: number } }>("/wallet", alice.token);
-    expect(wallet.body.balances.CREDITS).toBe(5000 - race.entryFee + (mine.prize ?? 0));
+    // The first race of the day also pays the flat daily bonus, whatever the result.
+    const bonus = defaultConfig.economy.dailyRaceBonus;
+    const wallet = await t.get<{
+      balances: { CREDITS: number };
+      dailyRaceBonus: { amount: number; earnedToday: boolean };
+    }>("/wallet", alice.token);
+    expect(wallet.body.balances.CREDITS).toBe(5000 - race.entryFee + (mine.prize ?? 0) + bonus);
+    if (race.startsAt.slice(0, 10) === t.clock.now().toISOString().slice(0, 10))
+      expect(wallet.body.dailyRaceBonus).toEqual({ amount: bonus, earnedToday: true });
+    const paid = await t.db.one<{ n: number }>(
+      "SELECT count(*)::int AS n FROM ledger_transactions WHERE idempotency_key LIKE $1",
+      [`daily-race:${alice.userId}:%`],
+    );
+    expect(paid!.n).toBe(1);
     const quests = await t.get<{ code: string; completed: boolean }[]>("/quests", alice.token);
     expect(quests.body.find((q) => q.code === "FIRST_RACE")!.completed).toBe(true);
   });

@@ -42,6 +42,7 @@ purely virtual and keeps the game from being pay-to-win. Revisit only after lega
 | Training session (NORMAL) | 60–120 credits by type; LIGHT ×0.6, HARD ×1.5 |
 | Vet treatment (heal injury faster) | 300 (minor) / 900 (moderate) |
 | Race entry / purse | class table in GDD (purse ≈ 16× entry fee) |
+| Daily race bonus | 100 credits for the owner's first race of each UTC day, any result |
 | Daily allowance (safety net) | 250 credits once per UTC day while below 400, topped up to one entry fee of the owner's cheapest horse |
 | Last horse | Cannot be listed or sold on an offer: an owner always keeps one horse |
 | House horse purchase (primary market) | 1 500 – 25 000 by quality |
@@ -72,6 +73,15 @@ showed they did not match the price scale and exposed three problems, now fixed:
    < 3 % stuck owner-days). Two soft-locks found in review are closed: an owner whose horses
    all rate into Class 2/1 (entry 650/1 000 > threshold + allowance) now gets the allowance
    topped up to one entry, and the last horse of a stable cannot be sold.
+
+6. **Daily race bonus** (owner's request: a reason to come back and race every day, and a
+   cushion for owners who spent too fast): 100 credits for the first race of each UTC day,
+   whatever the result. It adds ≈ 14 % to recurring income, so purses were cut ≈ 15 %
+   (Maiden 1 350 … Class 1 14 500) to keep the total level: income moves from winners toward
+   everyone who races, and the median wallet stays flat. With owners more solvent, trainer
+   adoption rises to ≈ 86–89 %; the gate ceiling is 92 % because the casual policy (never hires
+   staff) still wins ≈ 25 % of its races, so staff stays optional. Gate: the bonus is 5–25 % of
+   recurring income.
 
 4. **Class ladder mismatch** (found when staff and facilities were added): the simulation
    promoted horses by number of wins, the game promotes by Elo rating bands. With the real rule

@@ -75,6 +75,8 @@ export default function HomePage() {
 
       <Allowance />
 
+      <DailyRaceBonus />
+
       <PassTeaser />
 
       <SponsorTeaser />
@@ -181,6 +183,30 @@ function Quests({ quests }: { quests: QuestDto[] }) {
         ))}
       </Card>
     </>
+  );
+}
+
+/** Today's first-race bonus: an invitation to race until paid, then a quiet tick. */
+function DailyRaceBonus() {
+  const { data } = useApi<WalletDto>("/wallet", { refreshMs: 60_000 });
+  const b = data?.dailyRaceBonus;
+  if (!b || b.amount <= 0) return null;
+  const amount = `${fmt(b.amount)} ${t("common.cr")}`;
+  return b.earnedToday ? (
+    <Card className="mt-4 flex items-center gap-3">
+      <CheckCircle2 className="size-5 shrink-0 text-good" aria-hidden />
+      <p className="text-sm text-muted">{t("home.dailyBonusDone", { amount })}</p>
+    </Card>
+  ) : (
+    <Card className="mt-4 flex items-center justify-between gap-3 border-gold/40">
+      <div className="flex min-w-0 items-center gap-3">
+        <Gift className="size-5 shrink-0 text-gold" aria-hidden />
+        <p className="text-sm">{t("home.dailyBonus", { amount })}</p>
+      </div>
+      <LinkButton href="/races/" className="min-h-10 shrink-0 px-3 text-sm">
+        {t("home.dailyBonusGo")}
+      </LinkButton>
+    </Card>
   );
 }
 

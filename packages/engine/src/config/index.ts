@@ -210,6 +210,8 @@ export interface GameConfig {
     renameStableGems: number;
     /** Safety net: once per day an owner below the threshold may claim the allowance. */
     allowance: { threshold: number; amount: number };
+    /** Credits for an owner's first race of the UTC day (any result; a reason to race daily). */
+    dailyRaceBonus: number;
   };
   cosmetics: {
     /** Gem price to unlock each racing-silk pattern (0 = free for everyone, -1 = Racing Pass only). */
@@ -528,7 +530,7 @@ export const defaultConfig: GameConfig = {
     classes: {
       MAIDEN: {
         entryFee: 100,
-        purse: 1600,
+        purse: 1350,
         minRating: null,
         maxRating: null,
         maidenOnly: true,
@@ -539,7 +541,7 @@ export const defaultConfig: GameConfig = {
       },
       CLASS_5: {
         entryFee: 150,
-        purse: 2500,
+        purse: 2100,
         minRating: null,
         maxRating: 1099,
         maidenOnly: false,
@@ -550,7 +552,7 @@ export const defaultConfig: GameConfig = {
       },
       CLASS_4: {
         entryFee: 250,
-        purse: 4100,
+        purse: 3500,
         minRating: 1100,
         maxRating: 1199,
         maidenOnly: false,
@@ -561,7 +563,7 @@ export const defaultConfig: GameConfig = {
       },
       CLASS_3: {
         entryFee: 400,
-        purse: 6600,
+        purse: 5600,
         minRating: 1200,
         maxRating: 1299,
         maidenOnly: false,
@@ -572,7 +574,7 @@ export const defaultConfig: GameConfig = {
       },
       CLASS_2: {
         entryFee: 650,
-        purse: 10800,
+        purse: 9200,
         minRating: 1300,
         maxRating: 1399,
         maidenOnly: false,
@@ -583,7 +585,7 @@ export const defaultConfig: GameConfig = {
       },
       CLASS_1: {
         entryFee: 1000,
-        purse: 17100,
+        purse: 14500,
         minRating: 1400,
         maxRating: null,
         maidenOnly: false,
@@ -617,6 +619,7 @@ export const defaultConfig: GameConfig = {
     expertAdviceGems: 60,
     renameStableGems: 80,
     allowance: { threshold: 400, amount: 250 },
+    dailyRaceBonus: 100,
   },
   cosmetics: {
     silkPatternPrices: {

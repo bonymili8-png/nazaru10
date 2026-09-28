@@ -303,12 +303,15 @@ override (rejected with `INVALID_CONFIG`). Boundaries are covered end-to-end in
 
 | Class | Eligibility (race rating, inclusive) | Entry fee | Base purse |
 |---|---|---|---|
-| MAIDEN | 0 wins (any rating) | 100 | 1 600 |
-| CLASS_5 | ≤ 1 099 | 150 | 2 500 |
-| CLASS_4 | 1 100–1 199 | 250 | 4 100 |
-| CLASS_3 | 1 200–1 299 | 400 | 6 600 |
-| CLASS_2 | 1 300–1 399 | 650 | 10 800 |
-| CLASS_1 | ≥ 1 400 | 1 000 | 17 100 |
+| MAIDEN | 0 wins (any rating) | 100 | 1 350 |
+| CLASS_5 | ≤ 1 099 | 150 | 2 100 |
+| CLASS_4 | 1 100–1 199 | 250 | 3 500 |
+| CLASS_3 | 1 200–1 299 | 400 | 5 600 |
+| CLASS_2 | 1 300–1 399 | 650 | 9 200 |
+| CLASS_1 | ≥ 1 400 | 1 000 | 14 500 |
+
+An owner's first race of each UTC day also pays a flat **daily race bonus** (100 credits),
+whatever the result.
 
 Fields below the minimum size are filled with house (NPC) horses of matching class
 so races always run, even with few players. House quality rises by class (config

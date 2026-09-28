@@ -37,6 +37,7 @@ import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
 import { LiveEventsService } from "../events/live-events.service.js";
 import { StableService } from "../stable/stable.service.js";
+import { dailyRaceBonusKey } from "../economy/daily-bonus.js";
 import {
   CLASS_LABEL,
   type EntryRow,
@@ -599,6 +600,23 @@ export class RaceRunnerService {
             metadata: { raceId, horseId: e.horse_id, position: pos },
           });
         }
+        // The owner's first race of the UTC day pays a flat bonus, whatever the result (the key
+        // makes it once per owner per day, even with several horses in one race).
+        const bonus = cfg.economy.dailyRaceBonus;
+        const bonusPaid =
+          bonus > 0 &&
+          !(
+            await this.ledger.credit(c, {
+              userId: owner,
+              currency: "CREDITS",
+              amount: bonus,
+              source: "DAILY_RACE_BONUS",
+              key: dailyRaceBonusKey(owner, race.starts_at),
+              type: "DAILY_RACE_BONUS",
+              reason: "First race of the day",
+              metadata: { raceId, horseId: e.horse_id },
+            })
+          ).replayed;
         const reputation = pos <= 3 ? rep[pos - 1]! : 0;
         if (reputation > 0) {
           await this.ledger.credit(c, {
@@ -649,6 +667,7 @@ export class RaceRunnerService {
             position: pos,
             field: entries.length,
             prize,
+            dailyBonus: bonusPaid ? bonus : 0,
             injury: after.injury?.severity ?? null,
           },
         });

@@ -20,6 +20,10 @@ test("an owner enters a maiden race and withdraws for a full refund", async ({ p
   await expect(page.getByText("Entered! Good luck.")).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBe(before - fee);
 
+  // With a horse entered the form folds; it opens on request.
+  await expect(page.getByText(/Your horse is entered in this race/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Enter · / })).toHaveCount(0);
+  await page.getByRole("button", { name: "Enter another" }).click();
   // The owner's only horse is now listed with the reason it can't be entered again.
   await expect(page.getByText("None of your horses can run in this race:")).toBeVisible();
   await expect(page.getByText(/busy — Entered/)).toBeVisible();
@@ -32,9 +36,13 @@ test("an owner enters a maiden race and withdraws for a full refund", async ({ p
   await expect(cards).toHaveCount(1);
   await cards.first().click();
   await expect(page).toHaveURL(raceUrl);
+  // Reopening a race you are already in shows the form folded.
+  await expect(page.getByRole("button", { name: "Enter another" })).toHaveAttribute("aria-expanded", "false");
 
   page.once("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "Withdraw" }).click();
   await expect(page.getByText("Withdrawn — fee refunded")).toBeVisible();
+  // No horse entered any more: the entry form is open again.
+  await expect(page.getByRole("button", { name: /^Enter · / })).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBe(before);
 });

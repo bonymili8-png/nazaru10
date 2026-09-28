@@ -1227,9 +1227,15 @@ export const en = {
   "home.dailyBonusGo": "Go racing",
   "home.dailyBonusDone": "Today's first-race bonus ({amount}) is yours. Next one tomorrow.",
   "shell.back": "Back",
-  "horse.formHintOut": "Finished below expectations lately. Form moves speed by at most 2% and clears by itself within days, or with a good run. It is separate from fatigue and health.",
-  "horse.formHintIn": "Beat expectations lately: up to +2% speed while the form lasts. Separate from fatigue and health.",
-  "horse.classesTooYoung": "Too young to race: horses race from age {age}. Ready in {days} days ({date}); training now builds it up for then.",
+  "horse.formHintOut":
+    "Finished below expectations lately. Form moves speed by at most 2% and clears by itself within days, or with a good run. It is separate from fatigue and health.",
+  "horse.formHintIn":
+    "Beat expectations lately: up to +2% speed while the form lasts. Separate from fatigue and health.",
+  "horse.classesTooYoung":
+    "Too young to race: horses race from age {age}. Ready in {days} days ({date}); training now builds it up for then.",
+  "race.entryShow": "Enter another",
+  "race.entryHide": "Hide",
+  "race.entryDone": "Your horse is entered in this race. You can still enter another one.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

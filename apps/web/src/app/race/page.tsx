@@ -9,10 +9,10 @@ import {
   type Strategy,
 } from "@thoroughline/contracts";
 import { canRaceAtAge, defaultConfig, trackByCode } from "@thoroughline/engine";
-import { Share2, ShieldCheck, Trophy } from "lucide-react";
+import { CheckCircle2, ChevronDown, Share2, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
 import { RaceReport } from "@/components/RaceReport";
 import { Silk } from "@/components/Silk";
@@ -246,6 +246,10 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
   const available = checked.filter((c) => c.why === null).map((c) => c.horse);
   const unfit = checked.filter((c) => c.why !== null);
   const selected = horseId ?? available[0]?.id ?? null;
+  // Already entered one of your horses: the form starts folded (and folds after entering).
+  const entered = race.entryList.some((e) => e.mine);
+  const [open, setOpen] = useState(!entered);
+  useEffect(() => setOpen(!entered), [entered]);
 
   const enter = async () => {
     if (!selected) return;
@@ -265,94 +269,119 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
 
   return (
     <>
-      <SectionTitle>{t("race.enterHorse")}</SectionTitle>
-      <Card>
-        {horses.data && checked.length === 0 ? (
-          <p className="text-sm text-muted">{t("race.noHorses")}</p>
-        ) : available.length === 0 ? (
-          <>
-            <p className="text-sm text-muted">{horses.data ? t("race.noneFit") : t("race.noEligible")}</p>
-            <UnfitList unfit={unfit} />
-            {unfit.length > 0 && (
-              <Link href="/races/" className="mt-3 inline-block text-sm font-semibold text-gold">
-                {t("race.findOther")} →
-              </Link>
-            )}
-          </>
-        ) : (
-          <>
-            <label className="text-sm text-muted" htmlFor="horse">
-              {t("race.horse")}
-            </label>
-            <select
-              id="horse"
-              value={selected ?? ""}
-              onChange={(e) => setHorseId(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+      <SectionTitle
+        action={
+          entered && (
+            <button
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              className="flex min-h-11 cursor-pointer items-center gap-1 text-sm font-medium text-gold"
             >
-              {available.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {t("race.horseOption", { name: h.name, s: Math.round(h.abilityRating), r: h.raceRating })}
-                </option>
-              ))}
-            </select>
-            <p className="mt-4 text-sm text-muted" id="tactics">
-              {t("race.tactics")}
-            </p>
-            <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="tactics">
-              {STRATEGIES.map((s) => (
-                <button
-                  key={s}
-                  role="radio"
-                  aria-checked={strategy === s}
-                  onClick={() => setStrategy(s)}
-                  className={`cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${strategy === s ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
-                >
-                  <p className="text-sm font-semibold">{STRATEGY_INFO[s]!.label}</p>
-                  <p className="text-xs leading-snug text-muted">{STRATEGY_INFO[s]!.hint}</p>
-                </button>
-              ))}
-            </div>
-            <p className="mt-4 text-sm text-muted" id="gear">
-              {t("race.gear")}
-            </p>
-            {ownedGear.length === 0 ? (
-              <Link href="/horses/" className="mt-1 inline-block text-sm text-gold underline">
-                {t("race.gearShop")}
-              </Link>
-            ) : (
-              <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="gear">
-                {[null, ...ownedGear.map((g) => g.item)].map((item) => {
-                  const g = ownedGear.find((x) => x.item === item);
-                  return (
-                    <button
-                      key={item ?? "none"}
-                      role="radio"
-                      aria-checked={gear === item}
-                      onClick={() => setGear(item)}
-                      className={`cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${gear === item ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
-                    >
-                      <p className="text-sm font-semibold">
-                        {item ? t(`gear.${item}` as MessageKey) : t("race.noGear")}
-                      </p>
-                      {g && <p className="num text-xs leading-snug text-muted">{gearMods(g.mods)}</p>}
-                    </button>
-                  );
-                })}
+              {open ? t("race.entryHide") : t("race.entryShow")}
+              <ChevronDown
+                className={`size-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                aria-hidden
+              />
+            </button>
+          )
+        }
+      >
+        {t("race.enterHorse")}
+      </SectionTitle>
+      {!open ? (
+        <Card className="flex items-center gap-3 text-sm">
+          <CheckCircle2 className="size-5 shrink-0 text-good" aria-hidden />
+          <p className="text-muted">{t("race.entryDone")}</p>
+        </Card>
+      ) : (
+        <Card>
+          {horses.data && checked.length === 0 ? (
+            <p className="text-sm text-muted">{t("race.noHorses")}</p>
+          ) : available.length === 0 ? (
+            <>
+              <p className="text-sm text-muted">{horses.data ? t("race.noneFit") : t("race.noEligible")}</p>
+              <UnfitList unfit={unfit} />
+              {unfit.length > 0 && (
+                <Link href="/races/" className="mt-3 inline-block text-sm font-semibold text-gold">
+                  {t("race.findOther")} →
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              <label className="text-sm text-muted" htmlFor="horse">
+                {t("race.horse")}
+              </label>
+              <select
+                id="horse"
+                value={selected ?? ""}
+                onChange={(e) => setHorseId(e.target.value)}
+                className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+              >
+                {available.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {t("race.horseOption", { name: h.name, s: Math.round(h.abilityRating), r: h.raceRating })}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-4 text-sm text-muted" id="tactics">
+                {t("race.tactics")}
+              </p>
+              <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="tactics">
+                {STRATEGIES.map((s) => (
+                  <button
+                    key={s}
+                    role="radio"
+                    aria-checked={strategy === s}
+                    onClick={() => setStrategy(s)}
+                    className={`cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${strategy === s ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
+                  >
+                    <p className="text-sm font-semibold">{STRATEGY_INFO[s]!.label}</p>
+                    <p className="text-xs leading-snug text-muted">{STRATEGY_INFO[s]!.hint}</p>
+                  </button>
+                ))}
               </div>
-            )}
-            <Button className="mt-4 w-full" onClick={enter} loading={busy}>
-              {t("race.enterFee", { fee: fmt(race.entryFee) })}
-            </Button>
-            {unfit.length > 0 && (
-              <details className="mt-3 text-sm">
-                <summary className="cursor-pointer text-muted">{t("race.someUnfit")}</summary>
-                <UnfitList unfit={unfit} />
-              </details>
-            )}
-          </>
-        )}
-      </Card>
+              <p className="mt-4 text-sm text-muted" id="gear">
+                {t("race.gear")}
+              </p>
+              {ownedGear.length === 0 ? (
+                <Link href="/horses/" className="mt-1 inline-block text-sm text-gold underline">
+                  {t("race.gearShop")}
+                </Link>
+              ) : (
+                <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="gear">
+                  {[null, ...ownedGear.map((g) => g.item)].map((item) => {
+                    const g = ownedGear.find((x) => x.item === item);
+                    return (
+                      <button
+                        key={item ?? "none"}
+                        role="radio"
+                        aria-checked={gear === item}
+                        onClick={() => setGear(item)}
+                        className={`cursor-pointer rounded-xl border p-2.5 text-left transition-colors ${gear === item ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`}
+                      >
+                        <p className="text-sm font-semibold">
+                          {item ? t(`gear.${item}` as MessageKey) : t("race.noGear")}
+                        </p>
+                        {g && <p className="num text-xs leading-snug text-muted">{gearMods(g.mods)}</p>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <Button className="mt-4 w-full" onClick={enter} loading={busy}>
+                {t("race.enterFee", { fee: fmt(race.entryFee) })}
+              </Button>
+              {unfit.length > 0 && (
+                <details className="mt-3 text-sm">
+                  <summary className="cursor-pointer text-muted">{t("race.someUnfit")}</summary>
+                  <UnfitList unfit={unfit} />
+                </details>
+              )}
+            </>
+          )}
+        </Card>
+      )}
     </>
   );
 }

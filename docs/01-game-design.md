@@ -260,10 +260,15 @@ reserved for a larger player base):
 
 | Tier | Every | Entry | Final purse | Qualification (either) | Heat/final class | Champion bonus |
 |---|---|---|---|---|---|---|
-| Local | 24 h (18:00 UTC) | 200 | 8 000 | open | Class 5 | +30 reputation |
-| Regional | 72 h | 500 | 15 000 | 20 season pts or rating 1100+ | Class 4 | +1 prestige, +60 rep |
+| Local | 24 h (18:00 UTC) | 200 | 7 000 | open | Class 5 | +30 reputation |
+| Regional | 72 h | 500 | 13 000 | 20 season pts or rating 1100+ | Class 4 | +1 prestige, +60 rep |
 | National | 7 days | 1 200 | 40 000 | 60 season pts or rating 1200+ | Class 3 | +2 prestige, +120 rep |
 | Elite | 14 days | 3 000 | 100 000 | 150 season pts or rating 1300+ | Class 2 | +5 prestige, +250 rep |
+
+Heats are topped up with house horses (the best player finishers qualify). The **final is
+contested by the finalists alone** when there are two or more, so the horse that wins the final
+is the champion and takes the winner's share of the purse; a lone finalist races house company
+and is champion wherever it finishes.
 
 Qualification is **never purchasable** (season points are earned; rating is Elo).
 

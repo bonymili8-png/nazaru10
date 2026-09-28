@@ -511,7 +511,11 @@ export class TournamentsService {
     });
   }
 
-  /** Final settled: record placings, crown the best player finisher (the purse was paid by the race). */
+  /**
+   * Final settled: record placings, crown the best player finisher (the purse was paid by the
+   * race). The final runs without house horses when it has two or more finalists, so this is the
+   * race winner; only a lone finalist races house company and is champion wherever it finishes.
+   */
   private async complete(c: PoolClient, t: TournamentRow, now: Date): Promise<boolean> {
     const final = await row<{ status: string }>(c, "SELECT status FROM races WHERE id = $1", [
       t.final_race_id,

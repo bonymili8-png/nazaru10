@@ -792,7 +792,7 @@ export const defaultConfig: GameConfig = {
     tiers: {
       LOCAL: {
         entryFee: 200,
-        purse: 8000,
+        purse: 7000,
         championPrestige: 0,
         championReputation: 30,
         minSeasonPoints: null,
@@ -806,7 +806,7 @@ export const defaultConfig: GameConfig = {
       },
       REGIONAL: {
         entryFee: 500,
-        purse: 15000,
+        purse: 13000,
         championPrestige: 1,
         championReputation: 60,
         minSeasonPoints: 20,

@@ -13,9 +13,12 @@ test("an owner goes back to where they were", async ({ page }) => {
   await page.locator("a[href^='/horse/?id=']").first().click();
   await expect(page.getByRole("tab", { name: "overview" })).toBeVisible();
   const horseUrl = page.url();
+  // A marker on window survives only if Back navigates in-app instead of reloading the page.
+  await page.evaluate(() => ((window as unknown as { __alive: number }).__alive = 1));
   await back.click();
   await expect(page).toHaveURL(/\/horses\/$/);
   await expect(page.getByText(/boxes used/)).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __alive?: number }).__alive)).toBe(1);
 
   // Across sections: Races → a race → Back to the race card.
   await page.getByRole("link", { name: "Races" }).click();

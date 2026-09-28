@@ -18,28 +18,34 @@ function parentOf(path: string): string {
 }
 
 /**
- * Depth of the in-app history this session: +1 per navigation, −1 per browser back (popstate).
- * Kept at module level so it survives re-renders. 0 means the page was opened directly.
+ * The session's in-app history (URLs incl. query), kept at module level so it survives
+ * re-renders. "Back" navigates to the previous entry with the client router instead of
+ * `history.back()`: inside Telegram's webview a history step can reload the whole app, while a
+ * router navigation never does (and cached data shows instantly).
  */
-let depth = -1;
+const stack: string[] = [];
+let pending: "back" | "replace" | null = null;
 let popped = false;
-let replaced = false;
-let last: string | null = null;
 if (typeof window !== "undefined") window.addEventListener("popstate", () => (popped = true));
 
 /** Call before `router.replace`: the next page takes the current one's place in history. */
 export function markReplace(): void {
-  replaced = true;
+  pending = "replace";
 }
 
 function track(url: string): void {
-  if (url === last) return; // a re-mount (e.g. language switch), not a navigation
-  last = url;
-  if (popped) depth = Math.max(0, depth - 1);
-  else if (replaced) depth = Math.max(0, depth);
-  else depth++;
+  const top = stack[stack.length - 1];
+  if (url !== top) {
+    if (pending === "replace" && stack.length > 0) stack[stack.length - 1] = url;
+    // The browser's own back button (outside Telegram) steps back through the same history.
+    else if (popped && stack[stack.length - 2] === url) stack.pop();
+    else {
+      stack.push(url);
+      if (stack.length > 50) stack.shift();
+    }
+  }
+  pending = null;
   popped = false;
-  replaced = false;
 }
 
 function useBack(): { show: boolean; back: () => void } {
@@ -48,9 +54,12 @@ function useBack(): { show: boolean; back: () => void } {
   const router = useRouter();
   useEffect(() => track(path + (search ? `?${search}` : "")), [path, search]);
   const back = useCallback(() => {
-    // Opened directly (deep link, reload): go up to the section instead of leaving the app.
-    if (depth > 0) router.back();
-    else {
+    if (stack.length > 1) {
+      stack.pop();
+      pending = "back";
+      router.push(stack[stack.length - 1]!);
+    } else {
+      // Opened directly (deep link, reload): go up to the section instead of leaving the app.
       markReplace();
       router.replace(parentOf(path));
     }

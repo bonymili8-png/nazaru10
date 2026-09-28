@@ -184,6 +184,12 @@ describe("tournaments", () => {
     expect(d.status).toBe("COMPLETED");
     const champ = d.entries.find((e) => e.finalPosition !== null)!;
     expect(d.winner?.horseId).toBe(champ.horseId);
+    // With two or more finalists the final is players only: its winner is the champion.
+    const ran = (await t.get<RaceDetailDto>(`/races/${d.finalRaceId}`, users[0]!.token)).body;
+    if (finalists.length >= 2) {
+      expect(ran.entryList.filter((e) => e.isHouse)).toHaveLength(0);
+      expect(champ.finalPosition).toBe(1);
+    }
     const champOwner = users.find((u) => u.horseId === champ.horseId)!;
     const after = await credits(champOwner);
     expect(after.REPUTATION - before.get(champOwner.userId)!.REPUTATION).toBeGreaterThanOrEqual(

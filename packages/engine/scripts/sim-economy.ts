@@ -390,7 +390,14 @@ interface Runner {
  * One tournament race (heat or final) with house fillers up to the target field. Applies prizes,
  * Elo and aftermath like any race; returns player finishing positions (best first).
  */
-function tournamentRace(rng: Rng, runners: Runner[], cls: RaceClass, purse: number, nowH: number): Runner[] {
+function tournamentRace(
+  rng: Rng,
+  runners: Runner[],
+  cls: RaceClass,
+  purse: number,
+  nowH: number,
+  final = false,
+): Runner[] {
   const track = rng.pick(TRACKS);
   const distance = rng.pick(track.distances);
   const weather = rollWeather(track, rng);
@@ -414,7 +421,10 @@ function tournamentRace(rng: Rng, runners: Runner[], cls: RaceClass, purse: numb
       },
     };
   });
-  for (let i = field.length; i < Math.max(cfg.race.schedule.targetField, runners.length); i++)
+  // Heats are topped up with house horses; a final is players only (as in the API) unless a
+  // lone finalist needs company, so the final's winner is always the champion.
+  const target = final && runners.length >= 2 ? runners.length : cfg.race.schedule.targetField;
+  for (let i = field.length; i < Math.max(target, runners.length); i++)
     field.push(houseEntrant(rng, cls, distance, `h${i}`));
   const res = simulateRace(
     rng.shuffle(field),
@@ -503,7 +513,7 @@ function tournament(rng: Rng, tier: "LOCAL" | "REGIONAL", nowH: number): void {
     // A finalist injured in its heat is scratched, as in the game.
     finalists = finalists.filter((f) => nowH + 0.5 >= f.h.injuredUntil);
   }
-  if (finalists.length > 0) tournamentRace(rng, finalists, t.raceClass, t.purse, nowH + 0.5);
+  if (finalists.length > 0) tournamentRace(rng, finalists, t.raceClass, t.purse, nowH + 0.5, true);
   stats.tournaments++;
 }
 

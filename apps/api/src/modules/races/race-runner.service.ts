@@ -248,7 +248,11 @@ export class RaceRunnerService {
         return true;
       }
       const rng = new Rng(`lock:${this.raceSeed(raceId)}`);
-      const fieldSize = Math.min(race.max_field, Math.max(cfg.race.schedule.targetField, players.length));
+      // A tournament final is contested by the finalists alone (house horses only keep a lone
+      // finalist company), so the horse that wins the final is always the champion.
+      const target =
+        race.stage === "FINAL" && players.length >= 2 ? players.length : cfg.race.schedule.targetField;
+      const fieldSize = Math.min(race.max_field, Math.max(target, players.length));
       const fillers = await this.house.fillers(
         c,
         race.class,

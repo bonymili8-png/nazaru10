@@ -13,7 +13,17 @@ export class Db {
   readonly pool: Pool;
 
   constructor(connectionString: string, max = 20) {
-    this.pool = new Pool({ connectionString, max, idleTimeoutMillis: 30_000 });
+    this.pool = new Pool({
+      connectionString,
+      max,
+      idleTimeoutMillis: 30_000,
+      // Fail fast instead of piling up: a request waits at most 10 s for a free connection, no
+      // statement runs longer than 15 s, and a transaction left idle (a bug) is ended at 30 s,
+      // so one stuck request can never hold connections and locks for everyone.
+      connectionTimeoutMillis: 10_000,
+      statement_timeout: 15_000,
+      idle_in_transaction_session_timeout: 30_000,
+    });
   }
 
   async query<T extends QueryResultRow>(text: string, params: unknown[] = []): Promise<T[]> {

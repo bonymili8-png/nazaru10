@@ -32,6 +32,9 @@ export async function loadMigrations(dir = MIGRATIONS_DIR): Promise<Migration[]>
 async function withLock<T>(pool: Pool, fn: (q: Pool["query"]) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
+    // Migrations may legitimately run long (index builds): lift the app's statement timeout.
+    await client.query("SET statement_timeout = 0");
+    await client.query("SET idle_in_transaction_session_timeout = 0");
     await client.query("SELECT pg_advisory_lock($1)", [LOCK_KEY]);
     await client.query(
       "CREATE TABLE IF NOT EXISTS schema_migrations (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())",
@@ -39,6 +42,8 @@ async function withLock<T>(pool: Pool, fn: (q: Pool["query"]) => Promise<T>): Pr
     return await fn(client.query.bind(client) as Pool["query"]);
   } finally {
     await client.query("SELECT pg_advisory_unlock($1)", [LOCK_KEY]).catch(() => undefined);
+    // Back to the pool's defaults before the connection serves app queries again.
+    await client.query("RESET statement_timeout; RESET idle_in_transaction_session_timeout").catch(() => undefined);
     client.release();
   }
 }

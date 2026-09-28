@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import { constants as zlib } from "node:zlib";
+import compress from "@fastify/compress";
 import cors from "@fastify/cors";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
@@ -22,7 +24,15 @@ export async function buildApp(deps: AppDeps): Promise<NestFastifyApplication> {
     origin: origins.length ? origins : false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["authorization", "content-type"],
-    maxAge: 600,
+    // Browsers cap preflight caching at 2 h; fewer OPTIONS round-trips before each call.
+    maxAge: 7200,
+  });
+  // Race replays, lists and the admin console are JSON that compresses ~5–10×; brotli at a
+  // low quality level is fast enough for per-request compression.
+  await app.register(compress, {
+    threshold: 1024,
+    encodings: ["br", "gzip"],
+    brotliOptions: { params: { [zlib.BROTLI_PARAM_QUALITY]: 4 } },
   });
   const fastify = app.getHttpAdapter().getInstance();
   fastify.addHook("onSend", async (_req, reply, payload) => {

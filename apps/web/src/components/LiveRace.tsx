@@ -35,6 +35,13 @@ type Frame = [number, number, number, number];
  */
 const POLL_MS = 2000;
 const liveDelay = (interval: number) => interval + POLL_MS / 1000 + 0.5;
+/**
+ * A viewer who arrives within this many seconds of the off (or is waiting at the gates) sees the
+ * race from the start: playback begins at 0 and runs CATCH_UP× fast until it meets the live
+ * picture. Later arrivals join live, so nobody sits through a long catch-up.
+ */
+const FROM_START_WITHIN = 20;
+const CATCH_UP = 1.25;
 
 /** Interpolated runner positions at time t (seconds) from 1-second frames. */
 function sample(frames: Frame[][], interval: number, t: number): Frame[] | null {
@@ -55,6 +62,9 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
   const [replayStart, setReplayStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
   const offsetRef = useRef(0);
+  /** Wall-clock ms when playback from the start began (null: follow the live picture). */
+  const fromStartRef = useRef<number | null>(null);
+  const decidedRef = useRef(false);
   const track = useMemo(() => trackByCode(race.trackCode), [race.trackCode]);
   const startMs = new Date(race.startsAt).getTime();
 
@@ -67,6 +77,12 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
         const d = await api<LiveRaceDto>(`/races/${race.id}/live`);
         if (stop) return;
         offsetRef.current = d.elapsed - (Date.now() - startMs) / 1000;
+        // First frames of a running race: decide once whether to show it from the gates.
+        if (!decidedRef.current && d.frames && d.status === "RUNNING") {
+          decidedRef.current = true;
+          if (d.elapsed <= FROM_START_WITHIN) fromStartRef.current = Date.now();
+        }
+        if (d.status === "COMPLETED" && !d.frames) decidedRef.current = true;
         setLive(d);
         if (d.status !== "COMPLETED" && d.status !== "CANCELLED") timer = setTimeout(poll, POLL_MS);
       } catch {
@@ -102,7 +118,12 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
 
   const frames = live.frames;
   const available = (frames.data.length - 1) * frames.interval;
-  const playT = Math.max(0, Math.min(replayStart !== null ? t : t - liveDelay(frames.interval), available));
+  const liveT = t - liveDelay(frames.interval);
+  const catchUpT =
+    replayStart === null && fromStartRef.current !== null
+      ? ((Date.now() - fromStartRef.current) / 1000) * CATCH_UP
+      : Infinity;
+  const playT = Math.max(0, Math.min(replayStart !== null ? t : Math.min(liveT, catchUpT), available));
   const pos = sample(frames.data, frames.interval, playT);
   const LANE = 6;
   const b = ovalBounds(track, 26 * LANE);

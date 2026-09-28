@@ -108,7 +108,10 @@ function RacePage() {
         )}
       </Card>
 
-      {(race.status === "RUNNING" || race.status === "COMPLETED") && <LiveRace race={race} />}
+      {/* Mounted from the gates (LOCKED) so the live view polls on its own and catches the off. */}
+      {(race.status === "LOCKED" || race.status === "RUNNING" || race.status === "COMPLETED") && (
+        <LiveRace race={race} />
+      )}
       {race.status === "COMPLETED" &&
         race.entryList
           .filter((e) => e.mine && e.position !== null)

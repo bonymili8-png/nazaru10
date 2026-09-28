@@ -1,4 +1,8 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import pg from "pg";
+
+const DATABASE_URL =
+  process.env.E2E_DATABASE_URL ?? "postgres://thoroughline:thoroughline@localhost:5432/thoroughline_e2e";
 
 let seq = 0;
 
@@ -16,6 +20,32 @@ export async function newOwner(page: Page): Promise<number> {
   await page.getByRole("button", { name: "Enter as developer" }).click();
   await expect(page.getByRole("heading", { name: "Career path" })).toBeVisible();
   return devId;
+}
+
+/**
+ * Give an owner a second horse (a copy of their starter, listed last), so a test can sell the
+ * starter without tripping the "keep at least one horse" rule.
+ */
+export async function giveSpareHorse(devId: number): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    const cols = (
+      await client.query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'horses' AND column_name NOT IN ('id', 'name', 'created_at')
+            AND is_generated = 'NEVER'`,
+      )
+    ).rows.map((r) => `"${r.column_name}"`);
+    await client.query(
+      `INSERT INTO horses (name, created_at, ${cols.join(", ")})
+       SELECT 'Spare ' || substr(md5(random()::text), 1, 8), now() + interval '1 day', ${cols.join(", ")}
+         FROM horses WHERE owner_id = (SELECT id FROM users WHERE telegram_id = $1) LIMIT 1`,
+      [devId],
+    );
+  } finally {
+    await client.end();
+  }
 }
 
 /** Credits shown in the header wallet chip. */

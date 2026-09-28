@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Query } from "@nestjs/common";
 import { CursorQuery, type LedgerLineDto, type WalletDto } from "@thoroughline/contracts";
+import { allowanceAmount } from "@thoroughline/engine";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { Clock } from "../../common/clock.js";
-import { Db } from "../../common/db.js";
+import { Db, type Queryable, rows } from "../../common/db.js";
 import { conflict } from "../../common/errors.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "./ledger.service.js";
@@ -21,6 +22,16 @@ export class WalletController {
     return `allowance:${userId}:${this.clock.now().toISOString().slice(0, 10)}`;
   }
 
+  /** Today's allowance for this owner: enough for at least one start of their cheapest horse. */
+  private async amount(c: Queryable, userId: string, credits: number): Promise<number> {
+    const horses = await rows<{ rating: number; wins: number }>(
+      c,
+      "SELECT race_rating AS rating, wins FROM horses WHERE owner_id = $1 AND retired_at IS NULL",
+      [userId],
+    );
+    return allowanceAmount(credits, horses, this.config.get());
+  }
+
   @Get()
   async wallet(@CurrentUser() user: AuthUser): Promise<WalletDto> {
     const balances = await this.ledger.balances(user.id);
@@ -31,7 +42,7 @@ export class WalletController {
     return {
       balances,
       allowance: {
-        amount: a.amount,
+        amount: await this.amount(this.db.pool, user.id, balances.CREDITS),
         threshold: a.threshold,
         eligible: !claimed && balances.CREDITS < a.threshold,
       },
@@ -49,7 +60,7 @@ export class WalletController {
       const r = await this.ledger.credit(c, {
         userId: user.id,
         currency: "CREDITS",
-        amount: a.amount,
+        amount: await this.amount(c, user.id, credits),
         source: "DAILY_ALLOWANCE",
         key: this.allowanceKey(user.id),
         type: "DAILY_ALLOWANCE",

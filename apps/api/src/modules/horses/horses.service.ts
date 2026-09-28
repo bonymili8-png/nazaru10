@@ -252,6 +252,21 @@ export class HorsesService {
     return h;
   }
 
+  /**
+   * Soft-lock guard: an owner may not sell away their last horse (one not already up for sale),
+   * so nobody can end up with an empty stable and too few credits to buy back in.
+   */
+  async assertKeepsAHorse(c: Queryable, ownerId: string, horseId: string): Promise<void> {
+    const others = await rows<{ n: number }>(
+      c,
+      `SELECT count(*)::int AS n FROM horses
+        WHERE owner_id = $1 AND id <> $2 AND retired_at IS NULL AND status <> 'LISTED'`,
+      [ownerId, horseId],
+    );
+    if (others[0]!.n === 0)
+      throw conflict("LAST_HORSE", "Keep at least one horse in your stable — buy another before selling this one");
+  }
+
   /** Pay the vet to heal an injury immediately. */
   async treat(userId: string, horseId: string): Promise<HorseRow> {
     const now = this.clock.now();

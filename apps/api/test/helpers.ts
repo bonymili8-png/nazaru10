@@ -5,6 +5,7 @@ import { Db } from "../src/common/db.js";
 import { createLogger } from "../src/common/logger.js";
 import { loadEnv } from "../src/config/env.js";
 import { signInitData } from "../src/modules/auth/telegram-init-data.js";
+import { HorseFactory } from "../src/modules/horses/horse.factory.js";
 import { FakeBotApi } from "../src/modules/telegram/bot-api.js";
 import { resetDatabase } from "./db.js";
 
@@ -29,6 +30,11 @@ export interface TestApp {
     startParam?: string,
   ): Promise<{ token: string; userId: string }>;
   service<T>(cls: abstract new (...args: never[]) => T): T;
+  /**
+   * Give an owner a spare horse that lists last in `/horses`, so tests can sell their other
+   * horses without tripping the "keep at least one horse" rule.
+   */
+  giveKeeper(userId: string): Promise<string>;
   close(): Promise<void>;
 }
 
@@ -88,6 +94,20 @@ export async function createTestApp(): Promise<TestApp> {
       return { token: res.body.token, userId: res.body.user.id };
     },
     service: (cls) => app.get(cls as never),
+    giveKeeper: (userId) =>
+      db.tx(async (c) => {
+        const stable = await c.query<{ id: string }>("SELECT id FROM stables WHERE owner_id = $1", [userId]);
+        const h = await app.get(HorseFactory).generate(c, {
+          quality: 0.3,
+          age: 3,
+          ownerId: userId,
+          stableId: stable.rows[0]!.id,
+          isHouse: false,
+          now: clock.now(),
+        });
+        await c.query("UPDATE horses SET created_at = '2100-01-01' WHERE id = $1", [h.id]);
+        return h.id;
+      }),
     async close() {
       await app.close();
       await db.close();

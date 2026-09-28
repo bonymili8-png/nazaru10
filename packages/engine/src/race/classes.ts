@@ -53,3 +53,24 @@ export function classBandProblems(cfg: GameConfig): string[] {
   if (!maiden.maidenOnly) problems.push("race.classes.MAIDEN.maidenOnly: must be true");
   return problems;
 }
+
+/** Cheapest entry fee among the classes a horse may enter (see `eligibleClasses`). */
+export function cheapestEntryFee(rating: number, wins: number, cfg: GameConfig): number {
+  return Math.min(...eligibleClasses(rating, wins, cfg).map((c) => cfg.race.classes[c].entryFee));
+}
+
+/**
+ * The daily allowance for an owner below the threshold: the configured amount, raised if needed
+ * so that the owner can afford at least one start for one of their horses. Without the top-up an
+ * owner whose horses all rate into a class dearer than threshold + amount could never race again.
+ */
+export function allowanceAmount(
+  credits: number,
+  horses: { rating: number; wins: number }[],
+  cfg: GameConfig,
+): number {
+  const { amount } = cfg.economy.allowance;
+  if (horses.length === 0) return amount;
+  const need = Math.min(...horses.map((h) => cheapestEntryFee(h.rating, h.wins, cfg)));
+  return Math.max(amount, need - credits);
+}

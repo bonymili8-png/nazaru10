@@ -156,6 +156,7 @@ export class OffersService {
         [h.id],
       );
       if (partners!.n > 0) throw conflict("SYNDICATED", "Buy back the syndicate shares before selling");
+      await this.horses.assertKeepsAHorse(c, sellerId, h.id);
       const stable = await this.stables.byOwner(c, o.buyer_id, true);
       const owned = await row<{ n: number }>(
         c,

@@ -23,6 +23,7 @@ describe("syndicates", () => {
     manager = await t.login(8301, "Manager");
     partner = await t.login(8302, "Partner");
     other = await t.login(8303, "Other");
+    for (const u of [manager, partner, other]) await t.giveKeeper(u.userId);
     horseId = (await t.get<HorseSummaryDto[]>("/horses", manager.token)).body[0]!.id;
   });
   afterAll(() => t.close());

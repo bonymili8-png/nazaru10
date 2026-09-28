@@ -103,6 +103,7 @@ export class MarketService {
       h = await this.horses.normalize(c, h, now);
       if (h.status !== "IDLE") throw conflict("HORSE_BUSY", `Horse is ${h.status.toLowerCase()}`);
       await this.syndicates.assertNoPartners(c, h.id);
+      await this.horses.assertKeepsAHorse(c, sellerId, h.id);
       // Unsold shares can't stay on offer while the whole horse is for sale.
       await c.query("DELETE FROM share_offers WHERE horse_id = $1", [h.id]);
       assertTransition(h.status, "LISTED");

@@ -17,6 +17,12 @@ describe("player market", () => {
   const buyers: User[] = [];
   const credits = async (u: User) =>
     (await t.get<{ balances: { CREDITS: number } }>("/wallet", u.token)).body.balances.CREDITS;
+  /** Every owner here keeps a spare horse, so the one under test may always be sold. */
+  const login = async (id: number, name: string) => {
+    const u = await t.login(id, name);
+    await t.giveKeeper(u.userId);
+    return u;
+  };
   const horseOf = async (u: User) => (await t.get<HorseSummaryDto[]>("/horses", u.token)).body[0]!;
   const reference = async (horseId: string, u: User) => {
     // Ask the API for the allowed band by submitting an absurd price.
@@ -41,10 +47,12 @@ describe("player market", () => {
 
   beforeAll(async () => {
     t = await createTestApp();
-    seller = await t.login(7001, "Seller");
+    seller = await login(7001, "Seller");
     for (let i = 0; i < 6; i++) {
-      const b = await t.login(7100 + i, `Buyer${i}`);
+      const b = await login(7100 + i, `Buyer${i}`);
       await fund(b, 200_000);
+      // A 5-box stable: the spare horse must not crowd out the auctions buyers win here.
+      await t.db.query("UPDATE stables SET level = 2 WHERE owner_id = $1", [b.userId]);
       buyers.push(b);
     }
   });
@@ -73,6 +81,18 @@ describe("player market", () => {
         )
       ).status,
     ).toBe(400);
+  });
+
+  it("never lets an owner sell away their last horse", async () => {
+    const solo = await t.login(7400, "Solo");
+    const [h] = (await t.get<HorseSummaryDto[]>("/horses", solo.token)).body;
+    const r = await t.post<{ error: { code: string } }>(
+      "/market/listings",
+      { horseId: h!.id, type: "FIXED", price: 5000 },
+      solo.token,
+    );
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe("LAST_HORSE");
   });
 
   it("sells at a fixed price exactly once under concurrent buyers, moving money and ownership atomically", async () => {
@@ -105,7 +125,7 @@ describe("player market", () => {
     expect(await credits(winner)).toBe(before[winnerIdx + 1]! - ref);
     const owned = await t.get<HorseSummaryDto[]>("/horses", winner.token);
     expect(owned.body.map((x) => x.id)).toContain(h.id);
-    expect((await t.get<HorseSummaryDto[]>("/horses", seller.token)).body).toHaveLength(0);
+    expect((await t.get<HorseSummaryDto[]>("/horses", seller.token)).body.map((x) => x.id)).not.toContain(h.id);
     const history = await t.db.query<{ reason: string; price: number }>(
       "SELECT reason, price FROM horse_ownership_history WHERE horse_id = $1 ORDER BY id",
       [h.id],
@@ -262,7 +282,7 @@ describe("player market", () => {
   });
 
   it("does not let bids exceed stable capacity", async () => {
-    // Seller now has 0 horses and a 3-box stable: may lead at most 3 auctions.
+    // Seller now has only the spare horse in a 3-box stable: may lead at most 2 auctions.
     const sellers = buyers.slice(0, 3);
     const ids: string[] = [];
     for (const s of sellers) {
@@ -279,7 +299,7 @@ describe("player market", () => {
       );
     }
     await fund(seller, 500_000);
-    const four = await t.login(7200, "Extra");
+    const four = await login(7200, "Extra");
     await fund(four, 200_000);
     const h4 = await horseOf(four);
     ids.push(
@@ -298,11 +318,11 @@ describe("player market", () => {
         (await t.post(`/market/listings/${id}/bids`, { amount: d.minNextBid }, seller.token)).status,
       );
     }
-    expect(statuses).toEqual([201, 201, 201, 409]);
+    expect(statuses).toEqual([201, 201, 409, 409]);
   });
 
   it("pins a featured listing to the top for gems (visibility only)", async () => {
-    const promoter = await t.login(7300, "Promoter");
+    const promoter = await login(7300, "Promoter");
     const h = await horseOf(promoter);
     const ref = await reference(h.id, promoter);
     const l = await t.post<MarketListingDetailDto>(

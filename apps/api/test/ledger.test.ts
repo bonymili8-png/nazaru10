@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { defaultConfig } from "@thoroughline/engine";
 import { LedgerService } from "../src/modules/economy/ledger.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
 
@@ -141,6 +142,27 @@ describe("ledger", () => {
     expect(no.body.error.code).toBe("NOT_ELIGIBLE");
     t.clock.advance(24 * 3_600_000);
     expect((await t.post("/wallet/allowance", {}, token)).status).toBe(201);
+  });
+
+  it("tops the allowance up to one entry fee for a broke owner of a top-class horse", async () => {
+    const { token, userId } = await t.login(2004);
+    await t.db.query("UPDATE horses SET race_rating = 1450, wins = 9, starts = 20 WHERE owner_id = $1", [userId]);
+    await t.db.tx(async (c) => {
+      const credits = (await ledger.balances(userId, c)).CREDITS;
+      await ledger.debit(c, {
+        userId,
+        currency: "CREDITS",
+        amount: credits,
+        sink: "RACE_ENTRY",
+        key: `drain:${userId}`,
+        type: "TEST",
+      });
+    });
+    const fee = defaultConfig.race.classes.CLASS_1.entryFee;
+    const w = await t.get<{ allowance: { amount: number } }>("/wallet", token);
+    expect(w.body.allowance.amount).toBe(fee);
+    const claim = await t.post<{ balances: { CREDITS: number } }>("/wallet/allowance", {}, token);
+    expect(claim.body.balances.CREDITS).toBe(fee);
   });
 
   it("keeps invariants", () => assertLedgerIntegrity(t.db));

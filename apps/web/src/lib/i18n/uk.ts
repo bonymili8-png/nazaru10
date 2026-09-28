@@ -1223,4 +1223,5 @@ export const uk: Record<MessageKey, Msg> = {
   "homeScreen.add": "Додати",
   "homeScreen.added": "Додано на головний екран",
   "homeScreen.dismiss": "Приховати",
+  "error.LAST_HORSE": "У стайні має лишитися хоча б один кінь — спершу купіть іншого, а потім продавайте цього.",
 };

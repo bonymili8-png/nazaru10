@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig as cfg, mergeConfig } from "../config/index.js";
-import { classBandProblems, eligibleClasses, RATED_CLASSES } from "./classes.js";
+import { allowanceAmount, classBandProblems, eligibleClasses, RATED_CLASSES } from "./classes.js";
 
 describe("race class bands", () => {
   it("tile the rating line without gaps or overlaps", () => {
@@ -49,6 +49,25 @@ describe("race class bands", () => {
     ]);
     expect(classBandProblems(set({ CLASS_2: { minRating: 1500 } }))).toContain(
       "race.classes.CLASS_2: minRating is above maxRating",
+    );
+  });
+});
+
+describe("daily allowance", () => {
+  const { amount, threshold } = cfg.economy.allowance;
+  it("is the configured amount while it covers a start", () => {
+    expect(allowanceAmount(0, [], cfg)).toBe(amount);
+    expect(allowanceAmount(0, [{ rating: 1000, wins: 0 }], cfg)).toBe(amount);
+    expect(allowanceAmount(threshold - 1, [{ rating: 1250, wins: 4 }], cfg)).toBe(amount);
+  });
+  it("tops up a broke owner of top-class horses to one entry fee, never more", () => {
+    const fee1 = cfg.race.classes.CLASS_1.entryFee;
+    expect(fee1).toBeGreaterThan(threshold + amount);
+    expect(allowanceAmount(0, [{ rating: 1450, wins: 9 }], cfg)).toBe(fee1);
+    expect(allowanceAmount(120, [{ rating: 1450, wins: 9 }], cfg)).toBe(fee1 - 120);
+    // The cheapest horse of the string decides.
+    expect(allowanceAmount(0, [{ rating: 1450, wins: 9 }, { rating: 1350, wins: 6 }], cfg)).toBe(
+      cfg.race.classes.CLASS_2.entryFee,
     );
   });
 });

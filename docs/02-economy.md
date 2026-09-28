@@ -42,7 +42,8 @@ purely virtual and keeps the game from being pay-to-win. Revisit only after lega
 | Training session (NORMAL) | 60–120 credits by type; LIGHT ×0.6, HARD ×1.5 |
 | Vet treatment (heal injury faster) | 300 (minor) / 900 (moderate) |
 | Race entry / purse | class table in GDD (purse ≈ 16× entry fee) |
-| Daily allowance (safety net) | 250 credits once per UTC day while below 400 |
+| Daily allowance (safety net) | 250 credits once per UTC day while below 400, topped up to one entry fee of the owner's cheapest horse |
+| Last horse | Cannot be listed or sold on an offer: an owner always keeps one horse |
 | House horse purchase (primary market) | 1 500 – 25 000 by quality |
 
 ### K.4 Faucet/sink balance targets (validated by `pnpm sim:economy`)
@@ -60,6 +61,17 @@ showed they did not match the price scale and exposed three problems, now fixed:
    the entry fee.
 3. **Soft-lock** (28 % of owners ended below the cheapest entry fee): house maidens are now
    young horses (class age bands) and a small daily allowance exists for nearly-broke owners.
+
+5. **Stress policies** (`SIM_POLICY=reckless|casual pnpm sim:economy`): besides the planning
+   owner, the simulation runs an impulsive owner (no reserves: HARD training, staff, elite feed
+   and gear bought as soon as the wallet allows) and a casual owner (one session a day, no
+   staff). Racing is profitable for ≈ 97 % of owners under every policy (median ≈ +7 000 per
+   season). The reckless owner drains to ≈ 400 credits within a week and then climbs back
+   (median ≈ 1 100 by day 28) on race prizes plus the allowance (≈ 24 % of their income); no
+   owner under any policy spends a day unable to enter a race (gates: no 3-day stuck streak,
+   < 3 % stuck owner-days). Two soft-locks found in review are closed: an owner whose horses
+   all rate into Class 2/1 (entry 650/1 000 > threshold + allowance) now gets the allowance
+   topped up to one entry, and the last horse of a stable cannot be sold.
 
 4. **Class ladder mismatch** (found when staff and facilities were added): the simulation
    promoted horses by number of wins, the game promotes by Elo rating bands. With the real rule

@@ -10,6 +10,7 @@
  *   pnpm sim:economy [players=400] [days=28]
  */
 import {
+  allowanceAmount,
   defaultConfig as cfg,
   facilityEffect,
   facilityRequiredStableLevel,
@@ -58,7 +59,16 @@ import {
 
 const PLAYERS = Number(process.argv[2] ?? 400);
 const DAYS = Number(process.argv[3] ?? 28);
-const SESSIONS = [9, 20]; // hours of day the owner plays
+/**
+ * Owner behaviour. "median" (default, the balance gates): keeps reserves before spending.
+ * "reckless": spends whenever the wallet allows, trains HARD, hires and buys at once.
+ * "casual": plays once a day and never hires staff. Stress policies check players never soft-lock.
+ */
+const POLICY = (process.env.SIM_POLICY ?? "median") as "median" | "reckless" | "casual";
+const RECKLESS = POLICY === "reckless";
+/** Multiplier on every "keep this much in reserve" margin (0 = spend down to the last credit). */
+const MARGIN = RECKLESS ? 0 : 1;
+const SESSIONS = POLICY === "casual" ? [20] : [9, 20]; // hours of day the owner plays
 const DAY_MS = 86_400_000;
 
 interface SimHorse {
@@ -101,12 +111,16 @@ interface Player {
 
 const ledger = { sources: new Map<string, number>(), sinks: new Map<string, number>() };
 const add = (m: Map<string, number>, k: string, v: number) => m.set(k, (m.get(k) ?? 0) + v);
+/** Per-owner racing profit (prizes minus entry fees), to spot owners who race at a loss. */
+const racePnl = new Map<number, number>();
 const earn = (p: Player, k: string, v: number) => {
+  if (k === "RACE_PRIZE") racePnl.set(p.id, (racePnl.get(p.id) ?? 0) + v);
   p.credits += v;
   add(ledger.sources, k, v);
 };
 const spend = (p: Player, k: string, v: number) => {
   if (p.credits < v) return false;
+  if (k === "RACE_ENTRY") racePnl.set(p.id, (racePnl.get(p.id) ?? 0) - v);
   p.credits -= v;
   add(ledger.sinks, k, v);
   return true;
@@ -514,7 +528,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
     if (nowH < h.injuredUntil) {
       // Serious owners call the vet when they can afford it comfortably.
       const cost = cfg.economy.vetCost.MINOR;
-      if (p.credits > cost * 4 && spend(p, "VET", cost)) {
+      if (p.credits > cost * (RECKLESS ? 1 : 4) && spend(p, "VET", cost)) {
         h.injuredUntil = nowH;
         stats.vet++;
       } else continue;
@@ -534,15 +548,16 @@ function session(rng: Rng, p: Player, nowH: number): void {
     // Train once a day on non-race days, as long as the horse is not too tired.
     const type = TRAIN_ROTATION[(h.starts + Math.floor(nowH / 24)) % TRAIN_ROTATION.length]!;
     const block = trainingBlockReason(cond, age, type, cfg);
-    const cost = trainingCost(type, "NORMAL", cfg);
-    if (block || h.trainedToday > 0 || cond.fatigue > 40 || p.credits < cost + 300) continue;
+    const intensity = RECKLESS ? "HARD" : "NORMAL";
+    const cost = trainingCost(type, intensity, cfg);
+    if (block || h.trainedToday > 0 || cond.fatigue > 40 || p.credits < cost + 300 * MARGIN) continue;
     spend(p, "TRAINING", cost);
     const effect = p.trainer ? trainerEffect(p.trainer, type, cfg) : null;
     const fac = facilityEffect(p.facilities, cfg);
     const out = resolveTraining(
       {
         type,
-        intensity: "NORMAL",
+        intensity,
         attributes: h.attributes,
         genome: h.genome,
         condition: cond,
@@ -571,13 +586,13 @@ function session(rng: Rng, p: Player, nowH: number): void {
   // Staff: renew the weekly contract while comfortably solvent, otherwise let the trainer go.
   const week = cfg.staff.contractDays * 24;
   if (p.trainer && nowH >= p.trainer.paidUntil) {
-    if (p.credits >= p.trainer.salary + 1500 && spend(p, "STAFF_SALARY", p.trainer.salary))
+    if (p.credits >= p.trainer.salary + 1500 * MARGIN && spend(p, "STAFF_SALARY", p.trainer.salary))
       p.trainer.paidUntil += week;
     else p.trainer = null;
   }
   // Retained jockey: same policy as trainers, hired only once the trainer is in place.
   if (p.jockey && nowH >= p.jockey.paidUntil) {
-    if (p.credits >= p.jockey.salary + 1500 && spend(p, "STAFF_SALARY", p.jockey.salary))
+    if (p.credits >= p.jockey.salary + 1500 * MARGIN && spend(p, "STAFF_SALARY", p.jockey.salary))
       p.jockey.paidUntil += week;
     else p.jockey = null;
   }
@@ -586,18 +601,18 @@ function session(rng: Rng, p: Player, nowH: number): void {
   for (const h of p.horses) {
     if (h.feed === "STANDARD" || nowH < h.feedUntil) continue;
     const cost = feedCost(h.feed, cfg);
-    if (p.credits >= cost + 1500 && spend(p, "FEED", cost)) h.feedUntil += feedWeek;
+    if (p.credits >= cost + 1500 * MARGIN && spend(p, "FEED", cost)) h.feedUntil += feedWeek;
     else setFeed(h, "STANDARD", nowH);
   }
   // A full stable saves for the next upgrade first.
   const full = p.horses.length >= cfg.economy.stableCapacity[p.level - 1]!;
   const saving = full ? (cfg.economy.stableUpgradeCost[p.level - 1] ?? 0) : 0;
-  if (!p.trainer && p.horses.length >= 2 && maxTrainers(p.level, cfg) > 0) {
+  if (POLICY !== "casual" && !p.trainer && p.horses.length >= 2 && maxTrainers(p.level, cfg) > 0) {
     // Interview three candidates; hire the most skilled one the owner can carry for a month.
     const best = [0, 1, 2]
       .map(() => generateTrainer(rng, cfg))
       .map((t) => ({ ...t, salary: trainerSalary(t.skill, cfg) }))
-      .filter((t) => p.credits >= 4 * t.salary + 2500 + saving)
+      .filter((t) => p.credits >= (4 * t.salary + 2500 + saving) * MARGIN + (RECKLESS ? t.salary : 0))
       .sort((a, b) => b.skill - a.skill)[0];
     if (best && spend(p, "STAFF_SALARY", best.salary)) {
       p.trainer = { ...best, paidUntil: nowH + week };
@@ -608,7 +623,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
     const best = [0, 1, 2]
       .map(() => generateJockey(rng, cfg))
       .map((j) => ({ ...j, salary: jockeySalary(j.skill, cfg) }))
-      .filter((j) => p.credits >= 4 * j.salary + 3000 + saving)
+      .filter((j) => p.credits >= (4 * j.salary + 3000 + saving) * MARGIN + (RECKLESS ? j.salary : 0))
       .sort((a, b) => b.skill - a.skill)[0];
     if (best && spend(p, "STAFF_SALARY", best.salary)) {
       p.jockey = { skill: best.skill, salary: best.salary, paidUntil: nowH + week };
@@ -622,9 +637,9 @@ function session(rng: Rng, p: Player, nowH: number): void {
     .sort((a, b) => b.rating - a.rating)[0];
   if (p.trainer && star) {
     const want: FeedPlan =
-      p.credits >= 10 * feedCost("ELITE", cfg) + 5000 + saving
+      p.credits >= (10 * feedCost("ELITE", cfg) + 5000 + saving) * MARGIN
         ? "ELITE"
-        : p.credits >= 6 * feedCost("PREMIUM", cfg) + 4000 + saving
+        : p.credits >= (6 * feedCost("PREMIUM", cfg) + 4000 + saving) * MARGIN
           ? "PREMIUM"
           : star.feed;
     if (
@@ -642,8 +657,8 @@ function session(rng: Rng, p: Player, nowH: number): void {
     const next = (["BLINKERS", "RACING_PLATES", "TONGUE_TIE"] as const).find((g) => !p.gear.has(g));
     if (
       next &&
-      p.level >= 2 &&
-      p.credits >= cfg.equipment[next].cost + 3500 + saving &&
+      (p.level >= 2 || RECKLESS) &&
+      p.credits >= cfg.equipment[next].cost + (3500 + saving) * MARGIN &&
       spend(p, "EQUIPMENT", cfg.equipment[next].cost)
     ) {
       p.gear.add(next);
@@ -655,14 +670,14 @@ function session(rng: Rng, p: Player, nowH: number): void {
     const next = p.facilities[type] + 1;
     const cost = facilityUpgradeCost(type, p.facilities[type], cfg);
     if (cost === null || p.level < facilityRequiredStableLevel(next, cfg)) continue;
-    if (p.credits >= cost + 3000 + saving && spend(p, "FACILITIES", cost)) {
+    if (p.credits >= cost + (3000 + saving) * MARGIN && spend(p, "FACILITIES", cost)) {
       p.facilities[type] = next;
       stats.facilities++;
     }
   }
   // Growth decisions at the end of the session.
   const capacity = cfg.economy.stableCapacity[p.level - 1]!;
-  const reserve = 1500 + p.horses.reduce((sum, h) => sum + 3 * cfg.race.classes[raceClassFor(h)].entryFee, 0);
+  const reserve = MARGIN * 1500 + MARGIN * p.horses.reduce((sum, h) => sum + 3 * cfg.race.classes[raceClassFor(h)].entryFee, 0);
   if (p.horses.length < capacity) {
     const age = rng.float(2, 4.5);
     const candidate = newHorse(rng, rng.float(0.2, 0.75), age, nowH);
@@ -710,10 +725,23 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
 const snapshots: { day: number; median: number; p90: number; horses: number; broke: number }[] = [];
 const quantile = (xs: number[], q: number) =>
   [...xs].sort((a, b) => a - b)[Math.floor(q * (xs.length - 1))] ?? 0;
+/** Soft-lock watch: days on which an owner could not afford to enter any of their horses. */
+const stuck = { playerDays: 0, streak: new Map<number, number>(), longest: new Map<number, number>() };
+const canEnterSomething = (p: Player, nowH: number) =>
+  p.horses.some(
+    (h) =>
+      yearsHours(nowH - h.birthHours) < cfg.lifecycle.minRacingAge ||
+      p.credits >= cfg.race.classes[raceClassFor(h)].entryFee,
+  );
 for (let day = 0; day < DAYS; day++) {
   for (const p of players) {
     for (const h of p.horses) h.trainedToday = 0;
-    if (p.credits < cfg.economy.allowance.threshold) earn(p, "DAILY_ALLOWANCE", cfg.economy.allowance.amount);
+    if (p.credits < cfg.economy.allowance.threshold)
+      earn(p, "DAILY_ALLOWANCE", allowanceAmount(p.credits, p.horses, cfg));
+    const run = canEnterSomething(p, day * 24) ? 0 : (stuck.streak.get(p.id) ?? 0) + 1;
+    if (run) stuck.playerDays++;
+    stuck.streak.set(p.id, run);
+    stuck.longest.set(p.id, Math.max(run, stuck.longest.get(p.id) ?? 0));
   }
   for (const hour of SESSIONS) {
     for (const p of players) {
@@ -873,6 +901,29 @@ const checks: [string, boolean][] = [
 console.log(
   `stable upgraded by ${(upgraded * 100).toFixed(1)}% | allowance ${(allowanceShare * 100).toFixed(1)}% of income`,
 );
-for (const [name, ok] of checks) console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
-if (checks.some(([, ok]) => !ok)) process.exit(1);
+const pnl = players.map((p) => racePnl.get(p.id) ?? 0);
+console.log(
+  `racing profit per owner over the season: p10 ${fmt(quantile(pnl, 0.1))} | median ${fmt(quantile(pnl, 0.5))} | p90 ${fmt(quantile(pnl, 0.9))} | racing at a loss ${((pnl.filter((x) => x < 0).length / PLAYERS) * 100).toFixed(1)}%`,
+);
+const longest = [...stuck.longest.values()];
+// Measured as the next morning would see it: after the owner claims the allowance, if eligible.
+const stuckAtEnd =
+  players.filter((p) => {
+    const topUp =
+      p.credits < cfg.economy.allowance.threshold ? allowanceAmount(p.credits, p.horses, cfg) : 0;
+    return !canEnterSomething({ ...p, credits: p.credits + topUp }, DAYS * 24);
+  }).length / PLAYERS;
+const stuckShare = stuck.playerDays / (PLAYERS * DAYS);
+console.log(
+  `policy ${POLICY} | days unable to enter any race ${(stuckShare * 100).toFixed(1)}% | stuck at season end ${(stuckAtEnd * 100).toFixed(1)}% | longest stuck streak ${Math.max(0, ...longest)} days`,
+);
+// Soft-lock guard for every policy: a broke owner is back on the track within a day or two.
+const softLock: [string, boolean][] = [
+  ["no owner is unable to enter a race for 3+ days in a row", Math.max(0, ...longest) < 3],
+  ["fewer than 3% of owner-days are spent unable to race", stuckShare < 0.03],
+];
+// The balance targets describe the median owner; stress policies only check for soft-locks.
+const gates = POLICY === "median" ? [...checks, ...softLock] : softLock;
+for (const [name, ok] of gates) console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
+if (gates.some(([, ok]) => !ok)) process.exit(1);
 void DAY_MS;

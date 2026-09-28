@@ -9,6 +9,7 @@ type Err = { error: { code: string } };
 type U = { token: string; userId: string };
 
 describe("offers on horses not for sale", () => {
+  const keepers = new Map<string, string>();
   let t: TestApp;
   let seller: U;
   let buyer: U;
@@ -36,6 +37,7 @@ describe("offers on horses not for sale", () => {
     seller = await t.login(5001, "Seller");
     buyer = await t.login(5002, "Buyer");
     rival = await t.login(5003, "Rival");
+    for (const u of [seller, buyer, rival]) keepers.set(u.userId, await t.giveKeeper(u.userId));
     horse = (await t.get<HorseSummaryDto[]>("/horses", seller.token)).body[0]!.id;
     await fund(buyer, 100_000);
     await fund(rival, 100_000);
@@ -81,6 +83,16 @@ describe("offers on horses not for sale", () => {
     const d = await t.post<HorseOfferDto>(`/market/offers/${again.body.id}/decline`, {}, seller.token);
     expect(d.body.status).toBe("DECLINED");
     expect(await credits(buyer)).toBe(before + mine.amount);
+  });
+
+  it("will not let the owner accept an offer for their last horse", async () => {
+    const keeper = keepers.get(seller.userId)!;
+    await t.db.query("UPDATE horses SET retired_at = now() WHERE id = $1", [keeper]);
+    const o = await offer(buyer, band.min + 50);
+    const a = await t.post<{ error: { code: string } }>(`/market/offers/${o.body.id}/accept`, {}, seller.token);
+    expect(a.body.error.code).toBe("LAST_HORSE");
+    await t.db.query("UPDATE horses SET retired_at = NULL WHERE id = $1", [keeper]);
+    expect((await t.post(`/market/offers/${o.body.id}/withdraw`, {}, buyer.token)).status).toBe(201);
   });
 
   it("sells the horse on accept, pays the seller net of fee and refunds rival offers", async () => {

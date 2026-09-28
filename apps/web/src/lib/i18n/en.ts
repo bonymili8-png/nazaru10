@@ -1221,6 +1221,7 @@ export const en = {
   "homeScreen.add": "Add",
   "homeScreen.added": "Added to your home screen",
   "homeScreen.dismiss": "Hide",
+  "error.LAST_HORSE": "Keep at least one horse in your stable — buy another before selling this one.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

@@ -1240,4 +1240,7 @@ export const uk: Record<MessageKey, Msg> = {
   "race.entryHide": "Згорнути",
   "race.entryDone": "Ваш кінь уже заявлений у цей забіг. За бажанням можна заявити ще одного.",
   "sponsor.tracks": "Зараховуються лише забіги на: {tracks}.",
+  "gear.show": "Показати",
+  "gear.hide": "Сховати",
+  "gear.ownedCount": "У стайні: {n} з {of}",
 };

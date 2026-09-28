@@ -1237,6 +1237,9 @@ export const en = {
   "race.entryHide": "Hide",
   "race.entryDone": "Your horse is entered in this race. You can still enter another one.",
   "sponsor.tracks": "Counts only at: {tracks}.",
+  "gear.show": "Show",
+  "gear.hide": "Hide",
+  "gear.ownedCount": "In the tack room: {n} of {of}",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

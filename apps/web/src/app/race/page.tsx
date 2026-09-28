@@ -348,7 +348,7 @@ function EntryForm({ race }: { race: RaceDetailDto }) {
                 {t("race.gear")}
               </p>
               {ownedGear.length === 0 ? (
-                <Link href="/horses/" className="mt-1 inline-block text-sm text-gold underline">
+                <Link href="/horses/#gear" className="mt-1 inline-block text-sm text-gold underline">
                   {t("race.gearShop")}
                 </Link>
               ) : (

@@ -446,7 +446,7 @@ export const en = {
   "rank.points": "Points",
   "rank.wins": "Wins",
   "rank.pointsHint":
-    "Points for top-6 finishes, weighted by class (Maiden ×1 … Class 1 ×6). Top owners share the season prizes.",
+    "Points for 1st–6th place: {points}, multiplied by the race class: {classes}. Top owners share the season prizes.",
   "rank.owners": "Owners",
   "rank.horsesTab": "Horses",
   "rank.noPoints": "No points yet this season",

@@ -8,13 +8,14 @@ import type {
   SeasonHorseRowDto,
   SeasonOwnerRowDto,
 } from "@thoroughline/contracts";
+import { defaultConfig, RACE_CLASSES } from "@thoroughline/engine";
 import { Crown, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClubsBoard } from "@/components/ClubsBoard";
 import { Crest } from "@/components/Crest";
 import { MemberBadge } from "@/components/MemberBadge";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
-import { countdown, fmt, ordinal } from "@/lib/format";
+import { CLASS_NAMES, countdown, fmt, ordinal } from "@/lib/format";
 import { useApi, useNow } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
 
@@ -93,7 +94,15 @@ function SeasonBoard() {
             </div>
           ))}
         </dl>
-        <p className="mt-3 text-xs text-muted">{t("rank.pointsHint")}</p>
+        {/* The full scale from the game config (an ellipsis here read as cut-off text). */}
+        <p className="mt-3 text-xs text-muted">
+          {t("rank.pointsHint", {
+            points: defaultConfig.seasons.placingPoints.join(" · "),
+            classes: RACE_CLASSES.map(
+              (c) => `${CLASS_NAMES[c]} ×${defaultConfig.seasons.classMultiplier[c]}`,
+            ).join(", "),
+          })}
+        </p>
       </Card>
       <div className="mt-3 flex gap-2">
         {(["owners", "horses"] as const).map((k) => (

@@ -7,6 +7,7 @@ import type {
   ShopHorseDto,
   TrainingSessionDto,
 } from "@thoroughline/contracts";
+import { FRESH_FATIGUE } from "@thoroughline/contracts";
 import {
   ageInYears,
   type Condition,
@@ -87,6 +88,16 @@ export class HorsesService {
         hoursUntilFatigue(
           cond.fatigue,
           cfg.condition.maxFatigueToRace,
+          h.attributes.endurance,
+          cfg,
+          feedEffect(h.feed_plan, cfg).recovery,
+        ),
+        2,
+      ),
+      hoursToFresh: round(
+        hoursUntilFatigue(
+          cond.fatigue,
+          FRESH_FATIGUE,
           h.attributes.endurance,
           cfg,
           feedEffect(h.feed_plan, cfg).recovery,
@@ -264,7 +275,10 @@ export class HorsesService {
       [ownerId, horseId],
     );
     if (others[0]!.n === 0)
-      throw conflict("LAST_HORSE", "Keep at least one horse in your stable — buy another before selling this one");
+      throw conflict(
+        "LAST_HORSE",
+        "Keep at least one horse in your stable — buy another before selling this one",
+      );
   }
 
   /** Pay the vet to heal an injury immediately. */

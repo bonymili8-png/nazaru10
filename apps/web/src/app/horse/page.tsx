@@ -257,7 +257,9 @@ function Overview({ h }: { h: HorseDetailDto }) {
           <HeartPulse className="size-4" aria-hidden />
           {c.hoursToRaceReady > 0
             ? t("horse.readyIn", { h: c.hoursToRaceReady.toFixed(1) })
-            : t("horse.fresh")}
+            : c.hoursToFresh > 0
+              ? t("horse.tiredButReady", { h: c.hoursToFresh.toFixed(1) })
+              : t("horse.fullStrength")}
         </p>
         {h.status === "INJURED" && (
           <Button

@@ -66,8 +66,38 @@ describe("daily allowance", () => {
     expect(allowanceAmount(0, [{ rating: 1450, wins: 9 }], cfg)).toBe(fee1);
     expect(allowanceAmount(120, [{ rating: 1450, wins: 9 }], cfg)).toBe(fee1 - 120);
     // The cheapest horse of the string decides.
-    expect(allowanceAmount(0, [{ rating: 1450, wins: 9 }, { rating: 1350, wins: 6 }], cfg)).toBe(
-      cfg.race.classes.CLASS_2.entryFee,
-    );
+    expect(
+      allowanceAmount(
+        0,
+        [
+          { rating: 1450, wins: 9 },
+          { rating: 1350, wins: 6 },
+        ],
+        cfg,
+      ),
+    ).toBe(cfg.race.classes.CLASS_2.entryFee);
+  });
+});
+
+describe("house rating cap", () => {
+  it("rises with the class and keeps out horses far above the class band", async () => {
+    const { houseRatingCap } = await import("./classes.js");
+    const { generateGenome, initialAttributes } = await import("../horse/generate.js");
+    const { abilityRating } = await import("../horse/rating.js");
+    const { Rng } = await import("../rng.js");
+    const caps = RATED_CLASSES.map((c) => houseRatingCap(c, cfg));
+    for (let i = 1; i < caps.length; i++) expect(caps[i]).toBeGreaterThan(caps[i - 1]!);
+    const rng = new Rng("cap-test");
+    const rate = (q: number) => {
+      let over = 0;
+      for (let i = 0; i < 300; i++) {
+        const g = generateGenome(rng, { quality: q }, cfg);
+        if (abilityRating(initialAttributes(g, 3.5, rng), g.traits) > houseRatingCap("CLASS_5", cfg)) over++;
+      }
+      return over / 300;
+    };
+    // A typical Class 5 house horse almost always fits; a strong sale-ring reject mostly does not.
+    expect(rate(0.44)).toBeLessThan(0.05);
+    expect(rate(0.75)).toBeGreaterThan(0.5);
   });
 });

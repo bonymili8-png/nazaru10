@@ -60,7 +60,12 @@ mechanic.
 * **Fatigue** decays linearly: `fatigue(t) = max(0, f₀ − rate·hours)`, where
   `rate = 4/h × (0.7 + endurance/250) × facilityBonus`. Stored as value + timestamp and
   evaluated lazily — no cron needed.
-* **Performance impact:** `1 − 0.25·(fatigue/100)^1.5` on top speed and energy.
+* **Performance impact:** `1 − 0.06·(fatigue/100)^1.5` on top speed and energy (≈ −2 % at the
+  entry limit of 50, about 9 speed points). It was `0.25`, which made fatigue 35 cost ≈ 22 speed
+  points: a trained horse raced "fresh enough" lost to untrained, rested house horses (a +7-rating
+  favourite made the top 3 only 16 % of the time at fatigue 35, 73 % fresh). Now the same horse
+  makes the top 3 ≈ 61 % at fatigue 35 and 76 % fresh (`probe-class-fairness.ts`). The horse page
+  says "full strength" at fatigue ≤ 20 and otherwise how long until it is.
 * **Health** regenerates `+2/h`; injuries have a `healsAt` timestamp. Health < 60
   blocks racing.
 * **Form** is an exponentially-weighted performance-vs-expectation signal; ±1 form ≈ ±2 % top
@@ -329,6 +334,11 @@ untrained while player horses are trained; the bands were set by the economy sim
 are reused across races but only when rested (projected fatigue ≤ 10, health ≥ 90 at lock time);
 otherwise a fresh one is generated. Tired fillers used to trail by 60–80 lengths, while the
 simulation (which assumes fresh fields) shows a median last-place margin of ≈ 25–28 lengths.
+A house horse is never stronger than the class's own house horses: its ability rating must be at
+or below `houseRatingCap(class)`, the 95th percentile of horses drawn across the class's quality
+and age bands (Class 5 ≈ 52). Unsold sale-ring and limited-drop horses (quality 0.2–0.75+) used
+to rotate into the Class 5 pool and lined up as over-strong rivals; they now leave racing
+(`house_class = 'OFF'`), and the cap also screens anything already in the pool.
 
 ## Tracks & weather
 

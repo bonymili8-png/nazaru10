@@ -1243,4 +1243,7 @@ export const uk: Record<MessageKey, Msg> = {
   "gear.show": "Показати",
   "gear.hide": "Сховати",
   "gear.ownedCount": "У стайні: {n} з {of}",
+  "horse.tiredButReady":
+    "Може бігти, але втома трохи знизить результат: повна сила через ~{h} год відпочинку.",
+  "horse.fullStrength": "Свіжий: біжить на повну силу",
 };

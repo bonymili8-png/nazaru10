@@ -11,6 +11,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
 import { type HorseRow, transferHorse } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
+import { OFF_POOL } from "../races/house.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { StableService } from "../stable/stable.service.js";
 
@@ -32,21 +33,25 @@ export class ShopService {
     private readonly clock: Clock,
   ) {}
 
-  /** Keep the catalogue stocked; stale listings rotate into the house racing pool. */
+  /**
+   * Keep the catalogue stocked. Stale listings leave the shop but not into the racing pool: sale
+   * horses span every quality (0.2–0.75, limited drops higher) and would be over-strong Class 5
+   * rivals.
+   */
   async restock(): Promise<number> {
     const now = this.clock.now();
     return this.db.tx(async (c) => {
       await c.query("SELECT pg_advisory_xact_lock(72410002)");
       await c.query(
-        `UPDATE horses SET sale_price = NULL, house_class = 'CLASS_5'
+        `UPDATE horses SET sale_price = NULL, house_class = $2
           WHERE is_house AND sale_price IS NOT NULL AND house_class <> 'LIMITED' AND created_at < $1`,
-        [new Date(now.getTime() - LISTING_HOURS * 3_600_000)],
+        [new Date(now.getTime() - LISTING_HOURS * 3_600_000), OFF_POOL],
       );
       // Limited drops leave the shop at their own end time.
       await c.query(
-        `UPDATE horses SET sale_price = NULL, sale_ends_at = NULL, house_class = 'CLASS_5'
+        `UPDATE horses SET sale_price = NULL, sale_ends_at = NULL, house_class = $2
           WHERE is_house AND house_class = 'LIMITED' AND sale_ends_at <= $1`,
-        [now],
+        [now, OFF_POOL],
       );
       const r = await row<{ n: number }>(
         c,

@@ -1240,6 +1240,8 @@ export const en = {
   "gear.show": "Show",
   "gear.hide": "Hide",
   "gear.ownedCount": "In the tack room: {n} of {of}",
+  "horse.tiredButReady": "Can race, but fatigue will cost some strength: full strength in ~{h}h of rest.",
+  "horse.fullStrength": "Fresh: races at full strength",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

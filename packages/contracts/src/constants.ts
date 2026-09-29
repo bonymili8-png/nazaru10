@@ -103,3 +103,6 @@ export type Locale = (typeof LOCALES)[number];
 
 export const FEED_KINDS = ["WIN", "CHAMPION", "BIG_SALE", "FOAL", "SEASON_TOP", "CLUB_CREATED"] as const;
 export type FeedKind = (typeof FEED_KINDS)[number];
+
+/** At or below this fatigue a horse races at (almost) full strength (see fatigueModifier). */
+export const FRESH_FATIGUE = 20;

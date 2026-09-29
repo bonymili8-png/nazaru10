@@ -66,7 +66,12 @@ export function hoursUntilFatigue(
 }
 
 /** Multiplier (≤ 1) applied to top speed and energy for a tired horse. */
-export const fatigueModifier = (fatigue: number): number => 1 - 0.25 * (clamp(fatigue, 0, 100) / 100) ** 1.5;
+/**
+ * Race-day cost of fatigue. Fields are tight (a speed point is ≈ 0.23 %), so this must stay in
+ * proportion with training: at the entry limit (50) it is ≈ −2 % speed, about 9 speed points —
+ * rest clearly pays, but racing "fresh enough" no longer wipes out a trained horse's edge.
+ */
+export const fatigueModifier = (fatigue: number): number => 1 - 0.06 * (clamp(fatigue, 0, 100) / 100) ** 1.5;
 
 export const healthModifier = (health: number): number => 0.85 + 0.15 * (clamp(health, 0, 100) / 100);
 

@@ -263,8 +263,6 @@ export const GearParam = z.enum(GEAR_ITEMS);
 
 const SILK_COLOR_NAMES = Object.keys(SILK_COLORS) as [SilkColor, ...SilkColor[]];
 
-
-
 export const SetSilksRequest = z
   .object({
     pattern: z.enum(SILK_PATTERNS),
@@ -275,7 +273,6 @@ export const SetSilksRequest = z
 export type SetSilksRequest = z.infer<typeof SetSilksRequest>;
 
 export const SilkPatternParam = z.enum(SILK_PATTERNS);
-
 
 export const SetCrestRequest = z
   .object({
@@ -288,7 +285,6 @@ export const SetCrestRequest = z
 export type SetCrestRequest = z.infer<typeof SetCrestRequest>;
 
 export const CrestIconParam = z.enum(CREST_ICONS);
-
 
 export const SetClothRequest = z
   .object({
@@ -375,7 +371,6 @@ export interface ApiError {
   error: { code: string; message: string; details?: unknown };
 }
 
-
 export interface UserSettingsDto {
   /** Explicit choice; null means "follow the Telegram language". */
   locale: Locale | null;
@@ -426,7 +421,6 @@ export interface SponsorsDto {
 }
 
 /* ───────────────────────────── feed ───────────────────────────── */
-
 
 export const FeedQuery = z.object({
   scope: z.enum(["all", "club"]).default("all"),
@@ -678,6 +672,8 @@ export interface ConditionDto {
   form: number;
   /** Hours until fatigue is low enough to race; 0 when ready. */
   hoursToRaceReady: number;
+  /** Hours until fatigue no longer costs race-day strength (≤ FRESH_FATIGUE); 0 when fresh. */
+  hoursToFresh: number;
 }
 
 /** A followed horse with its next race, if it is entered in one. */

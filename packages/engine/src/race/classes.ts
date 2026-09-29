@@ -1,4 +1,7 @@
 import { type GameConfig, RACE_CLASSES, type RaceClass } from "../config/index.js";
+import { generateGenome, initialAttributes } from "../horse/generate.js";
+import { abilityRating } from "../horse/rating.js";
+import { Rng } from "../rng.js";
 
 /** Rated classes (everything but MAIDEN), lowest band first. */
 export const RATED_CLASSES = RACE_CLASSES.filter((c) => c !== "MAIDEN") as Exclude<RaceClass, "MAIDEN">[];
@@ -73,4 +76,30 @@ export function allowanceAmount(
   if (horses.length === 0) return amount;
   const need = Math.min(...horses.map((h) => cheapestEntryFee(h.rating, h.wins, cfg)));
   return Math.max(amount, need - credits);
+}
+
+const capCache = new Map<string, number>();
+
+/**
+ * Highest ability rating a house horse may have to fill a race of this class: the 95th
+ * percentile of the class's own house horses (quality and age drawn across their bands).
+ * House horses that ended up in the pool from elsewhere (unsold sale-ring or limited-drop
+ * horses, quality up to 0.75+) would otherwise line up against players as rivals far stronger
+ * than the class promises. Deterministic, and cached per band.
+ */
+export function houseRatingCap(cls: RaceClass, cfg: GameConfig): number {
+  const cc = cfg.race.classes[cls];
+  const key = `${cls}:${cc.houseQuality.join("/")}:${cc.houseAge.join("/")}`;
+  const hit = capCache.get(key);
+  if (hit !== undefined) return hit;
+  const rng = new Rng(`house-cap:${key}`);
+  const ratings: number[] = [];
+  for (let i = 0; i < 1000; i++) {
+    const g = generateGenome(rng, { quality: rng.float(...cc.houseQuality) }, cfg);
+    ratings.push(abilityRating(initialAttributes(g, rng.float(...cc.houseAge), rng), g.traits));
+  }
+  ratings.sort((a, b) => a - b);
+  const cap = ratings[Math.floor(ratings.length * 0.95)]!;
+  capCache.set(key, cap);
+  return cap;
 }

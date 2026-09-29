@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import { projectCondition, type RaceClass, type Rng } from "@thoroughline/engine";
+import { houseRatingCap, projectCondition, type RaceClass, type Rng } from "@thoroughline/engine";
 import { Db, type Queryable, rows } from "../../common/db.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { HorseFactory } from "../horses/horse.factory.js";
@@ -54,6 +54,8 @@ export interface JockeyRow {
 
 /** House (NPC) horses and jockeys that fill race fields so races always run. */
 /** Condition a reused house horse needs to be picked for a field. */
+/** house_class of house horses kept out of racing (retired sale horses, over-strong draws). */
+export const OFF_POOL = "OFF";
 const HOUSE_MAX_FATIGUE = 10;
 const HOUSE_MIN_HEALTH = 90;
 
@@ -109,6 +111,7 @@ export class HouseService implements OnModuleInit {
     const cfg = this.config.get();
     // House horses stay within the class's age band (e.g. maidens are young horses).
     const [ageLo, ageHi] = cfg.race.classes[cls].houseAge;
+    const cap = houseRatingCap(cls, cfg);
     const year = cfg.lifecycle.realDaysPerGameYear * 86_400_000;
     const maxBirth = new Date(now.getTime() - Math.max(ageLo, cfg.lifecycle.minRacingAge) * year);
     const minBirth = new Date(now.getTime() - ageHi * year);
@@ -120,6 +123,8 @@ export class HouseService implements OnModuleInit {
           -- Cheap pre-filter at the fastest possible recovery rate (endurance 100), so it never
           -- drops a horse the exact check below would accept.
           AND fatigue - $7 * extract(epoch FROM ($6 - condition_updated_at)) / 3600 <= $8
+          -- Never a rival stronger than the class's own house horses (see houseRatingCap).
+          AND ability_rating <= $9
         ORDER BY abs((genome->'aptitudes'->>'optimalDistance')::int - $5), condition_updated_at, id
         LIMIT $4 FOR UPDATE SKIP LOCKED`,
       [
@@ -131,6 +136,7 @@ export class HouseService implements OnModuleInit {
         now,
         cfg.condition.fatigueRecoveryPerHour * 1.1,
         HOUSE_MAX_FATIGUE,
+        cap,
       ],
     );
     // Only rested house horses run: a tired filler would trail the field by dozens of lengths
@@ -148,16 +154,22 @@ export class HouseService implements OnModuleInit {
       .slice(0, count);
     const [qLo, qHi] = cfg.race.classes[cls].houseQuality;
     while (found.length < count) {
-      found.push(
-        await this.factory.generate(c, {
+      // A fresh draw above the cap (≈ 5 %) is set aside off the racing pool and redrawn.
+      for (let attempt = 0; ; attempt++) {
+        const h = await this.factory.generate(c, {
           quality: rng.float(qLo, qHi),
           age: rng.float(Math.max(ageLo, cfg.lifecycle.minRacingAge), ageHi),
           isHouse: true,
           houseClass: cls,
           seed: `${rng.seed}/house/${found.length}/${rng.nextUint32()}`,
           now,
-        }),
-      );
+        });
+        if (h.ability_rating <= cap || attempt >= 5) {
+          found.push(h);
+          break;
+        }
+        await c.query("UPDATE horses SET house_class = $2 WHERE id = $1", [h.id, OFF_POOL]);
+      }
     }
     return found;
   }

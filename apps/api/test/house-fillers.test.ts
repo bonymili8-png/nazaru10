@@ -1,6 +1,7 @@
-import { Rng } from "@thoroughline/engine";
+import { defaultConfig, houseRatingCap, Rng } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { HouseService } from "../src/modules/races/house.service.js";
+import { HouseService, OFF_POOL } from "../src/modules/races/house.service.js";
+import { ShopService } from "../src/modules/shop/shop.service.js";
 import { createTestApp, type TestApp } from "./helpers.js";
 
 describe("house fillers", () => {
@@ -38,5 +39,35 @@ describe("house fillers", () => {
     ]);
     const third = (await fill(3, "c")).map((h) => h.id);
     expect(third.every((id) => first.includes(id))).toBe(true);
+  });
+
+  it("never fields a house horse stronger than the class's own", async () => {
+    const cap = houseRatingCap("MAIDEN", defaultConfig);
+    const fresh = (await fill(4, "d")).map((h) => h.id);
+    expect(fresh).toHaveLength(4);
+    // Make these rested but over-strong (e.g. an unsold sale-ring horse that drifted in).
+    await t.db.query(
+      "UPDATE horses SET ability_rating = $2, fatigue = 0, condition_updated_at = $3 WHERE id = ANY($1::uuid[])",
+      [fresh, cap + 5, t.clock.now()],
+    );
+    const field = await fill(4, "e");
+    expect(field.some((h) => fresh.includes(h.id))).toBe(false);
+    expect(field.every((h) => h.ability_rating <= cap)).toBe(true);
+  });
+
+  it("retires stale sale-ring horses off the racing pool", async () => {
+    const shop = t.service(ShopService);
+    await shop.restock();
+    const listed = await t.db.query<{ id: string }>(
+      "SELECT id FROM horses WHERE is_house AND sale_price IS NOT NULL AND house_class = 'SHOP'",
+    );
+    expect(listed.length).toBeGreaterThan(0);
+    t.clock.advance(10 * 24 * 3_600_000);
+    await shop.restock();
+    const moved = await t.db.query<{ house_class: string }>(
+      "SELECT house_class FROM horses WHERE id = ANY($1::uuid[])",
+      [listed.map((h) => h.id)],
+    );
+    expect(moved.every((h) => h.house_class === OFF_POOL)).toBe(true);
   });
 });

@@ -1,9 +1,9 @@
-import { expect, newOwner, openFirstHorse, test } from "./fixtures.js";
+import { expect, newOwner, openFirstHorse, openSection, test } from "./fixtures.js";
 
 test("an owner sells horse shares and another owner buys in", async ({ page, browser }) => {
   await newOwner(page);
   await openFirstHorse(page);
-  await expect(page.getByRole("heading", { name: "Syndicate" })).toBeVisible();
+  await openSection(page, "Syndicate");
   await page.getByLabel("Shares").selectOption("2");
   await page.getByRole("button", { name: "Offer 2 share(s)" }).click();
   await expect(page.getByText("Shares on offer")).toBeVisible();
@@ -14,7 +14,7 @@ test("an owner sells horse shares and another owner buys in", async ({ page, bro
   const investor = await browser.newPage();
   await newOwner(investor);
   await investor.goto(horseUrl);
-  await expect(investor.getByRole("heading", { name: "Syndicate" })).toBeVisible();
+  await openSection(investor, "Syndicate");
   investor.once("dialog", (d) => void d.accept());
   await investor.getByRole("button", { name: /^Buy · / }).click();
   await expect(investor.getByText("Welcome to the syndicate!")).toBeVisible();

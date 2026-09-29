@@ -16,7 +16,16 @@ import { FeedList } from "@/components/Feed";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
 import { HorseIcon } from "@/components/icons";
-import { Button, Card, ErrorState, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ErrorState,
+  LinkButton,
+  Section,
+  SectionTitle,
+  Skeleton,
+  useToast,
+} from "@/components/ui";
 import { post } from "@/lib/api";
 import { errorMessage, fmt } from "@/lib/format";
 import { type MessageKey, t } from "@/lib/i18n";
@@ -82,10 +91,7 @@ export default function HomePage() {
 
       <SponsorTeaser />
 
-      <Quests quests={data.quests} />
-
-      <News />
-
+      {/* Time-sensitive first: your entered races, then the career path, news and the string. */}
       {data.myUpcomingRaces.length > 0 && (
         <>
           <SectionTitle>{t("home.yourRaces")}</SectionTitle>
@@ -97,6 +103,10 @@ export default function HomePage() {
         </>
       )}
 
+      <Quests quests={data.quests} />
+
+      <News />
+
       <SectionTitle
         action={
           <LinkButton href="/horses/" variant="ghost" className="min-h-9 text-sm">
@@ -107,13 +117,16 @@ export default function HomePage() {
         {t("home.yourString")}
       </SectionTitle>
       <div className="space-y-2">
-        {data.horses.map((h) => (
+        {/* A glimpse of the string; the Horses tab has them all. */}
+        {data.horses.slice(0, HOME_HORSES).map((h) => (
           <HorseCard key={h.id} horse={h} href={`/horse/?id=${h.id}`} />
         ))}
       </div>
     </div>
   );
 }
+
+const HOME_HORSES = 3;
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -129,6 +142,8 @@ function Quests({ quests }: { quests: QuestDto[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const open = quests.filter((q) => !q.claimed).slice(0, 3);
   if (open.length === 0) return null;
+  const claimable = quests.filter((q) => q.completed && !q.claimed).length;
+  const done = quests.filter((q) => q.completed).length;
   const claim = async (q: QuestDto) => {
     setBusy(q.code);
     try {
@@ -143,9 +158,18 @@ function Quests({ quests }: { quests: QuestDto[] }) {
       setBusy(null);
     }
   };
+  // Folded to a progress line; opens by itself when a reward is waiting.
   return (
-    <>
-      <SectionTitle>{t("home.careerPath")}</SectionTitle>
+    <Section
+      id="quests"
+      title={t("home.careerPath")}
+      summary={
+        claimable
+          ? t("home.questsClaimable", { n: claimable })
+          : t("home.questsProgress", { n: done, of: quests.length })
+      }
+      forceOpen={claimable > 0}
+    >
       <Card className="divide-y divide-line/40 p-0">
         {open.map((q) => (
           <div key={q.code} className="flex items-center gap-3 px-4 py-3">
@@ -183,7 +207,7 @@ function Quests({ quests }: { quests: QuestDto[] }) {
           </div>
         ))}
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -193,12 +217,8 @@ function DailyRaceBonus() {
   const b = data?.dailyRaceBonus;
   if (!b || b.amount <= 0) return null;
   const amount = `${fmt(b.amount)} ${t("common.cr")}`;
-  return b.earnedToday ? (
-    <Card className="mt-4 flex items-center gap-3">
-      <CheckCircle2 className="size-5 shrink-0 text-good" aria-hidden />
-      <p className="text-sm text-muted">{t("home.dailyBonusDone", { amount })}</p>
-    </Card>
-  ) : (
+  // Once earned there is nothing to do today: the card steps aside instead of taking space.
+  return b.earnedToday ? null : (
     <Card className="mt-4 flex items-center justify-between gap-3 border-gold/40">
       <div className="flex min-w-0 items-center gap-3">
         <Gift className="size-5 shrink-0 text-gold" aria-hidden />

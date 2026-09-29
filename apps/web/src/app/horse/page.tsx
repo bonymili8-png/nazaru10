@@ -58,6 +58,7 @@ import {
   Card,
   ErrorState,
   Meter,
+  Section,
   SectionTitle,
   Skeleton,
   Stars,
@@ -274,87 +275,89 @@ function Overview({ h }: { h: HorseDetailDto }) {
         )}
       </Card>
 
+      <Section id="attributes" title={t("horse.attributes")} defaultOpen>
+        <Card>
+          {Object.entries(ATTRIBUTE_LABELS).map(([k, label]) => (
+            <Meter
+              key={k}
+              label={label}
+              value={p.attributes[k as keyof typeof p.attributes]}
+              ceiling={p.diagnostics?.ceilings[k as keyof typeof p.attributes]}
+            />
+          ))}
+          <p className="mt-3 flex items-center justify-between text-sm">
+            <span className="text-muted">{t("horse.potential")}</span>
+            <Stars n={p.potentialStars} />
+          </p>
+          {!p.diagnostics && (
+            <Button
+              variant="secondary"
+              className="mt-3 w-full text-sm"
+              loading={busy === "diagnostics"}
+              onClick={() => act("diagnostics", t("horse.diagDone"))}
+            >
+              <Microscope className="size-4" aria-hidden />
+              {t("horse.diagnostics")}
+            </Button>
+          )}
+          {p.diagnostics && <p className="mt-2 text-xs text-muted">{t("horse.ceilingHint")}</p>}
+        </Card>
+      </Section>
+
+      <Section id="profile" title={t("horse.profile")} defaultOpen>
+        <Card className="space-y-2 text-sm">
+          <Row k={t("horse.bestDistance")} v={`~${t("unit.m", { n: fmt(p.aptitudes.optimalDistance) })}`} />
+          <Row k={t("horse.favSurface")} v={titleCase(surfaces[0]![0])} />
+          <Row
+            k={t("horse.wetGoing")}
+            v={
+              p.aptitudes.wet > 62
+                ? t("horse.lovesIt")
+                : p.aptitudes.wet < 38
+                  ? t("horse.dislikesIt")
+                  : t("horse.handlesIt")
+            }
+          />
+          <Row
+            k={t("horse.temperament")}
+            v={
+              p.traits.temperament > 60
+                ? t("horse.calm")
+                : p.traits.temperament < 40
+                  ? t("horse.hot")
+                  : t("horse.balanced")
+            }
+          />
+          <Row
+            k={t("horse.consistency")}
+            v={
+              p.traits.consistency > 60
+                ? t("horse.reliable")
+                : p.traits.consistency < 40
+                  ? t("horse.erratic")
+                  : t("horse.average")
+            }
+          />
+          <Row
+            k={t("horse.courage")}
+            v={
+              p.traits.courage > 60
+                ? t("horse.battler")
+                : p.traits.courage < 40
+                  ? t("horse.fragile")
+                  : t("horse.average")
+            }
+          />
+        </Card>
+      </Section>
+
+      {/* Guidance, then management tools: folded behind one-line summaries. */}
       <AdviceCard h={h} />
       <ExpertAdvice horseId={h.id} horseName={h.name} />
       <FeedCard h={h} />
-
-      <SectionTitle>{t("horse.attributes")}</SectionTitle>
-      <Card>
-        {Object.entries(ATTRIBUTE_LABELS).map(([k, label]) => (
-          <Meter
-            key={k}
-            label={label}
-            value={p.attributes[k as keyof typeof p.attributes]}
-            ceiling={p.diagnostics?.ceilings[k as keyof typeof p.attributes]}
-          />
-        ))}
-        <p className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-muted">{t("horse.potential")}</span>
-          <Stars n={p.potentialStars} />
-        </p>
-        {!p.diagnostics && (
-          <Button
-            variant="secondary"
-            className="mt-3 w-full text-sm"
-            loading={busy === "diagnostics"}
-            onClick={() => act("diagnostics", t("horse.diagDone"))}
-          >
-            <Microscope className="size-4" aria-hidden />
-            {t("horse.diagnostics")}
-          </Button>
-        )}
-        {p.diagnostics && <p className="mt-2 text-xs text-muted">{t("horse.ceilingHint")}</p>}
-      </Card>
-
       <ClothEditor h={h} />
       <Sell h={h} />
       <Breeding h={h} />
-
-      <SectionTitle>{t("horse.profile")}</SectionTitle>
-      <Card className="space-y-2 text-sm">
-        <Row k={t("horse.bestDistance")} v={`~${t("unit.m", { n: fmt(p.aptitudes.optimalDistance) })}`} />
-        <Row k={t("horse.favSurface")} v={titleCase(surfaces[0]![0])} />
-        <Row
-          k={t("horse.wetGoing")}
-          v={
-            p.aptitudes.wet > 62
-              ? t("horse.lovesIt")
-              : p.aptitudes.wet < 38
-                ? t("horse.dislikesIt")
-                : t("horse.handlesIt")
-          }
-        />
-        <Row
-          k={t("horse.temperament")}
-          v={
-            p.traits.temperament > 60
-              ? t("horse.calm")
-              : p.traits.temperament < 40
-                ? t("horse.hot")
-                : t("horse.balanced")
-          }
-        />
-        <Row
-          k={t("horse.consistency")}
-          v={
-            p.traits.consistency > 60
-              ? t("horse.reliable")
-              : p.traits.consistency < 40
-                ? t("horse.erratic")
-                : t("horse.average")
-          }
-        />
-        <Row
-          k={t("horse.courage")}
-          v={
-            p.traits.courage > 60
-              ? t("horse.battler")
-              : p.traits.courage < 40
-                ? t("horse.fragile")
-                : t("horse.average")
-          }
-        />
-      </Card>
     </>
   );
 }
@@ -632,8 +635,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
   };
 
   return (
-    <>
-      <SectionTitle>{t("horse.sell")}</SectionTitle>
+    <Section id="sell" title={t("horse.sell")} summary={t("horse.sellSummary", { v: fmt(p.marketValue) })}>
       <Card>
         <p className="text-sm text-muted">
           {t("horse.guideValue")} <span className="num text-ink">{fmt(p.marketValue)}</span>{" "}
@@ -704,7 +706,7 @@ function Sell({ h }: { h: HorseDetailDto }) {
           {t("horse.listOnMarket")}
         </Button>
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -734,8 +736,17 @@ function Breeding({ h }: { h: HorseDetailDto }) {
   };
 
   return (
-    <>
-      <SectionTitle>{t("horse.breeding")}</SectionTitle>
+    <Section
+      id="breeding"
+      title={t("horse.breeding")}
+      summary={
+        p.studFee !== null
+          ? t("horse.standingAt", { fee: fmt(p.studFee) })
+          : dam
+            ? t("horse.planMating")
+            : t("horse.standAtStud")
+      }
+    >
       <Card>
         {dam && (
           <Link
@@ -808,7 +819,7 @@ function Breeding({ h }: { h: HorseDetailDto }) {
           </>
         )}
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -866,8 +877,7 @@ function ClothEditor({ h }: { h: HorseDetailDto }) {
   );
 
   return (
-    <>
-      <SectionTitle>{t("cloth.title")}</SectionTitle>
+    <Section id="cloth" title={t("cloth.title")} summary={titleCase(saved.pattern)}>
       <Card>
         <div className="flex items-center gap-4">
           <SaddleCloth cloth={cloth} width={84} label={h.name.charAt(0)} title={t("cloth.title")} />
@@ -913,7 +923,7 @@ function ClothEditor({ h }: { h: HorseDetailDto }) {
           {t("cloth.save")}
         </Button>
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -991,9 +1001,17 @@ function FeedCard({ h }: { h: HorseDetailDto }) {
     if (!window.confirm(f.plan === "STANDARD" ? ask : `${ask} ${t("nutrition.confirmSwitch")}`)) return;
     void choose(o.plan, t("nutrition.started", { plan: name }));
   };
+  const current = t(`nutrition.${f.plan}` as MessageKey);
   return (
-    <>
-      <SectionTitle>{t("nutrition.title")}</SectionTitle>
+    <Section
+      id="feed"
+      title={t("nutrition.title")}
+      summary={
+        until
+          ? `${current} · ${t(f.renews ? "nutrition.renews" : "nutrition.ends", { date: until })}`
+          : current
+      }
+    >
       <Card>
         <p className="text-sm text-muted">{t("nutrition.hint")}</p>
         <div className="mt-3 space-y-2" role="radiogroup" aria-label={t("nutrition.title")}>
@@ -1040,7 +1058,7 @@ function FeedCard({ h }: { h: HorseDetailDto }) {
           </div>
         )}
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -1048,12 +1066,13 @@ function FeedCard({ h }: { h: HorseDetailDto }) {
 function AdviceCard({ h }: { h: HorseDetailDto }) {
   const { data } = useApi<HorseAdviceDto>(`/horses/${h.id}/advice`, { refreshMs: 60_000 });
   if (!data) return null;
+  const readiness =
+    data.restHours > 0 ? t("advice.rest", { h: Math.ceil(data.restHours) }) : t("advice.ready");
   return (
-    <>
-      <SectionTitle>{t("advice.title")}</SectionTitle>
+    <Section id="advice" title={t("advice.title")} summary={readiness}>
       <Card className="space-y-1.5 text-sm">
         <p className="text-muted">{t(`advice.profile.${data.profile}` as MessageKey)}</p>
-        <p>{data.restHours > 0 ? t("advice.rest", { h: Math.ceil(data.restHours) }) : t("advice.ready")}</p>
+        <p>{readiness}</p>
         <p>
           {t("advice.train", {
             type: TRAINING_INFO[data.training.type]!.label,
@@ -1075,7 +1094,7 @@ function AdviceCard({ h }: { h: HorseDetailDto }) {
           )}
         </>
       )}
-    </>
+    </Section>
   );
 }
 

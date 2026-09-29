@@ -1,5 +1,5 @@
 import pg from "pg";
-import { expect, newOwner, openFirstHorse, test } from "./fixtures.js";
+import { expect, newOwner, openFirstHorse, openSection, test } from "./fixtures.js";
 
 const DATABASE_URL =
   process.env.E2E_DATABASE_URL ?? "postgres://thoroughline:thoroughline@localhost:5432/thoroughline_e2e";
@@ -7,7 +7,7 @@ const DATABASE_URL =
 test("expert trainer's advice is offered per horse and shows a full plan once bought", async ({ page }) => {
   const devId = await newOwner(page);
   await openFirstHorse(page);
-  await expect(page.getByRole("heading", { name: "Expert trainer's advice" })).toBeVisible();
+  await openSection(page, "Expert trainer's advice");
   await page.getByRole("button", { name: "Unlock for 60 gems" }).click();
   await expect(page.getByText("Not enough gems.")).toBeVisible();
 
@@ -21,6 +21,9 @@ test("expert trainer's advice is offered per horse and shows a full plan once bo
   );
   await client.end();
   await page.reload();
+  // Bought: folded behind a digest line, opened on demand.
+  await expect(page.getByText(/^Unlocked · best tactic:/)).toBeVisible();
+  await openSection(page, "Expert trainer's advice");
   await expect(page.getByText("Best tactics")).toBeVisible();
   await expect(page.getByText("Ideal conditions")).toBeVisible();
   await expect(page.getByText("Training plan")).toBeVisible();

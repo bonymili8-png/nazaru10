@@ -44,7 +44,10 @@ test("Telegram's own Back button mirrors the in-app one", async ({ page }) => {
   await newOwner(page);
   // Stand-in for the Telegram client: records the BackButton state and its click handler.
   await page.evaluate(() => {
-    const w = window as unknown as { Telegram: unknown; __back: { visible: boolean; cb: (() => void) | null } };
+    const w = window as unknown as {
+      Telegram: unknown;
+      __back: { visible: boolean; cb: (() => void) | null };
+    };
     w.__back = { visible: false, cb: null };
     w.Telegram = {
       WebApp: {

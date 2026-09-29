@@ -2,7 +2,7 @@
 import type { SyndicateDto } from "@thoroughline/contracts";
 import { Users } from "lucide-react";
 import { useState } from "react";
-import { Button, Card, SectionTitle, useToast } from "@/components/ui";
+import { Button, Card, Section, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
 import { errorMessage, fmt } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
@@ -44,8 +44,11 @@ export function Syndicate({ horseId, horseName }: { horseId: string; horseName: 
   const buyBack = s.partners.length > 0;
 
   return (
-    <>
-      <SectionTitle>{t("syn.title")}</SectionTitle>
+    <Section
+      id="syndicate"
+      title={t("syn.title")}
+      summary={t("syn.summary", { n: s.managerShares, total: s.totalShares, partners: s.partners.length })}
+    >
       <Card className="space-y-3 text-sm">
         <p className="text-muted">{t("syn.intro", { max: s.maxPartnerShares, total: s.totalShares })}</p>
         {/* Share bar: manager in gold, partners in grey. */}
@@ -211,6 +214,6 @@ export function Syndicate({ horseId, horseName }: { horseId: string; horseName: 
           </div>
         )}
       </Card>
-    </>
+    </Section>
   );
 }

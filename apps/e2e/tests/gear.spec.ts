@@ -1,4 +1,4 @@
-import { expect, headerCredits, newOwner, test } from "./fixtures.js";
+import { expect, headerCredits, newOwner, openSection, test } from "./fixtures.js";
 
 test("an owner buys blinkers and races with them", async ({ page }) => {
   await newOwner(page);
@@ -7,7 +7,8 @@ test("an owner buys blinkers and races with them", async ({ page }) => {
   // The gear shop is folded until opened.
   const row = page.getByRole("listitem").filter({ hasText: "Blinkers" });
   await expect(row).toHaveCount(0);
-  await page.getByRole("button", { name: /In the tack room: 0 of 5/ }).click();
+  await expect(page.getByText("Owned: 0 of 5")).toBeVisible();
+  await openSection(page, "Tack room");
   page.once("dialog", (d) => void d.accept());
   await row.getByRole("button", { name: /Buy · 1,200 cr/ }).click();
   await expect(page.getByText("Blinkers added to the tack room")).toBeVisible();

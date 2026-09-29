@@ -1,9 +1,9 @@
-import { expect, newOwner, openFirstHorse, test } from "./fixtures.js";
+import { expect, newOwner, openFirstHorse, openSection, test } from "./fixtures.js";
 
 test("an owner dresses a horse in a saddle cloth", async ({ page }) => {
   await newOwner(page);
   await openFirstHorse(page);
-  await expect(page.getByRole("heading", { name: "Saddle cloth" })).toBeVisible();
+  await openSection(page, "Saddle cloth");
 
   // Paid patterns need gems (a new owner has none).
   page.once("dialog", (d) => void d.accept());

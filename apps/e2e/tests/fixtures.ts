@@ -48,6 +48,14 @@ export async function giveSpareHorse(devId: number): Promise<void> {
   }
 }
 
+/** Unfold a foldable page section (heading with a toggle button) if it is folded. */
+export async function openSection(page: Page, name: string | RegExp): Promise<void> {
+  const toggle = page.getByRole("heading", { name, exact: typeof name === "string" }).getByRole("button");
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute("aria-expanded")) === "false") await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 /** Credits shown in the header wallet chip. */
 export async function headerCredits(page: Page): Promise<number> {
   const chip = page.getByRole("link", { name: "Wallet and profile" }).locator("span").first();

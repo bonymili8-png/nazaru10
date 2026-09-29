@@ -8,7 +8,7 @@ import {
   type StableDto,
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
-import { ChevronDown, Dumbbell, Pencil, Stethoscope } from "lucide-react";
+import { Dumbbell, Pencil, Stethoscope } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import { RenameForm } from "@/components/RenameForm";
 import {
@@ -17,6 +17,7 @@ import {
   EmptyState,
   ErrorState,
   LinkButton,
+  Section,
   SectionTitle,
   Skeleton,
   useToast,
@@ -102,8 +103,6 @@ export default function HorsesPage() {
           )}
         </Card>
       )}
-      {stable.data && <Facilities stable={stable.data} />}
-      {stable.data && <TackRoom stable={stable.data} />}
       <SectionTitle>{t("horses.string")}</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}
@@ -119,6 +118,9 @@ export default function HorsesPage() {
           <HorseCard key={h.id} horse={h} href={`/horse/?id=${h.id}`} />
         ))}
       </div>
+      {/* Stable tools and follows below the string, folded behind one-line summaries. */}
+      {stable.data && <Facilities stable={stable.data} />}
+      {stable.data && <TackRoom stable={stable.data} />}
       <Following />
     </div>
   );
@@ -152,8 +154,13 @@ function Facilities({ stable }: { stable: StableDto }) {
     }
   };
   return (
-    <>
-      <SectionTitle>{t("facility.title")}</SectionTitle>
+    <Section
+      id="facilities"
+      title={t("facility.title")}
+      summary={stable.facilities
+        .map((f) => `${facilityInfo(f.type).label} ${f.level}/${f.maxLevel}`)
+        .join(" · ")}
+    >
       <div className="grid grid-cols-2 gap-2">
         {stable.facilities.map((f) => {
           const info = facilityInfo(f.type);
@@ -191,7 +198,7 @@ function Facilities({ stable }: { stable: StableDto }) {
           );
         })}
       </div>
-    </>
+    </Section>
   );
 }
 
@@ -199,9 +206,6 @@ function Facilities({ stable }: { stable: StableDto }) {
 function TackRoom({ stable }: { stable: StableDto }) {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  // Folded by default (it is a shop list); the header shows how much of the kit is owned.
-  // A link to /horses/#gear (from the race entry form) arrives with it open.
-  const [open, setOpen] = useState(() => typeof window !== "undefined" && window.location.hash === "#gear");
   const owned = stable.gear.filter((g) => g.owned).length;
   const buy = async (g: GearDto) => {
     const name = t(`gear.${g.item}` as MessageKey);
@@ -234,75 +238,61 @@ function TackRoom({ stable }: { stable: StableDto }) {
       setBusy(null);
     }
   };
+  // Folded (it is a shop list); a link to /horses/#gear (race entry form) arrives with it open.
   return (
-    <>
-      <div id="gear" className="scroll-mt-16">
-        <SectionTitle>{t("gear.title")}</SectionTitle>
-      </div>
+    <Section
+      id="gear"
+      anchor="gear"
+      title={t("gear.title")}
+      summary={t("gear.ownedCount", { n: owned, of: stable.gear.length })}
+      forceOpen={typeof window !== "undefined" && window.location.hash === "#gear"}
+    >
       <Card>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 text-left"
-        >
-          <span className="text-sm">
-            {t("gear.ownedCount", { n: owned, of: stable.gear.length })}
-            <span className="ml-2 font-medium text-gold">{open ? t("gear.hide") : t("gear.show")}</span>
-          </span>
-          <ChevronDown
-            className={`size-5 shrink-0 text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            aria-hidden
-          />
-        </button>
-        {open && (
-          <>
-            <p className="mt-2 text-sm text-muted">{t("gear.hint")}</p>
-            <p className="mt-1 text-xs text-muted">
-              {t("gear.wearHint", { n: defaultConfig.gearWear.races })}
-            </p>
-            <ul className="mt-3 divide-y divide-line/40">
-              {stable.gear.map((g) => (
-                <li key={g.item} className="flex items-center justify-between gap-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{t(`gear.${g.item}` as MessageKey)}</p>
-                    <p className="text-xs text-muted">{t(`gear.${g.item}.hint` as MessageKey)}</p>
-                    <p className="num text-xs text-gold">{gearMods(g.mods)}</p>
+        <>
+          <p className="text-sm text-muted">{t("gear.hint")}</p>
+          <p className="mt-1 text-xs text-muted">{t("gear.wearHint", { n: defaultConfig.gearWear.races })}</p>
+          <ul className="mt-3 divide-y divide-line/40">
+            {stable.gear.map((g) => (
+              <li key={g.item} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{t(`gear.${g.item}` as MessageKey)}</p>
+                  <p className="text-xs text-muted">{t(`gear.${g.item}.hint` as MessageKey)}</p>
+                  <p className="num text-xs text-gold">{gearMods(g.mods)}</p>
+                </div>
+                {g.owned ? (
+                  <div className="shrink-0 text-right">
+                    <p className="num text-xs font-medium text-good">
+                      {t("gear.racesLeft", { n: g.racesLeft ?? 0 })}
+                    </p>
+                    {g.repairCost > 0 && (
+                      <Button
+                        variant="ghost"
+                        className="mt-1 min-h-9 px-2 text-xs"
+                        loading={busy === `repair:${g.item}`}
+                        disabled={busy !== null}
+                        onClick={() => repair(g)}
+                      >
+                        {t("gear.repair", { cost: fmt(g.repairCost) })}
+                      </Button>
+                    )}
                   </div>
-                  {g.owned ? (
-                    <div className="shrink-0 text-right">
-                      <p className="num text-xs font-medium text-good">
-                        {t("gear.racesLeft", { n: g.racesLeft ?? 0 })}
-                      </p>
-                      {g.repairCost > 0 && (
-                        <Button
-                          variant="ghost"
-                          className="mt-1 min-h-9 px-2 text-xs"
-                          loading={busy === `repair:${g.item}`}
-                          disabled={busy !== null}
-                          onClick={() => repair(g)}
-                        >
-                          {t("gear.repair", { cost: fmt(g.repairCost) })}
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      className="min-h-10 shrink-0 text-xs"
-                      loading={busy === g.item}
-                      disabled={busy !== null}
-                      onClick={() => buy(g)}
-                    >
-                      {t("gear.buy", { cost: fmt(g.cost) })}
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+                ) : (
+                  <Button
+                    variant="secondary"
+                    className="min-h-10 shrink-0 text-xs"
+                    loading={busy === g.item}
+                    disabled={busy !== null}
+                    onClick={() => buy(g)}
+                  >
+                    {t("gear.buy", { cost: fmt(g.cost) })}
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       </Card>
-    </>
+    </Section>
   );
 }
 
@@ -312,8 +302,11 @@ function Following() {
   const now = useNow(1000);
   if (!data) return null;
   return (
-    <>
-      <SectionTitle>{t("follow.title")}</SectionTitle>
+    <Section
+      id="following"
+      title={t("follow.title")}
+      summary={data.length ? t("follow.count", { n: data.length }) : t("follow.hint")}
+    >
       {data.length === 0 ? (
         <p className="text-sm text-muted">{t("follow.hint")}</p>
       ) : (
@@ -334,6 +327,6 @@ function Following() {
           ))}
         </div>
       )}
-    </>
+    </Section>
   );
 }

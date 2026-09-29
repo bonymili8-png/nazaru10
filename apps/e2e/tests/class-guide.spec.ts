@@ -1,4 +1,4 @@
-import { expect, newOwner, test } from "./fixtures.js";
+import { expect, newOwner, openSection, test } from "./fixtures.js";
 
 test("an owner sees which race classes a horse can enter and why", async ({ page }) => {
   await newOwner(page);
@@ -14,7 +14,7 @@ test("an owner sees which race classes a horse can enter and why", async ({ page
   await expect(page.getByText("Maiden", { exact: true }).first()).toBeVisible();
 
   // Trainer's advice: a next session and races that suit the horse.
-  await expect(page.getByRole("heading", { name: "Trainer's advice", exact: true })).toBeVisible();
+  await openSection(page, "Trainer's advice");
   await expect(page.getByText(/^Next session: /)).toBeVisible();
   await page.getByRole("heading", { name: "Trainer's advice", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "/tmp/claude-0/shots/advice.png" });

@@ -3,7 +3,7 @@ import type { LedgerLineDto, ReferralDto, UserDto, WalletDto } from "@thoroughli
 import { Copy, Languages, LifeBuoy, Share2, Shield, ShieldCheck, Shirt } from "lucide-react";
 import { HomeScreenSetting } from "@/components/HomeScreen";
 import { MemberBadge } from "@/components/MemberBadge";
-import { Button, Card, LinkButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
+import { Button, Card, LinkButton, Section, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { put } from "@/lib/api";
 import { countdown, errorMessage, fmt, has, titleCase } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
@@ -141,38 +141,46 @@ export default function ProfilePage() {
         <Referrals />
       </Card>
 
-      <SectionTitle>{t("profile.history")}</SectionTitle>
-      <Card className="divide-y divide-line/40 p-0">
-        {!tx.data && <Skeleton className="h-32" />}
-        {tx.data?.items.map((l) => (
-          <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <div className="min-w-0">
-              <p className="truncate text-sm">{ledgerText(l)}</p>
-              <p className="text-xs text-muted">
-                {new Date(l.createdAt).toLocaleString(getLocale() === "uk" ? "uk-UA" : [], {
-                  dateStyle: "short",
-                  timeStyle: "short",
-                })}
-              </p>
+      <Section
+        id="history"
+        title={t("profile.history")}
+        summary={tx.data?.items[0] ? ledgerText(tx.data.items[0]) : undefined}
+      >
+        <Card className="divide-y divide-line/40 p-0">
+          {!tx.data && <Skeleton className="h-32" />}
+          {tx.data?.items.map((l) => (
+            <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <div className="min-w-0">
+                <p className="truncate text-sm">{ledgerText(l)}</p>
+                <p className="text-xs text-muted">
+                  {new Date(l.createdAt).toLocaleString(getLocale() === "uk" ? "uk-UA" : [], {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </p>
+              </div>
+              <span
+                className={`num shrink-0 text-sm font-semibold ${l.amount > 0 ? "text-good" : "text-ink"}`}
+              >
+                {l.amount > 0 ? "+" : ""}
+                {fmt(l.amount)}{" "}
+                {l.currency === "CREDITS" ? t("common.cr") : titleCase(l.currency).toLowerCase()}
+              </span>
             </div>
-            <span className={`num shrink-0 text-sm font-semibold ${l.amount > 0 ? "text-good" : "text-ink"}`}>
-              {l.amount > 0 ? "+" : ""}
-              {fmt(l.amount)}{" "}
-              {l.currency === "CREDITS" ? t("common.cr") : titleCase(l.currency).toLowerCase()}
-            </span>
-          </div>
-        ))}
-      </Card>
+          ))}
+        </Card>
+      </Section>
 
-      <SectionTitle>{t("profile.help")}</SectionTitle>
-      <Card className="text-sm text-muted">
-        <p className="flex items-center gap-2 font-medium text-ink">
-          <LifeBuoy className="size-4" aria-hidden />
-          {t("profile.support")}
-        </p>
-        <p className="mt-1">{t("profile.supportText", { pay: "/paysupport", help: "/help" })}</p>
-        <p className="mt-2">{t("profile.virtual")}</p>
-      </Card>
+      <Section id="help" title={t("profile.help")} summary={t("profile.support")}>
+        <Card className="text-sm text-muted">
+          <p className="flex items-center gap-2 font-medium text-ink">
+            <LifeBuoy className="size-4" aria-hidden />
+            {t("profile.support")}
+          </p>
+          <p className="mt-1">{t("profile.supportText", { pay: "/paysupport", help: "/help" })}</p>
+          <p className="mt-2">{t("profile.virtual")}</p>
+        </Card>
+      </Section>
     </div>
   );
 }

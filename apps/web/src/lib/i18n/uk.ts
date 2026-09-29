@@ -1242,10 +1242,17 @@ export const uk: Record<MessageKey, Msg> = {
   "sponsor.tracks": "Зараховуються лише забіги на: {tracks}.",
   "gear.show": "Показати",
   "gear.hide": "Сховати",
-  "gear.ownedCount": "У стайні: {n} з {of}",
+  "gear.ownedCount": "Куплено: {n} з {of}",
   "horse.tiredButReady":
     "Може бігти, але втома трохи знизить результат: повна сила через ~{h} год відпочинку.",
   "horse.fullStrength": "Свіжий: біжить на повну силу",
   "pass.noReward": "На цьому рівні нагороди немає — рухайтесь далі",
   "pass.credits": "{n} кр",
+  "horse.sellSummary": "Орієнтовна вартість {v} кр",
+  "expert.summary": "Відкрито · найкраща тактика: {tactic} · {min}–{max} м",
+  "expert.summaryLocked": "Повний план для цього коня · {n} самоцвітів",
+  "follow.count": "Відстежуєте: {n}",
+  "home.questsClaimable": "Нагород до отримання: {n}",
+  "home.questsProgress": "Виконано {n} з {of}",
+  "syn.summary": "У керуючого {n}/{total} часток · партнерів: {partners}",
 };

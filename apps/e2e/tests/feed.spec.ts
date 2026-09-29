@@ -1,9 +1,10 @@
-import { expect, headerCredits, newOwner, test } from "./fixtures.js";
+import { expect, headerCredits, newOwner, openSection, test } from "./fixtures.js";
 
 test("an owner puts a horse on premium feed and stops the renewal", async ({ page }) => {
   await newOwner(page);
   await page.goto("/horses/");
   await page.locator("a[href^='/horse/?id=']").first().click();
+  await openSection(page, "Feed");
 
   const feed = page.getByRole("radiogroup", { name: "Feed" });
   await expect(feed.getByRole("radio", { name: /Standard/ })).toHaveAttribute("aria-checked", "true");

@@ -7,7 +7,7 @@ import { ATTRIBUTE_LABELS, errorMessage, fmt, STRATEGY_INFO, titleCase, TRAINING
 import { invalidate, useApi } from "@/lib/hooks";
 import { type MessageKey, t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
-import { Badge, Button, Card, SectionTitle, useToast } from "./ui";
+import { Badge, Button, Card, Section, useToast } from "./ui";
 
 const label = (k: string) => (
   <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted first:mt-0">{k}</p>
@@ -38,12 +38,10 @@ export function ExpertAdvice({ horseId, horseName }: { horseId: string; horseNam
   if (!data) return null;
 
   const title = (
-    <SectionTitle>
-      <span className="inline-flex items-center gap-2">
-        <GraduationCap className="size-5 text-gold" aria-hidden />
-        {t("expert.title")}
-      </span>
-    </SectionTitle>
+    <span className="inline-flex items-center gap-2">
+      <GraduationCap className="size-5 text-gold" aria-hidden />
+      {t("expert.title")}
+    </span>
   );
 
   if (data.locked || !data.advice) {
@@ -61,8 +59,7 @@ export function ExpertAdvice({ horseId, horseName }: { horseId: string; horseNam
       }
     };
     return (
-      <>
-        {title}
+      <Section id="expert-offer" title={title} summary={t("expert.summaryLocked", { n: data.priceGems })}>
         <Card>
           <p className="text-sm text-muted">{t("expert.pitch", { name: horseName })}</p>
           <Button className="mt-3 w-full" loading={busy} onClick={unlock}>
@@ -71,15 +68,23 @@ export function ExpertAdvice({ horseId, horseName }: { horseId: string; horseNam
           </Button>
           <p className="mt-2 text-center text-xs text-muted">{t("expert.once")}</p>
         </Card>
-      </>
+      </Section>
     );
   }
 
   const a = data.advice;
   const h = a.history;
+  // Bought: folded behind a one-line digest (best tactic and trip), opened on demand.
   return (
-    <>
-      {title}
+    <Section
+      id="expert"
+      title={title}
+      summary={t("expert.summary", {
+        tactic: STRATEGY_INFO[a.tactics[0]!.strategy]!.label,
+        min: fmt(a.distance.min),
+        max: fmt(a.distance.max),
+      })}
+    >
       <Card className="text-sm">
         {label(t("expert.tactics"))}
         <ol className="mt-1 space-y-1.5">
@@ -168,6 +173,6 @@ export function ExpertAdvice({ horseId, horseName }: { horseId: string; horseNam
           </div>
         )}
       </Card>
-    </>
+    </Section>
   );
 }

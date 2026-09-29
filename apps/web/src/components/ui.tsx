@@ -1,5 +1,5 @@
 "use client";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 import { errorMessage } from "@/lib/format";
@@ -28,6 +28,78 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
       <h2 className="font-display text-xl font-semibold text-ink">{children}</h2>
       {action}
     </div>
+  );
+}
+
+const SECTION_KEY = "tl.section.";
+
+/**
+ * A foldable page section: the header (title + one-line summary + chevron) is the toggle.
+ * Core information stays open by default; secondary tools start folded so pages stay light.
+ * The player's choice is remembered per `id` on this device.
+ */
+export function Section({
+  id,
+  title,
+  summary,
+  defaultOpen = false,
+  forceOpen = false,
+  anchor,
+  children,
+}: {
+  id: string;
+  title: ReactNode;
+  summary?: ReactNode;
+  defaultOpen?: boolean;
+  /** Open regardless of the remembered choice (e.g. arriving via a link to this section). */
+  forceOpen?: boolean;
+  /** DOM id, so links like /horses/#gear can target the section. */
+  anchor?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(() => {
+    if (forceOpen) return true;
+    try {
+      const v = localStorage.getItem(SECTION_KEY + id);
+      return v === null ? defaultOpen : v === "1";
+    } catch {
+      return defaultOpen;
+    }
+  });
+  const toggle = () =>
+    setOpen((o) => {
+      try {
+        localStorage.setItem(SECTION_KEY + id, o ? "0" : "1");
+      } catch {
+        /* storage unavailable: the choice lasts for this view only */
+      }
+      return !o;
+    });
+  return (
+    <section id={anchor} className="mt-6 scroll-mt-16">
+      {/* Accordion pattern: a heading wrapping its toggle button; the summary sits outside the
+          heading (it stays out of the heading's name) but is clickable too. */}
+      <h2 className="font-display text-xl font-semibold text-ink">
+        <button
+          onClick={toggle}
+          aria-expanded={open}
+          className="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+        >
+          <span className="min-w-0">{title}</span>
+          <ChevronDown
+            className={`size-5 shrink-0 text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button>
+      </h2>
+      {summary && !open && (
+        <p onClick={toggle} className="mt-0.5 cursor-pointer truncate text-xs text-muted">
+          {summary}
+        </p>
+      )}
+      <div className="mb-2" />
+      {open && children}
+    </section>
   );
 }
 

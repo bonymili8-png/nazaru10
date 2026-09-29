@@ -1239,11 +1239,18 @@ export const en = {
   "sponsor.tracks": "Counts only at: {tracks}.",
   "gear.show": "Show",
   "gear.hide": "Hide",
-  "gear.ownedCount": "In the tack room: {n} of {of}",
+  "gear.ownedCount": "Owned: {n} of {of}",
   "horse.tiredButReady": "Can race, but fatigue will cost some strength: full strength in ~{h}h of rest.",
   "horse.fullStrength": "Fresh: races at full strength",
   "pass.noReward": "No reward on this tier — keep going",
   "pass.credits": "{n} cr",
+  "horse.sellSummary": "Guide value {v} cr",
+  "expert.summary": "Unlocked · best tactic: {tactic} · {min}–{max} m",
+  "expert.summaryLocked": "A full plan for this horse · {n} gems",
+  "follow.count": "{n} followed",
+  "home.questsClaimable": "{n} reward(s) waiting to be claimed",
+  "home.questsProgress": "{n} of {of} steps done",
+  "syn.summary": "Manager holds {n}/{total} shares · {partners} partner(s)",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

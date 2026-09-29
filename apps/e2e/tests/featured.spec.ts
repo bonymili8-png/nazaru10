@@ -1,9 +1,10 @@
-import { expect, giveSpareHorse, newOwner, test } from "./fixtures.js";
+import { expect, giveSpareHorse, newOwner, openSection, test } from "./fixtures.js";
 
 test("a seller sees how to feature a listing; featuring needs gems", async ({ page }) => {
   const devId = await newOwner(page);
   await page.goto("/horses/");
   await page.locator("a[href^='/horse/?id=']").first().click();
+  await openSection(page, "Sell");
   await page.getByRole("radio", { name: "Fixed price" }).click();
   // The starter horse is the only one: it can't be sold until the stable has another.
   page.once("dialog", (d) => void d.accept());
@@ -13,6 +14,7 @@ test("a seller sees how to feature a listing; featuring needs gems", async ({ pa
   await giveSpareHorse(devId);
 
   await page.goto(horseUrl);
+  await openSection(page, "Sell");
   await page.getByRole("radio", { name: "Fixed price" }).click();
   page.once("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: "List on the market" }).click();

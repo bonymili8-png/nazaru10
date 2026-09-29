@@ -1,4 +1,4 @@
-import { expect, newOwner, openFirstHorse, test } from "./fixtures.js";
+import { expect, newOwner, openFirstHorse, openSection, test } from "./fixtures.js";
 
 test("an owner follows another owner's horse and sees it under Following", async ({ page, browser }) => {
   await newOwner(page);
@@ -18,7 +18,7 @@ test("an owner follows another owner's horse and sees it under Following", async
   await expect(fan.getByRole("button", { name: "Unfollow" })).toHaveAttribute("aria-pressed", "true");
 
   await fan.goto("/horses/");
-  await expect(fan.getByRole("heading", { name: "Following" })).toBeVisible();
+  await openSection(fan, "Following");
   await expect(fan.getByText(name)).toBeVisible();
   await expect(fan.getByText("No race entered")).toBeVisible();
   await fan.close();

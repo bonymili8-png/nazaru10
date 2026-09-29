@@ -1243,6 +1243,7 @@ export const en = {
   "horse.tiredButReady": "Can race, but fatigue will cost some strength: full strength in ~{h}h of rest.",
   "horse.fullStrength": "Fresh: races at full strength",
   "pass.noReward": "No reward on this tier — keep going",
+  "pass.credits": "{n} cr",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

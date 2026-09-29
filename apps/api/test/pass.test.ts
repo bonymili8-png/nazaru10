@@ -77,7 +77,7 @@ describe("Racing Pass", () => {
     // Free-track tiers also pay credits (earned by playing).
     expect(await credits()).toBe(creditsBefore + cfg.free["2"]!.credits!);
     expect((await claim(2, "FREE")).status).toBe(409);
-    expect((await claim(4, "FREE")).status).toBe(400); // no reward on this tier
+    expect((await claim(21, "FREE")).status).toBe(400); // beyond the last tier
     expect((await claim(5, "PREMIUM")).status).toBe(409); // premium required
   });
 

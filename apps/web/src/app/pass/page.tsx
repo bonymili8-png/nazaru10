@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import type { PassRewardDto, PassTierDto, RacingPassDto } from "@thoroughline/contracts";
-import { Check, Crown, Gem, Lock, Ticket } from "lucide-react";
+import { Check, Coins, Crown, Gem, Lock, Ticket } from "lucide-react";
 import { useState } from "react";
 import { Silk } from "@/components/Silk";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -183,18 +183,24 @@ function RewardCell({
   onClaim: () => void;
 }) {
   if (!reward) return <div className="rounded-xl border border-dashed border-line/40" aria-hidden />;
+  // Credits alone (some free-track tiers) are the headline; with gems they are a "+" line.
+  const creditsOnly = !reward.silk && !reward.gems && !!reward.credits;
   const label = reward.silk
     ? tr("pass.silks", { name: titleCase(reward.silk) })
-    : tr("pass.gems", { n: reward.gems ?? 0 });
+    : creditsOnly
+      ? tr("pass.credits", { n: fmt(reward.credits!) })
+      : tr("pass.gems", { n: reward.gems ?? 0 });
   return (
     <Card className="flex flex-col items-center justify-center gap-1 p-2 text-center">
       {reward.silk ? (
         <Silk silks={{ pattern: reward.silk, primary: "gold", secondary: "black" }} size={32} title={label} />
+      ) : creditsOnly ? (
+        <Coins className="size-6 text-good" aria-hidden />
       ) : (
         <Gem className="size-6 text-gold" aria-hidden />
       )}
       <span className="text-xs font-medium">{label}</span>
-      {!!reward.credits && (
+      {!!reward.credits && !creditsOnly && (
         <span className="num text-[11px] font-medium text-good">
           {tr("pass.plusCredits", { n: fmt(reward.credits) })}
         </span>

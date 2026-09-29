@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import type { Crest, FacilityDto, GearDto, StableDto } from "@thoroughline/contracts";
+import type { Crest, FacilityDto, GearDto, MasteryDto, StableDto } from "@thoroughline/contracts";
 import {
+  MASTERY_TRACKS,
+  type MasteryPerks,
+  type MasteryXp,
+  masteryPerks,
+  masteryProgress,
   FACILITY_TYPES,
   GEAR_ITEMS,
   gearRepairCost,
@@ -103,6 +108,46 @@ export class StableService {
       facilities: this.facilityDtos(s),
       gear: this.gearDtos(s),
       crest: s.crest,
+      mastery: this.masteryDto(await this.masteryXp(c, ownerId)),
+    };
+  }
+
+  /** Experience behind stable mastery, counted from what the owner actually did. */
+  async masteryXp(c: Queryable, ownerId: string): Promise<MasteryXp> {
+    const r = await row<MasteryXp>(
+      c,
+      `SELECT
+         (SELECT count(*)::int FROM training_sessions WHERE owner_id = $1 AND status = 'COMPLETED') AS trainings,
+         (SELECT count(*)::int FROM race_entries WHERE owner_id = $1 AND status = 'RAN') AS starts,
+         (SELECT count(*)::int FROM race_entries WHERE owner_id = $1 AND status = 'RAN' AND position <= 3) AS podiums,
+         (SELECT count(*)::int FROM breeding_events WHERE owner_id = $1 AND status = 'DELIVERED') AS foals`,
+      [ownerId],
+    );
+    return r!;
+  }
+
+  /** The owner's current mastery edges (training gain, post-race fatigue, gestation). */
+  async masteryPerks(c: Queryable, ownerId: string): Promise<MasteryPerks> {
+    return masteryPerks(await this.masteryXp(c, ownerId), this.config.get());
+  }
+
+  private masteryDto(xp: MasteryXp): MasteryDto {
+    const cfg = this.config.get();
+    const m = cfg.mastery;
+    const perLevel = {
+      TRAINING: m.trainingGainPerLevel,
+      RACING: m.raceFatigueReliefPerLevel,
+      BREEDING: m.gestationCutPerLevel,
+    } as const;
+    return {
+      tracks: MASTERY_TRACKS.map((track) => {
+        const p = masteryProgress(track, xp, cfg);
+        return {
+          ...p,
+          bonusPct: Math.round(p.level * perLevel[track] * 1000) / 10,
+          perLevelPct: Math.round(perLevel[track] * 1000) / 10,
+        };
+      }),
     };
   }
 

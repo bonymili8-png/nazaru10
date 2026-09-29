@@ -44,6 +44,8 @@ interface SessionRow {
     /** Supervising trainer at start (absent for sessions started before staff existed). */
     trainer?: { id: string; name: string; gainMultiplier: number; injuryMultiplier: number } | null;
     facilities?: { gainMultiplier: number; injuryMultiplier: number };
+    /** Stable mastery (training track) at start; absent for sessions before mastery existed. */
+    mastery?: { gainMultiplier: number };
   };
   started_at: Date;
   completes_at: Date;
@@ -146,6 +148,7 @@ export class TrainingService {
       );
       const trainer = await this.trainerFor(c, userId, type, now);
       const facilities = await this.stables.trainingEffect(c, userId);
+      const mastery = { gainMultiplier: (await this.stables.masteryPerks(c, userId)).trainingGain };
       const cost = trainingCost(type, intensity, cfg);
       const completesAt = new Date(now.getTime() + trainingDurationMinutes(type, intensity, cfg) * 60_000);
       const session = await row<SessionRow>(
@@ -158,7 +161,7 @@ export class TrainingService {
           type,
           intensity,
           cost,
-          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer, facilities }),
+          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer, facilities, mastery }),
           now,
           completesAt,
         ],
@@ -208,7 +211,9 @@ export class TrainingService {
           sessionsLast24h: s.start_state.sessionsLast24h,
           trainerMultiplier: s.start_state.trainer?.gainMultiplier,
           trainerInjuryMultiplier: s.start_state.trainer?.injuryMultiplier,
-          facilityMultiplier: s.start_state.facilities?.gainMultiplier,
+          // Stable mastery stacks with the facilities (both are stable-wide gain multipliers).
+          facilityMultiplier:
+            (s.start_state.facilities?.gainMultiplier ?? 1) * (s.start_state.mastery?.gainMultiplier ?? 1),
           facilityInjuryMultiplier: s.start_state.facilities?.injuryMultiplier,
         },
         new Rng(seed),

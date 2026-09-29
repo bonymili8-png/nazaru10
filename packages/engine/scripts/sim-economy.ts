@@ -10,6 +10,8 @@
  *   pnpm sim:economy [players=400] [days=28]
  */
 import {
+  masteryPerks,
+  type MasteryXp,
   allowanceAmount,
   defaultConfig as cfg,
   facilityEffect,
@@ -108,6 +110,8 @@ interface Player {
   passXp: number;
   /** Last day the daily race bonus was paid. */
   bonusDay: number;
+  /** Stable mastery experience (sessions, starts, podiums; the sim does not breed). */
+  mastery: MasteryXp;
   id: number;
 }
 
@@ -359,7 +363,11 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
     rng,
     cfg,
   );
-  h.cond = after.condition;
+  // Stable mastery (racing track) as in the API: the race tires the horse a little less.
+  const relief = masteryPerks(p.mastery, cfg).raceFatigue;
+  h.cond = { ...after.condition, fatigue: cond.fatigue + (after.condition.fatigue - cond.fatigue) * relief };
+  p.mastery.starts++;
+  if (pos <= 3) p.mastery.podiums++;
   h.condAt = nowH + 0.05;
   if (after.injury) h.injuredUntil = nowH + after.injury.hours;
   stats.races++;
@@ -583,7 +591,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
         sessionsLast24h: h.trainedToday,
         trainerMultiplier: effect?.gainMultiplier,
         trainerInjuryMultiplier: effect?.injuryMultiplier,
-        facilityMultiplier: fac.gainMultiplier,
+        facilityMultiplier: fac.gainMultiplier * masteryPerks(p.mastery, cfg).trainingGain,
         facilityInjuryMultiplier: fac.injuryMultiplier,
       },
       rng,
@@ -598,6 +606,7 @@ function session(rng: Rng, p: Player, nowH: number): void {
       stats.injuries++;
     }
     stats.trainings++;
+    p.mastery.trainings++;
     passXp(p, cfg.pass.xp.training);
     quest(p, "FIRST_TRAINING");
   }
@@ -695,7 +704,9 @@ function session(rng: Rng, p: Player, nowH: number): void {
   }
   // Growth decisions at the end of the session.
   const capacity = cfg.economy.stableCapacity[p.level - 1]!;
-  const reserve = MARGIN * 1500 + MARGIN * p.horses.reduce((sum, h) => sum + 3 * cfg.race.classes[raceClassFor(h)].entryFee, 0);
+  const reserve =
+    MARGIN * 1500 +
+    MARGIN * p.horses.reduce((sum, h) => sum + 3 * cfg.race.classes[raceClassFor(h)].entryFee, 0);
   if (p.horses.length < capacity) {
     const age = rng.float(2, 4.5);
     const candidate = newHorse(rng, rng.float(0.2, 0.75), age, nowH);
@@ -732,6 +743,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     gearUsed: new Map(),
     passXp: 0,
     bonusDay: -1,
+    mastery: { trainings: 0, starts: 0, podiums: 0, foals: 0 },
     id: nextId++,
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
@@ -934,8 +946,7 @@ const longest = [...stuck.longest.values()];
 // Measured as the next morning would see it: after the owner claims the allowance, if eligible.
 const stuckAtEnd =
   players.filter((p) => {
-    const topUp =
-      p.credits < cfg.economy.allowance.threshold ? allowanceAmount(p.credits, p.horses, cfg) : 0;
+    const topUp = p.credits < cfg.economy.allowance.threshold ? allowanceAmount(p.credits, p.horses, cfg) : 0;
     return !canEnterSomething({ ...p, credits: p.credits + topUp }, DAYS * 24);
   }).length / PLAYERS;
 const stuckShare = stuck.playerDays / (PLAYERS * DAYS);

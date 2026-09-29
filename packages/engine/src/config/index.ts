@@ -270,6 +270,16 @@ export interface GameConfig {
     free: Record<string, { gems?: number; silk?: string; credits?: number }>;
     premium: Record<string, { gems?: number; silk?: string }>;
   };
+  /**
+   * Stable mastery: levels earned only by playing (sessions, starts and podiums, foals), each
+   * giving a small edge to progress speed — never bought with credits or gems.
+   */
+  mastery: {
+    thresholds: Record<"TRAINING" | "RACING" | "BREEDING", number[]>;
+    trainingGainPerLevel: number;
+    raceFatigueReliefPerLevel: number;
+    gestationCutPerLevel: number;
+  };
   /** Gear trades one attribute for another on race day (never a net gain on every course). */
   equipment: Record<GearItem, { cost: number; mods: Partial<Record<TrainableAttribute, number>> }>;
   /** Gear wears out after `races` starts; repairing costs repairRate × cost × the share worn. */
@@ -761,6 +771,16 @@ export const defaultConfig: GameConfig = {
       "19": { gems: 25 },
       "20": { silk: "CHECK" },
     },
+  },
+  mastery: {
+    thresholds: {
+      TRAINING: [10, 30, 60, 100, 160],
+      RACING: [10, 30, 60, 100, 160],
+      BREEDING: [1, 3, 6, 10, 15],
+    },
+    trainingGainPerLevel: 0.01,
+    raceFatigueReliefPerLevel: 0.02,
+    gestationCutPerLevel: 0.05,
   },
   equipment: {
     BLINKERS: { cost: 1200, mods: { focus: 10, agility: -3 } },

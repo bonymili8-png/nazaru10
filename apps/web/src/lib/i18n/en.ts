@@ -1256,6 +1256,21 @@ export const en = {
   "live.cameraLabel": "Camera following the race leader",
   "live.outOfShot": "+{n} out of shot · −{m} m",
   "live.toGo": "{m} m to go",
+  "mastery.title": "Stable mastery",
+  "mastery.hint": "Earned only by playing — it can't be bought. Each level adds a small edge.",
+  "mastery.TRAINING": "Training",
+  "mastery.RACING": "Racing",
+  "mastery.BREEDING": "Breeding",
+  "mastery.TRAINING.how": "1 per completed session",
+  "mastery.RACING.how": "1 per start, +1 per podium",
+  "mastery.BREEDING.how": "1 per foal",
+  "mastery.TRAINING.bonus": "+{n}% training gains",
+  "mastery.RACING.bonus": "−{n}% fatigue after a race",
+  "mastery.BREEDING.bonus": "−{n}% gestation time",
+  "mastery.level": "Level {n}/{max}",
+  "mastery.next": "{xp}/{next} to the next level",
+  "mastery.maxed": "top level",
+  "mastery.fromLevel1": "from level 1",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

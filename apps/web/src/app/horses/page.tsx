@@ -4,11 +4,12 @@ import {
   type FollowedHorseDto,
   type GearDto,
   type HorseSummaryDto,
+  type MasteryTrackDto,
   NAME_LIMITS,
   type StableDto,
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
-import { Dumbbell, Pencil, Stethoscope } from "lucide-react";
+import { Dna, Dumbbell, Flag, Pencil, Stethoscope } from "lucide-react";
 import { HorseCard } from "@/components/HorseCard";
 import { RenameForm } from "@/components/RenameForm";
 import {
@@ -103,6 +104,7 @@ export default function HorsesPage() {
           )}
         </Card>
       )}
+      {stable.data && <Mastery stable={stable.data} />}
       <SectionTitle>{t("horses.string")}</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}
@@ -123,6 +125,74 @@ export default function HorsesPage() {
       {stable.data && <TackRoom stable={stable.data} />}
       <Following />
     </div>
+  );
+}
+
+const MASTERY_ICON: Record<MasteryTrackDto["track"], typeof Dumbbell> = {
+  TRAINING: Dumbbell,
+  RACING: Flag,
+  BREEDING: Dna,
+};
+
+/** Stable mastery: earned by playing only (never bought), each level a small edge. */
+function Mastery({ stable }: { stable: StableDto }) {
+  const tracks = stable.mastery.tracks;
+  return (
+    <Section
+      id="mastery"
+      title={t("mastery.title")}
+      summary={tracks
+        .map((m) => `${t(`mastery.${m.track}` as MessageKey)} ${m.level}/${m.maxLevel}`)
+        .join(" · ")}
+    >
+      <Card className="space-y-4">
+        <p className="text-xs text-muted">{t("mastery.hint")}</p>
+        {tracks.map((m) => {
+          const Icon = MASTERY_ICON[m.track];
+          const pct = m.nextAt === null ? 100 : Math.min(100, (m.xp / m.nextAt) * 100);
+          return (
+            <div key={m.track}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Icon className="size-4 text-gold" aria-hidden />
+                  {t(`mastery.${m.track}` as MessageKey)}
+                </p>
+                <span className="num text-xs text-muted">
+                  {t("mastery.level", { n: m.level, max: m.maxLevel })}
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-1.5 rounded-full bg-surface-2"
+                role="progressbar"
+                aria-valuenow={m.xp}
+                aria-valuemax={m.nextAt ?? m.xp}
+                aria-label={t(`mastery.${m.track}` as MessageKey)}
+              >
+                <div className="h-1.5 rounded-full bg-gold" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {t(`mastery.${m.track}.how` as MessageKey)} ·{" "}
+                <span className="num">
+                  {m.nextAt === null ? t("mastery.maxed") : t("mastery.next", { xp: m.xp, next: m.nextAt })}
+                </span>
+              </p>
+              <p className="mt-0.5 text-xs">
+                {m.level > 0 ? (
+                  <span className="text-good">
+                    {t(`mastery.${m.track}.bonus` as MessageKey, { n: m.bonusPct })}
+                  </span>
+                ) : (
+                  <span className="text-muted">
+                    {t(`mastery.${m.track}.bonus` as MessageKey, { n: m.perLevelPct })} ·{" "}
+                    {t("mastery.fromLevel1")}
+                  </span>
+                )}
+              </p>
+            </div>
+          );
+        })}
+      </Card>
+    </Section>
   );
 }
 

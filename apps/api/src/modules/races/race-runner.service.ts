@@ -549,6 +549,12 @@ export class RaceRunnerService {
         const injuredUntil = after.injury
           ? new Date(race.results_at.getTime() + after.injury.hours * 3_600_000)
           : null;
+        // Stable mastery (racing track): the race tires an experienced stable's horse a little less.
+        if (!e.is_house && e.owner_id) {
+          const relief = (await this.stables.masteryPerks(c, e.owner_id)).raceFatigue;
+          after.condition.fatigue =
+            s.condition.fatigue + (after.condition.fatigue - s.condition.fatigue) * relief;
+        }
         await c.query(
           `UPDATE horses SET starts = starts + 1, wins = wins + $2, seconds = seconds + $3, thirds = thirds + $4,
                   earnings = earnings + $5, race_rating = $6, fatigue = $7, health = $8, form = $9,

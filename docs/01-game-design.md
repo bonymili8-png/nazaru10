@@ -421,3 +421,20 @@ idempotent and safe with several workers; 30-day retention). Public highlights o
 players, tournament champions, market sales ≥ 20,000 credits, remarkable foals, season top-3 and
 new clubs. Shown on Home (latest 5) and on /feed with Everyone / My club tabs; texts are
 rendered on the client from the item kind and values (EN/UK).
+
+## Stable mastery (earned only by play)
+
+Three tracks level up from what the owner actually does — never with credits or gems:
+
+| Track | XP | Levels at | Edge per level (max at 5) |
+|---|---|---|---|
+| Training | completed sessions | 10 / 30 / 60 / 100 / 160 | +1 % training gains (+5 %) |
+| Racing | starts, +1 per top-3 finish | 10 / 30 / 60 / 100 / 160 | −2 % post-race fatigue (−10 %) |
+| Breeding | foals delivered | 1 / 3 / 6 / 10 / 15 | −5 % gestation time (−25 %) |
+
+The edges speed up progress (gains, readiness, foals) but never race-day strength directly.
+XP is counted from the ledgers of play (`training_sessions`, `race_entries`, `breeding_events`),
+so there is nothing to buy or grind outside the game itself. The training edge is fixed at a
+session's start (stacked with facilities); the racing edge applies when a race settles; the
+breeding edge when the mare is covered. Config `mastery.*`; the economy simulation models the
+training and racing tracks and all gates still pass.

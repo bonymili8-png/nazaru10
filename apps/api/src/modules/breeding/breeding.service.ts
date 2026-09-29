@@ -216,6 +216,8 @@ export class BreedingService {
         cfg.inbreedingGenerations,
       );
       const studFee = this.studFee(userId, sire, stud);
+      // Stable mastery (breeding track): experienced breeders' foals arrive sooner.
+      const gestation = cfg.gestationHours * (await this.stables.masteryPerks(c, userId)).gestation;
       const ev = await row<{ id: string }>(
         c,
         `INSERT INTO breeding_events (sire_id, dam_id, owner_id, sire_owner_id, stud_fee, breeding_fee, inbreeding, covered_at, due_at)
@@ -229,7 +231,7 @@ export class BreedingService {
           cfg.breedingFee,
           inbreeding,
           now,
-          new Date(now.getTime() + cfg.gestationHours * 3_600_000),
+          new Date(now.getTime() + gestation * 3_600_000),
         ],
       );
       const cut = Math.floor(studFee * cfg.studFeeRate);

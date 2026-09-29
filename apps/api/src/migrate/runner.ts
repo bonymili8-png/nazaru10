@@ -43,7 +43,9 @@ async function withLock<T>(pool: Pool, fn: (q: Pool["query"]) => Promise<T>): Pr
   } finally {
     await client.query("SELECT pg_advisory_unlock($1)", [LOCK_KEY]).catch(() => undefined);
     // Back to the pool's defaults before the connection serves app queries again.
-    await client.query("RESET statement_timeout; RESET idle_in_transaction_session_timeout").catch(() => undefined);
+    await client
+      .query("RESET statement_timeout; RESET idle_in_transaction_session_timeout")
+      .catch(() => undefined);
     client.release();
   }
 }

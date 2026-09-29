@@ -637,6 +637,25 @@ export interface StableDto {
   /** Race-day gear on offer; `owned` once bought (one purchase per stable). */
   gear: GearDto[];
   crest: Crest;
+  /** Stable mastery: levels earned only by playing, with their current edges. */
+  mastery: MasteryDto;
+}
+
+export interface MasteryTrackDto {
+  track: "TRAINING" | "RACING" | "BREEDING";
+  xp: number;
+  level: number;
+  maxLevel: number;
+  /** XP for the next level; null at the top. */
+  nextAt: number | null;
+  /** Current edge in percent (training +gain, racing −post-race fatigue, breeding −gestation). */
+  bonusPct: number;
+  /** Edge per level, in percent. */
+  perLevelPct: number;
+}
+
+export interface MasteryDto {
+  tracks: MasteryTrackDto[];
 }
 
 export interface GearDto {

@@ -105,9 +105,18 @@ export default function PassPage() {
         </span>
       </div>
       <div className="space-y-2">
-        {data.tiers
-          .filter((t) => t.free || t.premium)
-          .map((t) => (
+        {data.tiers.map((t) =>
+          // Every tier is listed (numbering never skips); a tier with no reward is a slim row.
+          !t.free && !t.premium ? (
+            <div key={t.tier} className="grid grid-cols-[3rem_1fr] items-center gap-2">
+              <div
+                className={`num grid h-9 place-items-center rounded-xl font-display text-base font-bold ${t.tier <= data.tier ? "bg-gold/20 text-gold" : "bg-surface text-muted"}`}
+              >
+                {t.tier}
+              </div>
+              <p className="px-2 text-xs text-muted">{tr("pass.noReward")}</p>
+            </div>
+          ) : (
             <div key={t.tier} className="grid grid-cols-[3rem_1fr_1fr] items-stretch gap-2">
               <div
                 className={`num grid place-items-center rounded-xl font-display text-lg font-bold ${t.tier <= data.tier ? "bg-gold/20 text-gold" : "bg-surface text-muted"}`}
@@ -147,7 +156,8 @@ export default function PassPage() {
                 }
               />
             </div>
-          ))}
+          ),
+        )}
       </div>
     </div>
   );

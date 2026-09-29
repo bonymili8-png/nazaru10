@@ -1246,4 +1246,5 @@ export const uk: Record<MessageKey, Msg> = {
   "horse.tiredButReady":
     "Може бігти, але втома трохи знизить результат: повна сила через ~{h} год відпочинку.",
   "horse.fullStrength": "Свіжий: біжить на повну силу",
+  "pass.noReward": "На цьому рівні нагороди немає — рухайтесь далі",
 };

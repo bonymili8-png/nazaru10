@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { PassRewardDto, PassTierDto, RacingPassDto } from "@thoroughline/contracts";
 import { Check, Crown, Gem, Lock, Ticket } from "lucide-react";
 import { useState } from "react";
@@ -83,9 +84,9 @@ export default function PassPage() {
         {!data.premium && data.gems < data.premiumPriceGems && (
           <p className="mt-2 text-center text-xs text-muted">
             {tr("common.youHaveGems", { n: data.gems })} ·{" "}
-            <a href="/shop/" className="text-gold hover:underline">
+            <Link href="/shop/" className="text-gold hover:underline">
               {tr("common.getMore")}
-            </a>
+            </Link>
           </p>
         )}
         {data.premium && (

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type {
   FeedItemDto,
   HomeDto,
@@ -42,9 +43,9 @@ export default function HomePage() {
       <HomeScreenBanner />
       <Card className="bg-gradient-to-br from-surface to-surface-2">
         <div className="flex items-center gap-3">
-          <a href="/crest/" aria-label={t("profile.crest")} className="rounded-lg">
+          <Link href="/crest/" aria-label={t("profile.crest")} className="rounded-lg">
             <Crest crest={data.stable.crest} size={44} />
-          </a>
+          </Link>
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-gold">
               {t("home.level", { n: data.stable.level })}
@@ -251,17 +252,18 @@ function PassTeaser() {
       t.tier <= data.tier && ((t.free && !t.freeClaimed) || (data.premium && t.premium && !t.premiumClaimed)),
   ).length;
   return (
-    <a
+    <Link
       href="/pass/"
       className="mt-3 block rounded-[var(--radius-card)] border border-gold/40 bg-surface p-4 hover:border-gold"
     >
       <div className="flex items-center gap-3">
         <Ticket className="size-5 text-gold" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-medium">
-            {t("home.passTier", { tier: data.tier, max: data.maxTier })}
+          {/* The badge is its own flex item: it moves to the next line whole, never splits. */}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+            <span>{t("home.passTier", { tier: data.tier, max: data.maxTier })}</span>
             {open > 0 && (
-              <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-xs font-semibold text-bg">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-gold px-2 py-0.5 text-xs font-semibold text-bg">
                 {t("home.toClaim", { n: open })}
               </span>
             )}
@@ -275,7 +277,7 @@ function PassTeaser() {
         </div>
         <ChevronRight className="size-4 text-muted" aria-hidden />
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -313,7 +315,7 @@ function SponsorTeaser() {
   if (!data || (!data.active && data.signedThisWeek)) return null;
   const k = data.active;
   return (
-    <a
+    <Link
       href="/sponsors/"
       className="mt-3 block rounded-[var(--radius-card)] border border-line/60 bg-surface p-4 hover:border-gold"
     >
@@ -338,6 +340,6 @@ function SponsorTeaser() {
         </div>
         <ChevronRight className="size-4 text-muted" aria-hidden />
       </div>
-    </a>
+    </Link>
   );
 }

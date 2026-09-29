@@ -69,12 +69,12 @@ function RacePage() {
         </div>
         <h1 className="mt-2 font-display text-2xl font-bold">{race.name}</h1>
         {race.tournamentId && (
-          <a
+          <Link
             href={`/tournament/?id=${race.tournamentId}`}
             className="mt-1 inline-flex items-center gap-1 text-sm text-gold hover:underline"
           >
             <Trophy className="size-4" aria-hidden /> {t("race.bracket")}
-          </a>
+          </Link>
         )}
         <p className="text-sm text-muted">
           {trackName(track.archetype)} · {t("unit.m", { n: race.distance })} {titleCase(race.surface)} ·{" "}

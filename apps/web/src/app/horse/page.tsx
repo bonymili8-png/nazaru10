@@ -466,9 +466,9 @@ function Train({ h }: { h: HorseDetailDto }) {
               </span>
             </span>
           ) : (
-            <a href="/staff/" className="text-gold hover:underline">
+            <Link href="/staff/" className="text-gold hover:underline">
               {t("horse.hireOne")}
-            </a>
+            </Link>
           )}
         </div>
         <p className="mt-2 text-xs text-muted">
@@ -504,9 +504,9 @@ function Pedigree({ id }: { id: string }) {
     <div className="min-w-0 rounded-lg bg-surface-2 px-2.5 py-1.5">
       <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
       {n ? (
-        <a href={`/horse/?id=${n.id}`} className="block truncate text-sm font-medium hover:text-gold">
+        <Link href={`/horse/?id=${n.id}`} className="block truncate text-sm font-medium hover:text-gold">
           {n.name}
-        </a>
+        </Link>
       ) : (
         <p className="text-sm text-muted">{t("horse.foundation")}</p>
       )}
@@ -550,7 +550,7 @@ function History({ id }: { id: string }) {
       {data?.length === 0 && <p className="text-sm text-muted">{t("horse.noStarts")}</p>}
       <div className="space-y-2">
         {data?.map((r) => (
-          <a
+          <Link
             key={r.race_id}
             href={`/race/?id=${r.race_id}`}
             className="flex items-center justify-between rounded-xl border border-line/60 bg-surface px-3 py-2.5"
@@ -569,7 +569,7 @@ function History({ id }: { id: string }) {
               </p>
               {!!r.prize && <p className="num text-xs text-good">+{fmt(r.prize)}</p>}
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </>

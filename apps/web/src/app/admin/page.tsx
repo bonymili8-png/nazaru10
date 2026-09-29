@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {
   type Currency,
   type LiveEventDto,
@@ -1192,9 +1193,9 @@ function Races() {
             <Card className="text-sm">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <a href={`/race/?id=${r.id}`} className="block truncate font-medium hover:text-gold">
+                  <Link href={`/race/?id=${r.id}`} className="block truncate font-medium hover:text-gold">
                     {r.name}
-                  </a>
+                  </Link>
                   <p className="num text-xs text-muted">
                     {CLASS_NAMES[r.class]} · {r.distance}m · {new Date(r.starts_at).toLocaleString()}
                   </p>

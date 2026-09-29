@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { ClubDetailDto, ClubSummaryDto, MyClubDto } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { ChevronRight, Users } from "lucide-react";
@@ -26,7 +27,7 @@ export function ClubsBoard() {
         {t("club.rules", { max: cfg.maxMembers, h: cfg.rejoinCooldownHours })}
       </p>
       {mine.data?.clubId ? (
-        <a
+        <Link
           href={`/club/?id=${mine.data.clubId}`}
           className="flex items-center justify-between rounded-[var(--radius-card)] border border-gold/50 bg-gold/10 px-4 py-3"
         >
@@ -35,7 +36,7 @@ export function ClubsBoard() {
             {t("club.yourClub")}
           </span>
           <ChevronRight className="size-4 text-muted" aria-hidden />
-        </a>
+        </Link>
       ) : mine.data ? (
         <FoundClub cost={mine.data.createCost} cooldown={mine.data.cooldownUntil} now={now} />
       ) : (
@@ -56,7 +57,7 @@ export function ClubsBoard() {
       {!!list.data?.length && (
         <Card className="divide-y divide-line/40 p-0">
           {list.data.map((k) => (
-            <a
+            <Link
               key={k.id}
               href={`/club/?id=${k.id}`}
               className={`flex items-center gap-3 px-4 py-3 hover:bg-surface-2 ${k.id === mine.data?.clubId ? "bg-gold/10" : ""}`}
@@ -72,7 +73,7 @@ export function ClubsBoard() {
                 <p className="text-xs text-muted">{t("club.members", { n: k.members, max: k.maxMembers })}</p>
               </div>
               <span className="num font-semibold">{t("club.pts", { n: fmt(k.points) })}</span>
-            </a>
+            </Link>
           ))}
         </Card>
       )}

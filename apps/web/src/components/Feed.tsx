@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { FeedItemDto, FeedKind } from "@thoroughline/contracts";
 import { Baby, Crown, Flag, Gavel, Medal, Users } from "lucide-react";
 import { fmt } from "@/lib/format";
@@ -44,9 +45,9 @@ export function FeedList({ items }: { items: FeedItemDto[] }) {
         return (
           <li key={f.id}>
             {f.link ? (
-              <a href={f.link} className="block hover:bg-surface-2">
+              <Link href={f.link} className="block hover:bg-surface-2">
                 {body}
-              </a>
+              </Link>
             ) : (
               body
             )}

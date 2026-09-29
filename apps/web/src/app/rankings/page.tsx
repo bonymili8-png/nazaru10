@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type {
   HallOfFameDto,
   LeaderboardHorseDto,
@@ -183,9 +184,9 @@ function HallOfFame() {
             {horse && (
               <p className="mt-1 flex items-center gap-2">
                 <Trophy className="size-4 text-gold" aria-hidden />
-                <a href={`/horse/?id=${horse.horseId}`} className="font-medium hover:text-gold">
+                <Link href={`/horse/?id=${horse.horseId}`} className="font-medium hover:text-gold">
                   {horse.horseName}
-                </a>
+                </Link>
                 <span className="num text-sm text-muted">{t("rank.pts", { n: fmt(horse.value) })}</span>
               </p>
             )}
@@ -310,9 +311,9 @@ function Row({
     </div>
   );
   return href ? (
-    <a href={href} className="block hover:bg-surface-2">
+    <Link href={href} className="block hover:bg-surface-2">
       {body}
-    </a>
+    </Link>
   ) : (
     body
   );

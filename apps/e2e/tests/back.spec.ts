@@ -27,6 +27,12 @@ test("an owner goes back to where they were", async ({ page }) => {
   await back.click();
   await expect(page).toHaveURL(/\/races\/$/);
 
+  // Cards on the home page navigate inside the app too (no full reload).
+  await page.getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: /Racing Pass/ }).click();
+  await expect(page).toHaveURL(/\/pass\/$/);
+  expect(await page.evaluate(() => (window as unknown as { __alive?: number }).__alive)).toBe(1);
+
   // Opened directly (deep link or reload): Back goes up to the section, never out of the game.
   await page.goto(horseUrl);
   await expect(page.getByRole("tab", { name: "overview" })).toBeVisible();

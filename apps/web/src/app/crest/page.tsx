@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {
   type CosmeticsDto,
   type Crest as CrestSpec,
@@ -118,9 +119,9 @@ export default function CrestPage() {
       </div>
       <p className="mt-2 text-right text-xs text-muted">
         {t("common.youHaveGems", { n: data.gems })} ·{" "}
-        <a href="/shop/" className="text-gold hover:underline">
+        <Link href="/shop/" className="text-gold hover:underline">
           {t("common.getMore")}
-        </a>
+        </Link>
       </p>
 
       <SectionTitle>{t("silks.colours")}</SectionTitle>

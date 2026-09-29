@@ -21,6 +21,8 @@ test("joining a race just after the off shows it from the start", async ({ page 
     const res = await route.fetch();
     const race = await res.json();
     ids = race.entryList.map((e: { horseId: string }) => e.horseId);
+    // A fresh race may have no entries yet: film a field of eight anonymous runners.
+    if (ids.length === 0) ids = Array.from({ length: 8 }, (_, i) => `runner-${i}`);
     await route.fulfill({ response: res, json: { ...race, status: "RUNNING" } });
   });
   await page.route(new RegExp(`/races/${id}/live$`), (route) =>
@@ -35,7 +37,15 @@ test("joining a race just after the off shows it from the start", async ({ page 
         frames: {
           interval: 1,
           ids,
-          data: Array.from({ length: elapsed + 1 }, (_, s) => ids.map((_, i) => [s * 15, i, 0, 0])),
+          // Spread out: each runner a few metres behind the one before, on its own lane.
+          data: Array.from({ length: elapsed + 1 }, (_, s) =>
+            ids.map((_, i) => [
+              Math.max(0, s * 15 - i * 3 * (s / elapsed) - (i === ids.length - 1 ? s * 4 : 0)),
+              i * 0.9,
+              0,
+              0,
+            ]),
+          ),
         },
         commentary: [],
         events: [],
@@ -51,4 +61,16 @@ test("joining a race just after the off shows it from the start", async ({ page 
   expect(Number((await clock.innerText()).replace(/[^\d.]/g, ""))).toBeLessThan(4);
   // …and playback moves on towards the live picture.
   await expect.poll(async () => Number((await clock.innerText()).replace(/[^\d.]/g, ""))).toBeGreaterThan(4);
+
+  // Camera view: follows the leader, with the stragglers counted out of shot.
+  await page.getByRole("tab", { name: "Camera" }).click();
+  await expect(page.getByRole("img", { name: "Camera following the race leader" })).toBeVisible();
+  await page.waitForTimeout(3000);
+  await page
+    .getByRole("img", { name: "Camera following the race leader" })
+    .screenshot({ path: "/tmp/claude-0/shots/camera.png" });
+  await expect(page.getByText(/out of shot/)).toBeVisible();
+  // The choice is remembered.
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Camera" })).toHaveAttribute("aria-selected", "true");
 });

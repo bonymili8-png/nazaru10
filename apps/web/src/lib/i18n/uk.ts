@@ -1255,4 +1255,9 @@ export const uk: Record<MessageKey, Msg> = {
   "home.questsClaimable": "Нагород до отримання: {n}",
   "home.questsProgress": "Виконано {n} з {of}",
   "syn.summary": "У керуючого {n}/{total} часток · партнерів: {partners}",
+  "live.viewTrack": "Трек",
+  "live.viewCamera": "Камера",
+  "live.cameraLabel": "Камера, що веде лідера забігу",
+  "live.outOfShot": "+{n} поза кадром · −{m} м",
+  "live.toGo": "До фінішу {m} м",
 };

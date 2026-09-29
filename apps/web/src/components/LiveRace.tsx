@@ -9,6 +9,7 @@ import { t as tr } from "@/lib/i18n";
 import { commentaryText } from "@/lib/i18n/commentary";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
 import { FinishEffect } from "./FinishEffect";
+import { RaceCamera } from "./RaceCamera";
 import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
 
@@ -61,6 +62,22 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
   const [live, setLive] = useState<LiveRaceDto | null>(null);
   const [replayStart, setReplayStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
+  // Whole-track overview or a camera that follows the leader (remembered on this device).
+  const [view, setView] = useState<"track" | "camera">(() => {
+    try {
+      return localStorage.getItem("tl.raceView") === "camera" ? "camera" : "track";
+    } catch {
+      return "track";
+    }
+  });
+  const chooseView = (v: "track" | "camera") => {
+    setView(v);
+    try {
+      localStorage.setItem("tl.raceView", v);
+    } catch {
+      /* storage unavailable: the choice lasts for this view */
+    }
+  };
   const offsetRef = useRef(0);
   /** Wall-clock ms when playback from the start began (null: follow the live picture). */
   const fromStartRef = useRef<number | null>(null);
@@ -169,91 +186,121 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
       >
         {live.status === "RUNNING" ? tr("live.live") : tr("live.replay")}
       </SectionTitle>
+      <div className="mb-2 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1" role="tablist">
+        {(["track", "camera"] as const).map((v) => (
+          <button
+            key={v}
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => chooseView(v)}
+            className={`min-h-9 cursor-pointer rounded-lg text-sm font-medium transition-colors ${view === v ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
+          >
+            {v === "track" ? tr("live.viewTrack") : tr("live.viewCamera")}
+          </button>
+        ))}
+      </div>
       <Card className="relative p-2">
         {done && winnerEffect && <FinishEffect key={replayStart ?? "live"} effect={winnerEffect} />}
-        <svg
-          viewBox={`${b.x} ${b.y} ${b.w} ${b.h}`}
-          className="w-full"
-          role="img"
-          aria-label={tr("live.trackLabel", { name: (order[0] && names[order[0].id]?.horseName) ?? "" })}
-        >
-          <path d={lanePath(5.5)} fill="none" stroke="#1f3a24" strokeWidth={13 * LANE} />
-          <path d={lanePath(-1)} fill="none" stroke="#78716c" strokeWidth={2} />
-          <path d={lanePath(12)} fill="none" stroke="#78716c" strokeWidth={2} />
-          {!startOnFinish && (
-            <g>
-              <line
-                x1={start.a.x}
-                y1={start.a.y}
-                x2={start.b.x}
-                y2={start.b.y}
-                stroke="#fafaf9"
-                strokeWidth={4}
-                strokeDasharray="7 5"
-              />
-              <text
-                x={start.label.x}
-                y={start.label.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={22}
-                fontWeight={600}
-                fill="#fafaf9"
-              >
-                {tr("live.start")}
-              </text>
-            </g>
-          )}
-          <line
-            x1={finish.a.x}
-            y1={finish.a.y}
-            x2={finish.b.x}
-            y2={finish.b.y}
-            stroke="#e0b43a"
-            strokeWidth={5}
+        {view === "camera" && pos ? (
+          <RaceCamera
+            pos={pos}
+            ids={frames.ids}
+            names={names}
+            distance={race.distance}
+            fallback={(i) => SILKS[i % SILKS.length]!}
           />
-          <text
-            x={finish.label.x}
-            y={finish.label.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={22}
-            fontWeight={600}
-            fill="#e0b43a"
+        ) : (
+          <svg
+            viewBox={`${b.x} ${b.y} ${b.w} ${b.h}`}
+            className="w-full"
+            role="img"
+            aria-label={tr("live.trackLabel", { name: (order[0] && names[order[0].id]?.horseName) ?? "" })}
           >
-            {startOnFinish ? tr("live.startFinish") : tr("live.finish")}
-          </text>
-          {pos?.map((r, i) => {
-            const p = ovalPoint(track, race.distance, r[0], r[1], LANE);
-            const e = names[frames.ids[i]!];
-            return (
-              <g key={frames.ids[i]}>
-                {e?.silks ? (
-                  <SilkMarks silks={e.silks} cx={p.x} cy={p.y} r={e.mine ? 17 : 14} clipId={`lr-${i}`} />
-                ) : (
-                  <circle cx={p.x} cy={p.y} r={14} fill={SILKS[i % SILKS.length]} />
-                )}
-                {/* Ring in the horse's saddle-cloth colour; the viewer's runners get an extra white halo. */}
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={e?.mine ? 17 : 14}
-                  fill="none"
-                  stroke={e?.cloth ? SILK_COLORS[e.cloth.color] : e?.mine ? "#fafaf9" : "#0c0a09"}
-                  strokeWidth={e?.cloth ? 4.5 : e?.mine ? 5 : 2.5}
+            <path d={lanePath(5.5)} fill="none" stroke="#1f3a24" strokeWidth={13 * LANE} />
+            <path d={lanePath(-1)} fill="none" stroke="#78716c" strokeWidth={2} />
+            <path d={lanePath(12)} fill="none" stroke="#78716c" strokeWidth={2} />
+            {!startOnFinish && (
+              <g>
+                <line
+                  x1={start.a.x}
+                  y1={start.a.y}
+                  x2={start.b.x}
+                  y2={start.b.y}
+                  stroke="#fafaf9"
+                  strokeWidth={4}
+                  strokeDasharray="7 5"
                 />
-                {e?.mine && e.cloth && (
-                  <circle cx={p.x} cy={p.y} r={21} fill="none" stroke="#fafaf9" strokeWidth={2.5} />
-                )}
-                {!e?.silks && (
-                  <text x={p.x} y={p.y + 5} textAnchor="middle" fontSize={15} fontWeight={700} fill="#0c0a09">
-                    {e?.gate ?? i + 1}
-                  </text>
-                )}
+                <text
+                  x={start.label.x}
+                  y={start.label.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={22}
+                  fontWeight={600}
+                  fill="#fafaf9"
+                >
+                  {tr("live.start")}
+                </text>
               </g>
-            );
-          })}
-        </svg>
+            )}
+            <line
+              x1={finish.a.x}
+              y1={finish.a.y}
+              x2={finish.b.x}
+              y2={finish.b.y}
+              stroke="#e0b43a"
+              strokeWidth={5}
+            />
+            <text
+              x={finish.label.x}
+              y={finish.label.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={22}
+              fontWeight={600}
+              fill="#e0b43a"
+            >
+              {startOnFinish ? tr("live.startFinish") : tr("live.finish")}
+            </text>
+            {pos?.map((r, i) => {
+              const p = ovalPoint(track, race.distance, r[0], r[1], LANE);
+              const e = names[frames.ids[i]!];
+              return (
+                <g key={frames.ids[i]}>
+                  {e?.silks ? (
+                    <SilkMarks silks={e.silks} cx={p.x} cy={p.y} r={e.mine ? 17 : 14} clipId={`lr-${i}`} />
+                  ) : (
+                    <circle cx={p.x} cy={p.y} r={14} fill={SILKS[i % SILKS.length]} />
+                  )}
+                  {/* Ring in the horse's saddle-cloth colour; the viewer's runners get an extra white halo. */}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={e?.mine ? 17 : 14}
+                    fill="none"
+                    stroke={e?.cloth ? SILK_COLORS[e.cloth.color] : e?.mine ? "#fafaf9" : "#0c0a09"}
+                    strokeWidth={e?.cloth ? 4.5 : e?.mine ? 5 : 2.5}
+                  />
+                  {e?.mine && e.cloth && (
+                    <circle cx={p.x} cy={p.y} r={21} fill="none" stroke="#fafaf9" strokeWidth={2.5} />
+                  )}
+                  {!e?.silks && (
+                    <text
+                      x={p.x}
+                      y={p.y + 5}
+                      textAnchor="middle"
+                      fontSize={15}
+                      fontWeight={700}
+                      fill="#0c0a09"
+                    >
+                      {e?.gate ?? i + 1}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        )}
         <div className="flex items-center justify-between px-2 pb-1 text-xs text-muted">
           <span className="num">{tr("live.sec", { n: playT.toFixed(1) })}</span>
           <span className="num">

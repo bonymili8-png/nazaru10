@@ -1251,6 +1251,11 @@ export const en = {
   "home.questsClaimable": "{n} reward(s) waiting to be claimed",
   "home.questsProgress": "{n} of {of} steps done",
   "syn.summary": "Manager holds {n}/{total} shares · {partners} partner(s)",
+  "live.viewTrack": "Track",
+  "live.viewCamera": "Camera",
+  "live.cameraLabel": "Camera following the race leader",
+  "live.outOfShot": "+{n} out of shot · −{m} m",
+  "live.toGo": "{m} m to go",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

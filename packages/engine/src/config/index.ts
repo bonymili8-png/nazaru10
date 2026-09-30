@@ -319,6 +319,26 @@ export interface GameConfig {
       roundEveryMinutes: number;
     };
   };
+  /**
+   * Showdowns: exhibition tournaments for real people (bloggers, friends) on tournament horses,
+   * outside the game economy (no fees, prizes, ratings or effect on anyone's stable).
+   */
+  showdown: {
+    /** Genome quality of every tournament horse (all equal; profiles differ). */
+    quality: number;
+    age: number;
+    maxPlayers: number;
+    /** Pace horses fill the field up to this size when the host wants a full field. */
+    fieldSize: number;
+    /** Seconds between calling a race and the off (players pick tactics). */
+    callSeconds: number;
+    distances: number[];
+    /** Points by finishing order among the players (index 0 = best player). */
+    points: number[];
+    jockeySkill: number;
+    /** Showdowns a host may have open at once. */
+    maxOpenPerHost: number;
+  };
   /** Morning work against the yard's lead horse, on the clock. See gallop/index.ts. */
   gallop: {
     distances: number[];
@@ -863,6 +883,17 @@ export const defaultConfig: GameConfig = {
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
     lads: { gemsPerLadWeek: 50, horsesPerLad: 5, maxLads: 2, maxWeeksAhead: 4, roundEveryMinutes: 10 },
+  },
+  showdown: {
+    quality: 0.6,
+    age: 4,
+    maxPlayers: 12,
+    fieldSize: 8,
+    callSeconds: 45,
+    distances: [1000, 1200, 1400, 1600, 2000, 2400],
+    points: [10, 8, 6, 5, 4, 3, 2, 1],
+    jockeySkill: 60,
+    maxOpenPerHost: 3,
   },
   gallop: { distances: [800, 1200, 1600], fatigue: 8, maxFatigue: 40, cooldownHours: 20, riderSkill: 50 },
   yard: {

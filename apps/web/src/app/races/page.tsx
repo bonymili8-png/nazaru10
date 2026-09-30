@@ -1,6 +1,6 @@
 "use client";
 import { RACE_CLASSES, type RaceSummaryDto } from "@thoroughline/contracts";
-import { Trophy } from "lucide-react";
+import { MonitorPlay, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { RaceCard } from "@/components/RaceCard";
@@ -23,13 +23,22 @@ export default function RacesPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold">{t("races.title")}</h1>
-        <Link
-          href="/tournaments/"
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3.5 text-sm font-medium text-gold"
-        >
-          <Trophy className="size-4" aria-hidden />
-          {t("races.tournaments")}
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/show/"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-line/60 bg-surface px-3.5 text-sm font-medium"
+          >
+            <MonitorPlay className="size-4" aria-hidden />
+            {t("races.showdowns")}
+          </Link>
+          <Link
+            href="/tournaments/"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3.5 text-sm font-medium text-gold"
+          >
+            <Trophy className="size-4" aria-hidden />
+            {t("races.tournaments")}
+          </Link>
+        </div>
       </div>
       <div
         className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1"

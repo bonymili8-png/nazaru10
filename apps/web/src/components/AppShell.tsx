@@ -25,6 +25,9 @@ const NAV: { href: string; label: MessageKey; Icon: React.ComponentType<{ classN
 
 function routeForStartParam(p: string | undefined): string | null {
   if (!p) return null;
+  // Showdown invites: show_<CODE> (six characters, no look-alikes).
+  const show = /^show_([A-HJ-NP-Z2-9]{6})$/.exec(p);
+  if (show) return `/show/?code=${show[1]}`;
   const [kind, id] = p.split("_", 2);
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   if (kind === "race") return `/race/?id=${id}`;
@@ -37,6 +40,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { locale, setLocale } = useLocale();
+  // The public showdown broadcast works without signing in (streamers open it in any browser).
+  const isPublic = usePathname().startsWith("/watch");
 
   const boot = useCallback(async () => {
     initTelegram();
@@ -65,6 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return onUnauthorized(() => void boot());
   }, [boot]);
 
+  if (isPublic) return <ToastProvider>{children}</ToastProvider>;
   return (
     <ToastProvider>
       {phase === "ready" ? (

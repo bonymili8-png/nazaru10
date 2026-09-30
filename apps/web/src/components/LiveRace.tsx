@@ -58,7 +58,12 @@ function sample(frames: Frame[][], interval: number, t: number): Frame[] | null 
   });
 }
 
-export function LiveRace({ race }: { race: RaceDetailDto }) {
+/**
+ * `livePath` points the broadcast at another source with the same shape (showdowns use it);
+ * by default the race's own `/races/:id/live`.
+ */
+export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: string }) {
+  const path = livePath ?? `/races/${race.id}/live`;
   const [live, setLive] = useState<LiveRaceDto | null>(null);
   const [replayStart, setReplayStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
@@ -91,7 +96,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       try {
-        const d = await api<LiveRaceDto>(`/races/${race.id}/live`);
+        const d = await api<LiveRaceDto>(path);
         if (stop) return;
         offsetRef.current = d.elapsed - (Date.now() - startMs) / 1000;
         // First frames of a running race: decide once whether to show it from the gates.
@@ -111,7 +116,7 @@ export function LiveRace({ race }: { race: RaceDetailDto }) {
       stop = true;
       clearTimeout(timer);
     };
-  }, [race.id, startMs]);
+  }, [path, startMs]);
 
   // Animation clock.
   useEffect(() => {

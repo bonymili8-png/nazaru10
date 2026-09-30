@@ -2,6 +2,7 @@ import {
   FEED_PLANS,
   GEAR_ITEMS,
   RACE_CLASSES,
+  SHOWDOWN_MODES,
   STRATEGIES,
   SURFACES,
   TRAINING_INTENSITIES,
@@ -13,6 +14,7 @@ import {
   type HorseStatus,
   type RaceClass,
   type RaceEventType,
+  type ShowdownMode,
   type ReportInsight,
   type Rarity,
   type Sex,
@@ -102,6 +104,44 @@ const latinName = (max: number) =>
     .string()
     .transform((s) => s.trim().replace(/\s+/g, " "))
     .pipe(z.string().min(2).max(max).regex(LATIN_NAME, "Latin letters, digits, spaces and ' & . - only"));
+
+/** A broadcast handle (e.g. a blogger's @name): Latin letters, digits and _ . - ' & allowed. */
+const handle = z
+  .string()
+  .transform((s) => s.trim().replace(/\s+/g, " "))
+  .pipe(
+    z
+      .string()
+      .min(2)
+      .max(24)
+      .regex(/^@?[A-Za-z0-9][A-Za-z0-9 _'&.-]*$/, "Latin letters, digits, spaces and _ ' & . - only"),
+  );
+
+export const CreateShowdownRequest = z
+  .object({
+    name: latinName(40),
+    mode: z.enum(SHOWDOWN_MODES),
+    fillField: z.boolean().default(true),
+    displayName: handle,
+  })
+  .strict();
+export type CreateShowdownRequest = z.infer<typeof CreateShowdownRequest>;
+
+export const JoinShowdownRequest = z.object({ displayName: handle }).strict();
+export type JoinShowdownRequest = z.infer<typeof JoinShowdownRequest>;
+
+/** Call the next race: a distance and surface, or leave either to chance. */
+export const CallShowdownRaceRequest = z
+  .object({
+    distance: z.number().int().nullable().default(null),
+    surface: z.enum(SURFACES).nullable().default(null),
+  })
+  .strict();
+export type CallShowdownRaceRequest = z.infer<typeof CallShowdownRaceRequest>;
+
+/** Tactics for the called race; null sits the race out (a tired horse can rest). */
+export const ShowdownTacticsRequest = z.object({ strategy: z.enum(STRATEGIES).nullable() }).strict();
+export type ShowdownTacticsRequest = z.infer<typeof ShowdownTacticsRequest>;
 
 export const RenameStableRequest = z.object({ name: latinName(NAME_LIMITS.stable) }).strict();
 export type RenameStableRequest = z.infer<typeof RenameStableRequest>;
@@ -903,6 +943,73 @@ export interface CareDto {
   shoeLimit: number;
   /** A massage is waiting to help the next start. */
   massaged: boolean;
+}
+
+export interface ShowdownPlayerDto {
+  userId: string;
+  displayName: string;
+  horseName: string;
+  rank: number;
+  points: number;
+  wins: number;
+  races: number;
+  /** Current fatigue (always 0 in NO_FATIGUE showdowns). */
+  fatigue: number;
+  optimalDistance: number;
+  favouriteSurface: Surface;
+  isHost: boolean;
+  me: boolean;
+}
+
+export type ShowdownRaceStatus = "CALLED" | "RUNNING" | "COMPLETED" | "CANCELLED";
+
+export interface ShowdownRaceDto {
+  id: string;
+  no: number;
+  distance: number;
+  surface: Surface;
+  trackCode: string;
+  trackName: string;
+  weather: Weather;
+  going: string;
+  status: ShowdownRaceStatus;
+  startsAt: string;
+  resultsAt: string | null;
+  /** Players only, in finishing order, once the result is public. */
+  results: { displayName: string; horseName: string; position: number; points: number }[] | null;
+  /** The viewer's choice for a called race (null: sitting out or not a player). */
+  myStrategy: Strategy | null;
+  myResting: boolean;
+}
+
+export interface ShowdownDto {
+  id: string;
+  code: string;
+  name: string;
+  mode: ShowdownMode;
+  fillField: boolean;
+  status: "OPEN" | "FINISHED";
+  hostName: string;
+  isHost: boolean;
+  joined: boolean;
+  maxPlayers: number;
+  callSeconds: number;
+  distances: number[];
+  players: ShowdownPlayerDto[];
+  /** Newest first. */
+  races: ShowdownRaceDto[];
+  /** The race being called, run or just finished, as the live view needs it. */
+  current: RaceDetailDto | null;
+}
+
+export interface ShowdownSummaryDto {
+  code: string;
+  name: string;
+  mode: ShowdownMode;
+  status: "OPEN" | "FINISHED";
+  players: number;
+  races: number;
+  isHost: boolean;
 }
 
 /** Stable lads (hired for gems) who do the yard round for the owner. */

@@ -30,3 +30,4 @@ export * from "./stable/mastery.js";
 export * from "./care/index.js";
 export * from "./yard/index.js";
 export * from "./gallop/index.js";
+export * from "./showdown/index.js";

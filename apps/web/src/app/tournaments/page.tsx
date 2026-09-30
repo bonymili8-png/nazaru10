@@ -1,5 +1,7 @@
 "use client";
 import type { TournamentDto } from "@thoroughline/contracts";
+import { MonitorPlay } from "lucide-react";
+import Link from "next/link";
 import { TournamentCard } from "@/components/TournamentCard";
 import { Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { useApi, useNow } from "@/lib/hooks";
@@ -14,6 +16,15 @@ export default function TournamentsPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">{tr("tour.title")}</h1>
       <Card className="mt-3 text-sm text-muted">{tr("tour.intro")}</Card>
+      <Link href="/show/" className="mt-2 block">
+        <Card className="flex items-center gap-3 transition-colors hover:border-gold">
+          <MonitorPlay className="size-6 shrink-0 text-gold" aria-hidden />
+          <span className="min-w-0">
+            <span className="block font-semibold">{tr("showdown.title")}</span>
+            <span className="block text-xs text-muted">{tr("showdown.teaser")}</span>
+          </span>
+        </Card>
+      </Link>
       {error && <ErrorState error={error} retry={reload} />}
       {!data && !error && (
         <div className="mt-3 space-y-2">

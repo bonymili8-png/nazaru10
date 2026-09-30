@@ -101,3 +101,14 @@ export async function plantYardEvent(devId: number, kind: string): Promise<void>
     await client.end();
   }
 }
+
+/** Run one SQL statement against the e2e database (for moving the clock of a scheduled thing). */
+export async function sql(query: string, params: unknown[] = []): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(query, params);
+  } finally {
+    await client.end();
+  }
+}

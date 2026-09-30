@@ -515,3 +515,35 @@ ENTERED or LISTED, at racing age, with health fit to race and fatigue ≤ 40. Th
 the horse; the history shows only the current owner's work. There are no credits and no stat
 gains, so the economy is unchanged (the simulation needs no model of it). Config `gallop.*`,
 rules in `engine/gallop`, table `gallops`.
+
+## Showdowns (exhibition tournaments for real people)
+
+Showdowns are for bloggers, friends and their audiences. People race each other on
+**tournament horses**, not their own stables. They sit outside the game economy: no fees, prizes,
+credits, gems or ratings, and they have no effect on anyone's stable.
+
+* **Hosting.** Any player can host a showdown from Races → Showdown (at most 3 open at once).
+  The host names it, picks a mode, and chooses whether pace horses fill each race to 8 runners.
+  The host gets a 6-character code with no look-alike characters. The host rides too, and can
+  remove a player (the broadcast is public).
+* **Joining.** Players join with the code, or the Telegram invite link `show_<CODE>`, under an
+  on-air name (Latin letters plus `_ . - ' &`, so `@handles` work). Up to 12 players. Each player
+  gets a horse bred to the same quality (0.6), so skill and progress in the main game don't matter.
+  Profiles still differ (trip, surface), so reading your horse matters.
+* **Races.** The host calls one race at a time, choosing a distance (1000–2400 m) and surface or
+  leaving them to chance. Players then have 45 s to pick tactics or sit the race out. At the off
+  the race is simulated by the normal engine (equal 60-skill jockeys, no injuries) and broadcast
+  like any race. Points go to players by their order among players (10-8-6-5-4-3-2-1; pace horses
+  score nothing). Points are added only when the broadcast ends, so the table never spoils a live
+  race. The host can run any number of races, then finish the showdown to make the table final.
+* **Modes.** *Normal*: horses tire from race to race (the game's post-race fatigue, tactics
+  included) and recover in real time, so resting a tired horse is a real choice. *No fatigue*:
+  every race is run fresh.
+* **Broadcast.** `/watch/?code=…` is a public, sign-in-free, portrait page with a full-screen
+  button, made to be screen-shared or recorded (TikTok Live, Instagram, YouTube, OBS). It shows
+  the called race's countdown, the live race (track or camera view), the standings and past
+  results. The showdown page has buttons to invite players via Telegram, open the broadcast, copy
+  its link, and share it via the phone's share sheet. API: `/showdowns/*` for signed-in players,
+  and read-only `/public/showdowns/:code` plus `/public/showdowns/:code/races/:id/live`.
+  Races run lazily on reads and from the job runner. Tables: `showdowns`, `showdown_players`,
+  `showdown_races`. Config `showdown.*`, rules in `engine/showdown`.

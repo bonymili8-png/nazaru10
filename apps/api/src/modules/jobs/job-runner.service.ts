@@ -7,6 +7,7 @@ import { FraudService } from "../fraud/fraud.service.js";
 import { StaffService } from "../staff/staff.service.js";
 import { NutritionService } from "../horses/nutrition.service.js";
 import { LadsService } from "../horses/lads.service.js";
+import { ShowdownsService } from "../showdowns/showdowns.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
 import { OffersService } from "../market/offers.service.js";
@@ -50,6 +51,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly sponsors: SponsorsService,
     private readonly subscriptions: SubscriptionsService,
     private readonly lads: LadsService,
+    private readonly showdowns: ShowdownsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
@@ -95,6 +97,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
       await this.step("run", () => this.races.runDue());
       await this.step("settle", () => this.races.settleDue());
       await this.step("tournaments", () => this.tournaments.advanceDue());
+      await this.step("showdowns", () => this.showdowns.runDue());
       await this.step("training", () => this.training.settleAllDue());
       await this.step("market", () => this.market.settleDue());
       await this.step("foals", () => this.breeding.deliverDue());

@@ -10,6 +10,7 @@ import {
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { Dna, Dumbbell, Flag, Pencil, Stethoscope } from "lucide-react";
+import { StableRound } from "@/components/Care";
 import { HorseCard } from "@/components/HorseCard";
 import { RenameForm } from "@/components/RenameForm";
 import {
@@ -120,6 +121,7 @@ export default function HorsesPage() {
           <HorseCard key={h.id} horse={h} href={`/horse/?id=${h.id}`} />
         ))}
       </div>
+      <StableRound />
       {/* Stable tools and follows below the string, folded behind one-line summaries. */}
       {stable.data && <Facilities stable={stable.data} />}
       {stable.data && <TackRoom stable={stable.data} />}

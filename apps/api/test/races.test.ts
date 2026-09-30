@@ -138,6 +138,13 @@ describe("race lifecycle", () => {
       [aliceHorse],
     );
     expect(horse!.starts).toBe(1);
+    // Care after a start: legs may be hosed now, one more run on these shoes.
+    const care = await t.db.one<{ last_race_at: Date | null; shoe_starts: number; hosed_last_race: boolean }>(
+      "SELECT last_race_at, shoe_starts, hosed_last_race FROM horses WHERE id = $1",
+      [aliceHorse],
+    );
+    expect(care).toMatchObject({ shoe_starts: 1, hosed_last_race: false });
+    expect(care!.last_race_at).not.toBeNull();
     expect(horse!.earnings).toBe(mine.prize);
     expect(["IDLE", "INJURED"]).toContain(horse!.status);
     // The first race of the day also pays the flat daily bonus, whatever the result.

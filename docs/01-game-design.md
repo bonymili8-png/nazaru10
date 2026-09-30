@@ -438,3 +438,31 @@ so there is nothing to buy or grind outside the game itself. The training edge i
 session's start (stacked with facilities); the racing edge applies when a race settles; the
 breeding edge when the mare is covered. Config `mastery.*`; the economy simulation models the
 training and racing tracks and all gates still pass.
+
+## Daily care (the owner's time, never money)
+
+Between starts a horse needs 17–20 h to recover. Care fills that time with the jobs a real yard
+does every day. Every action is free and runs on a per-horse cooldown, so it rewards showing up
+once or twice a day, not grinding or paying.
+
+| Action | Cooldown | Effect |
+|---|---|---|
+| Groom | 8 h | +3 trust |
+| Walk in hand | 8 h | −3 fatigue, +1 trust |
+| Cold-hose the legs | once per race, within 6 h of it | −5 fatigue, +1 trust |
+| Massage | 12 h | ×0.7 injury risk in the next start (one use), +2 trust |
+| Farrier | 24 h, only after 6 starts on a set of shoes | resets worn shoes (worn shoes: ×1.4 injury risk) |
+
+**Trust** (0–100) fades by 4 a day. On race day it adds `trust × 0.2` to consistency and
+`trust × 0.1` to temperament. So a horse that trusts its people runs steadier and calmer, but no
+faster. Care is blocked while the horse is away training or once it is retired. Settling a race
+records `last_race_at`, clears the massage and hosing flags, and counts a start on the shoes.
+
+The horse page has a "Daily care" section: jobs, why a job must wait, and time left on
+cooldowns. The horses page has a "Yard round" with one-tap jobs for every horse. Config `care.*`,
+rules in `engine/care`.
+
+Balance: the economy sim walks every horse each session and hoses after each race. This raised
+the median player's in-class win rate from about 24 % to about 26 %. The gate ceiling went from
+25 % to 28 % on purpose, as a reward for attentive owners. Casual and reckless policies stay
+inside all gates.

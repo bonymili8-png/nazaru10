@@ -857,6 +857,7 @@ export interface HorseDetailDto extends HorseSummaryDto {
     studFee: number | null;
     condition: ConditionDto;
     feed: FeedDto;
+    care: CareDto;
     injuredUntil: string | null;
     activeTraining: TrainingSessionDto | null;
     diagnostics: {
@@ -866,6 +867,36 @@ export interface HorseDetailDto extends HorseSummaryDto {
       raceIntelligence: number;
     } | null;
   } | null;
+}
+
+export type CareAction = "GROOM" | "HAND_WALK" | "COLD_HOSE" | "MASSAGE" | "FARRIER";
+
+/** One daily-care action for a horse: ready now, or why not / when. */
+export interface CareActionDto {
+  action: CareAction;
+  ready: boolean;
+  /** COOLDOWN (see availableAt), NO_RECENT_RACE, ALREADY_HOSED, SHOES_FRESH, or BUSY (horse away). */
+  block: string | null;
+  availableAt: string | null;
+  bond: number;
+  fatigueRelief: number;
+}
+
+/** Daily care of a horse (free: the owner's time). */
+export interface CareDto {
+  /** Trust 0–100: steadier and calmer on race day. */
+  bond: number;
+  actions: CareActionDto[];
+  /** Starts run on the current shoes, and how many before they are worn. */
+  shoeStarts: number;
+  shoeLimit: number;
+  /** A massage is waiting to help the next start. */
+  massaged: boolean;
+}
+
+/** The stable round: every horse with the care it can have right now. */
+export interface CareRoundDto {
+  horses: { horseId: string; name: string; bond: number; ready: CareAction[] }[];
 }
 
 export interface RaceEntryDto {

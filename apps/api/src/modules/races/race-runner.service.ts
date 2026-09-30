@@ -5,6 +5,9 @@ import {
   RACE_CLASSES,
   applyGear,
   raceAftermath,
+  bondNow,
+  careInjuryFactor,
+  traitsWithBond,
   type RaceClass,
   type RaceEntrant,
   Rng,
@@ -311,10 +314,14 @@ export class RaceRunnerService {
           name: h.name,
           ownerName: await this.horses.ownerName(h.owner_id, c),
           attributes: h.attributes,
-          traits: h.genome.traits,
+          // Daily care: a trusting horse is steadier and calmer; a massage lowers the injury
+          // risk of this start, worn shoes raise it.
+          traits: traitsWithBond(h.genome.traits, bondNow(h.bond, h.bond_at, race.starts_at, cfg), cfg),
           aptitudes: h.genome.aptitudes,
           raceIntelligence: h.genome.hidden.raceIntelligence,
-          injurySusceptibility: h.genome.hidden.injurySusceptibility,
+          injurySusceptibility:
+            h.genome.hidden.injurySusceptibility *
+            careInjuryFactor({ massaged: h.massaged, shoeStarts: h.shoe_starts }, cfg),
           condition: this.horses.condition(h, race.starts_at),
           abilityRating: h.ability_rating,
           raceRating: h.race_rating,
@@ -558,7 +565,11 @@ export class RaceRunnerService {
         await c.query(
           `UPDATE horses SET starts = starts + 1, wins = wins + $2, seconds = seconds + $3, thirds = thirds + $4,
                   earnings = earnings + $5, race_rating = $6, fatigue = $7, health = $8, form = $9,
-                  condition_updated_at = $10, status = $11, injured_until = $12, updated_at = $13
+                  condition_updated_at = $10, status = $11, injured_until = $12, updated_at = $13,
+                  -- Care after a start: legs may be hosed now, one more run on these shoes,
+                  -- and any massage has done its job.
+                  last_race_at = $10, hosed_last_race = false, massaged = false,
+                  shoe_starts = shoe_starts + 1
             WHERE id = $1`,
           [
             h.id,

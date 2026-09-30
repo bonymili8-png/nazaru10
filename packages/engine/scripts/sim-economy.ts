@@ -85,6 +85,8 @@ interface SimHorse {
   rating: number;
   injuredUntil: number;
   trainedToday: number;
+  /** Last walk in hand (hours), for its cooldown. */
+  walkAt: number;
   /** Owner's plan: next race no earlier than this (hours). */
   nextRaceAt: number;
   /** Feed plan, paid in advance until `feedUntil` (hours). */
@@ -174,6 +176,7 @@ function newHorse(rng: Rng, quality: number, age: number, nowH: number, rarity?:
     rating: cfg.race.initialRating,
     injuredUntil: 0,
     trainedToday: 0,
+    walkAt: -1e9,
     nextRaceAt: 0,
     feed: "STANDARD",
     feedUntil: 0,
@@ -369,6 +372,8 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
   p.mastery.starts++;
   if (pos <= 3) p.mastery.podiums++;
   h.condAt = nowH + 0.05;
+  // Legs cold-hosed right after the race (once per race).
+  care(h, nowH + 0.05, "COLD_HOSE");
   if (after.injury) h.injuredUntil = nowH + after.injury.hours;
   stats.races++;
   stats.positions.push(pos);
@@ -549,7 +554,21 @@ const stats = {
   byClass: {} as Partial<Record<RaceClass, [number, number]>>,
 };
 
+/** Daily care as the API allows it: a walk in hand (on its cooldown) takes fatigue off at once. */
+function care(h: SimHorse, nowH: number, action: "HAND_WALK" | "COLD_HOSE"): void {
+  const a = cfg.care.actions[action];
+  if (action === "HAND_WALK") {
+    if (nowH < h.walkAt + a.cooldownHours) return;
+    h.walkAt = nowH;
+  }
+  const c = condition(h, nowH);
+  h.cond = { ...c, fatigue: Math.max(0, c.fatigue - (a.fatigueRelief ?? 0)) };
+  h.condAt = nowH;
+}
+
 function session(rng: Rng, p: Player, nowH: number): void {
+  // Every session the owner walks each horse in hand (the free daily-care loop).
+  for (const h of p.horses) if (nowH >= h.injuredUntil) care(h, nowH, "HAND_WALK");
   for (const h of p.horses) {
     if (nowH < h.injuredUntil) {
       // Serious owners call the vet when they can afford it comfortably.
@@ -908,7 +927,9 @@ const checks: [string, boolean][] = [
   ["owners grow their string (avg ≥ 2 horses by season end)", last.horses >= 2],
   // The simulated owner is conservative (upgrades only when full and keeping an entry-fee reserve).
   ["≥ 15% of owners upgrade their stable within a season", upgraded >= 0.15],
-  ["player in-class win rate 10–25%", winRate >= 0.1 && winRate <= 0.25],
+  // Ceiling was 25% before daily care: walks and cold hosing keep an attentive owner's horses
+  // fresher than the house field, and that edge is an intended reward for showing up.
+  ["player in-class win rate 10–28%", winRate >= 0.1 && winRate <= 0.28],
   ["allowance is a safety net, not an income (< 10% of income)", allowanceShare < 0.1],
   // Staff is an optional sink: attractive (the eager simulated owner hires whenever it can carry
   // a month of salary) but not universal, and never the main cost. The ceiling is 92 %: with the

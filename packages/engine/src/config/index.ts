@@ -280,6 +280,31 @@ export interface GameConfig {
     raceFatigueReliefPerLevel: number;
     gestationCutPerLevel: number;
   };
+  /** Daily care between starts (free: the owner's time). See care/index.ts. */
+  care: {
+    actions: Record<
+      "GROOM" | "HAND_WALK" | "COLD_HOSE" | "MASSAGE" | "FARRIER",
+      {
+        cooldownHours: number;
+        /** Bond (trust) gained. */
+        bond: number;
+        /** Fatigue taken off at once. */
+        fatigueRelief?: number;
+        /** COLD_HOSE: only within this many hours after a race, once per race. */
+        windowHours?: number;
+        /** MASSAGE: injury-risk multiplier for the next start. */
+        injuryFactor?: number;
+      }
+    >;
+    bondMax: number;
+    bondDecayPerDay: number;
+    /** Race-day consistency / temperament points per bond point. */
+    bondConsistencyFactor: number;
+    bondTemperamentFactor: number;
+    /** Starts before shoes are worn; racing on worn shoes multiplies the injury risk. */
+    shoeStarts: number;
+    wornShoeInjuryFactor: number;
+  };
   /** Gear trades one attribute for another on race day (never a net gain on every course). */
   equipment: Record<GearItem, { cost: number; mods: Partial<Record<TrainableAttribute, number>> }>;
   /** Gear wears out after `races` starts; repairing costs repairRate × cost × the share worn. */
@@ -771,6 +796,21 @@ export const defaultConfig: GameConfig = {
       "19": { gems: 25 },
       "20": { silk: "CHECK" },
     },
+  },
+  care: {
+    actions: {
+      GROOM: { cooldownHours: 8, bond: 3 },
+      HAND_WALK: { cooldownHours: 8, bond: 1, fatigueRelief: 3 },
+      COLD_HOSE: { cooldownHours: 0, bond: 1, fatigueRelief: 5, windowHours: 6 },
+      MASSAGE: { cooldownHours: 12, bond: 2, injuryFactor: 0.7 },
+      FARRIER: { cooldownHours: 24, bond: 0 },
+    },
+    bondMax: 100,
+    bondDecayPerDay: 4,
+    bondConsistencyFactor: 0.2,
+    bondTemperamentFactor: 0.1,
+    shoeStarts: 6,
+    wornShoeInjuryFactor: 1.4,
   },
   mastery: {
     thresholds: {

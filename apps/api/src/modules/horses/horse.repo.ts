@@ -1,5 +1,13 @@
 import type { SaddleCloth } from "@thoroughline/contracts";
-import type { Attributes, FeedPlan, Genome, HorseStatus, Rarity, Sex } from "@thoroughline/engine";
+import type {
+  Attributes,
+  CareAction,
+  FeedPlan,
+  Genome,
+  HorseStatus,
+  Rarity,
+  Sex,
+} from "@thoroughline/engine";
 import { type Queryable, row, rows } from "../../common/db.js";
 import { notFound } from "../../common/errors.js";
 
@@ -44,6 +52,14 @@ export interface HorseRow {
   feed_periods: number;
   /** End of a limited shop listing (live-ops drops). */
   sale_ends_at?: Date | null;
+  /** Daily care (0038): trust, last action times, shoe wear, a pending massage, last race. */
+  bond: number;
+  bond_at: Date;
+  care_last: Partial<Record<CareAction, string>>;
+  shoe_starts: number;
+  massaged: boolean;
+  last_race_at: Date | null;
+  hosed_last_race: boolean;
 }
 
 export interface NewHorse {

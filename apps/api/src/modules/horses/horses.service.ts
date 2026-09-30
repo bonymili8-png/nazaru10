@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type {
+  CareDto,
   ConditionDto,
   FeedDto,
   HorseDetailDto,
@@ -10,6 +11,10 @@ import type {
 import { FRESH_FATIGUE } from "@thoroughline/contracts";
 import {
   ageInYears,
+  bondNow,
+  CARE_ACTIONS,
+  careAvailability,
+  type CareState,
   type Condition,
   FEED_PLANS,
   feedCost,
@@ -40,6 +45,45 @@ export class HorsesService {
     private readonly events: EventsService,
     private readonly clock: Clock,
   ) {}
+
+  /** The horse's care state for the engine rules. */
+  careState(h: HorseRow): CareState {
+    return {
+      bond: h.bond,
+      bondAt: h.bond_at,
+      last: h.care_last,
+      shoeStarts: h.shoe_starts,
+      massaged: h.massaged,
+      lastRaceAt: h.last_race_at,
+      hosedLastRace: h.hosed_last_race,
+    };
+  }
+
+  /** Daily care as the owner sees it: trust, and each action ready or not (and when). */
+  careDto(h: HorseRow, now: Date): CareDto {
+    const cfg = this.config.get();
+    const s = this.careState(h);
+    // A horse away training cannot be walked, hosed or shod until it is back in its box.
+    const away = this.effectiveStatus(h, now) === "TRAINING";
+    return {
+      bond: Math.round(bondNow(h.bond, h.bond_at, now, cfg)),
+      actions: CARE_ACTIONS.map((action) => {
+        const a = careAvailability(action, s, now, cfg);
+        const block = away ? "BUSY" : a.block;
+        return {
+          action,
+          ready: block === null,
+          block,
+          availableAt: a.availableAt?.toISOString() ?? null,
+          bond: cfg.care.actions[action].bond,
+          fatigueRelief: cfg.care.actions[action].fatigueRelief ?? 0,
+        };
+      }),
+      shoeStarts: h.shoe_starts,
+      shoeLimit: cfg.care.shoeStarts,
+      massaged: h.massaged,
+    };
+  }
 
   age(h: HorseRow, now: Date): number {
     return ageInYears(h.birth_at, now, this.config.get());
@@ -193,6 +237,7 @@ export class HorsesService {
             studFee,
             condition: this.conditionDto(h, now),
             feed: this.feedDto(h),
+            care: this.careDto(h, now),
             injuredUntil:
               this.effectiveStatus(h, now) === "INJURED" ? (h.injured_until?.toISOString() ?? null) : null,
             activeTraining,

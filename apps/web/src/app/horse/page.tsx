@@ -44,6 +44,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ClassGuide } from "@/components/ClassGuide";
+import { HorseCare } from "@/components/Care";
 import { ExpertAdvice } from "@/components/ExpertAdvice";
 import { ColorPicker } from "@/components/ColorPicker";
 import { MakeOffer } from "@/components/Offers";
@@ -274,6 +275,8 @@ function Overview({ h }: { h: HorseDetailDto }) {
           </Button>
         )}
       </Card>
+
+      {h.status !== "RETIRED" && <HorseCare h={h} />}
 
       <Section id="attributes" title={t("horse.attributes")} defaultOpen>
         <Card>

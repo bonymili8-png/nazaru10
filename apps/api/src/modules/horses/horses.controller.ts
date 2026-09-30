@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import {
+  type CareRoundDto,
   type ExpertAdviceDto,
   type HorseAdviceDto,
   type HorseOfferDto,
@@ -14,13 +15,14 @@ import {
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
-import { forbidden } from "../../common/errors.js";
+import { badRequest, forbidden } from "../../common/errors.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { memberSql } from "../../common/membership.js";
 import { parse } from "../../common/http.js";
 import { RacesService } from "../races/races.service.js";
 import { TrainingService } from "../training/training.service.js";
-import { trainingAdvice } from "@thoroughline/engine";
+import { CARE_ACTIONS, type CareAction, trainingAdvice } from "@thoroughline/engine";
+import { CareService } from "./care.service.js";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
 import { NutritionService } from "./nutrition.service.js";
@@ -39,6 +41,7 @@ export class HorsesController {
     private readonly config: GameConfigService,
     private readonly offers: OffersService,
     private readonly expert: ExpertAdviceService,
+    private readonly care: CareService,
   ) {}
 
   @Get()
@@ -185,6 +188,25 @@ export class HorsesController {
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<HorseDetailDto> {
     const h = await this.horses.diagnose(user.id, id);
+    return this.horses.detail(h, user.id, this.clock.now(), null, null);
+  }
+
+  /** The stable round: every horse with the care it can have right now. */
+  @Get("care/round")
+  careRound(@CurrentUser() user: AuthUser): Promise<CareRoundDto> {
+    return this.care.round(user.id);
+  }
+
+  /** Daily care (free, on per-horse cooldowns): groom, walk, cold hose, massage, farrier. */
+  @Post(":id/care/:action")
+  async doCare(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("action") action: string,
+  ): Promise<HorseDetailDto> {
+    if (!(CARE_ACTIONS as readonly string[]).includes(action))
+      throw badRequest("UNKNOWN_CARE", `Care actions: ${CARE_ACTIONS.join(", ")}`);
+    const h = await this.care.perform(user.id, id, action as CareAction);
     return this.horses.detail(h, user.id, this.clock.now(), null, null);
   }
 

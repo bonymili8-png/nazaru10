@@ -1,0 +1,8 @@
+ALTER TABLE horses
+  DROP COLUMN IF EXISTS bond,
+  DROP COLUMN IF EXISTS bond_at,
+  DROP COLUMN IF EXISTS care_last,
+  DROP COLUMN IF EXISTS shoe_starts,
+  DROP COLUMN IF EXISTS massaged,
+  DROP COLUMN IF EXISTS last_race_at,
+  DROP COLUMN IF EXISTS hosed_last_race;

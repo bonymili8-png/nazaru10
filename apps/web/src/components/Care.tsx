@@ -2,7 +2,7 @@
 import type { CareAction, CareRoundDto, HorseDetailDto, StableLadsDto } from "@thoroughline/contracts";
 import { Droplets, Footprints, Gem, Hammer, Hand, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { Button, Card, Meter, Section, useToast } from "@/components/ui";
+import { Button, Card, Meter, Section, Skeleton, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
 import { countdown, errorMessage } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
@@ -116,7 +116,7 @@ export function StableRound() {
   const jobs = data.horses.reduce((n, h) => n + h.ready.length, 0);
   const onDuty = lads.data?.lads ?? 0;
   const summary = [
-    onDuty ? t("lads.onDuty", { n: onDuty }) : null,
+    onDuty ? t("lads.onDuty", { n: onDuty }) : t("lads.none"),
     jobs ? t("care.roundJobs", { n: jobs }) : t("care.roundDone"),
   ]
     .filter(Boolean)
@@ -124,7 +124,7 @@ export function StableRound() {
   // Folded by default: the round is long, and the lads can do it for you.
   return (
     <Section id="round" title={t("care.round")} summary={summary}>
-      {lads.data && <Lads d={lads.data} />}
+      <LadsPanel />
       <Card className="mt-2 space-y-3">
         {data.horses.map((h) => (
           <div key={h.horseId}>
@@ -160,6 +160,23 @@ export function StableRound() {
       </Card>
     </Section>
   );
+}
+
+/** The stable-lads card with its own data (the yard round and the staff page both show it). */
+export function LadsPanel() {
+  const { data, error, reload } = useApi<StableLadsDto>("/stable/lads", { refreshMs: 60_000 });
+  if (error)
+    return (
+      <Card>
+        <p className="font-semibold">{t("lads.title")}</p>
+        <p className="mt-1 text-sm text-muted">{t("lads.unavailable")}</p>
+        <Button variant="ghost" className="mt-2 text-sm" onClick={() => void reload()}>
+          {t("lads.retry")}
+        </Button>
+      </Card>
+    );
+  if (!data) return <Skeleton className="h-24" />;
+  return <Lads d={data} />;
 }
 
 /** Stable lads for gems: they do the round as jobs come due (only the round, nothing else). */

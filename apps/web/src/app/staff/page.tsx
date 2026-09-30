@@ -2,6 +2,7 @@
 import type { JockeyDto, StaffDto, TrainerDto } from "@thoroughline/contracts";
 import { Medal, ShieldPlus, Sparkles, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { LadsPanel } from "@/components/Care";
 import {
   Badge,
   Button,
@@ -19,12 +20,12 @@ import { t as tr } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 export default function StaffPage() {
-  const [tab, setTab] = useState<"trainers" | "jockeys">("trainers");
+  const [tab, setTab] = useState<"trainers" | "jockeys" | "lads">("trainers");
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{tr("staff.title")}</h1>
-      <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1" role="tablist">
-        {(["trainers", "jockeys"] as const).map((k) => (
+      <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface p-1" role="tablist">
+        {(["trainers", "jockeys", "lads"] as const).map((k) => (
           <button
             key={k}
             role="tab"
@@ -36,7 +37,13 @@ export default function StaffPage() {
           </button>
         ))}
       </div>
-      {tab === "trainers" ? <Trainers /> : <Jockeys />}
+      {tab === "trainers" && <Trainers />}
+      {tab === "jockeys" && <Jockeys />}
+      {tab === "lads" && (
+        <div className="mt-4">
+          <LadsPanel />
+        </div>
+      )}
     </div>
   );
 }

@@ -1388,4 +1388,9 @@ export const uk: Record<MessageKey, Msg> = {
   "lads.paidAhead": "Оплачено на максимальний термін",
   "error.LADS_UNDER_CONTRACT": "Конюхи працюють до кінця оплаченого тижня",
   "error.TOO_FAR_AHEAD": "Уже оплачено на максимальний термін",
+  "staff.tab.lads": "Конюхи",
+  "lads.none": "конюхів не найнято",
+  "lads.unavailable":
+    "Найм конюхів зараз недоступний — можливо, сервер ще оновлюється. Спробуйте за хвилину.",
+  "lads.retry": "Спробувати ще",
 };

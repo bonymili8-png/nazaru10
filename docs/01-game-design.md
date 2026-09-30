@@ -462,7 +462,7 @@ The horse page has a "Daily care" section: jobs, why a job must wait, and time l
 cooldowns. The horses page has a "Yard round" with one-tap jobs for every horse. Config `care.*`,
 rules in `engine/care`.
 
-The "Yard round" section is folded by default. Inside it, owners can hire **stable lads** for
+The "Yard round" section is folded by default. Inside it (and on the Staff page, "Stable lads" tab), owners can hire **stable lads** for
 gems to do the round for them (see economy §gem sinks). One lad handles up to 5 horses (the first
 5 in the string); two handle the whole yard. A job runner sends each paid team round every
 10 minutes to do whatever is due. The lads do the round only: no yard-event decisions, training

@@ -1384,6 +1384,11 @@ export const en = {
   "lads.paidAhead": "Paid as far ahead as allowed",
   "error.LADS_UNDER_CONTRACT": "The lads stay until their paid week ends",
   "error.TOO_FAR_AHEAD": "Paid as far ahead as allowed",
+  "staff.tab.lads": "Stable lads",
+  "lads.none": "no lads hired",
+  "lads.unavailable":
+    "Hiring lads isn't available right now — the server may still be updating. Try again in a minute.",
+  "lads.retry": "Try again",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

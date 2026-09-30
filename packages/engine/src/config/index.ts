@@ -304,6 +304,20 @@ export interface GameConfig {
     /** Starts before shoes are worn; racing on worn shoes multiplies the injury risk. */
     shoeStarts: number;
     wornShoeInjuryFactor: number;
+    /**
+     * Stable lads hired for gems do the yard round for the owner: the same free care jobs, done
+     * as each comes due (convenience only: nothing an attentive owner cannot do by hand).
+     */
+    lads: {
+      gemsPerLadWeek: number;
+      /** One lad looks after this many horses; `maxLads` look after the whole yard. */
+      horsesPerLad: number;
+      maxLads: number;
+      /** Weeks that may be paid ahead. */
+      maxWeeksAhead: number;
+      /** How often the lads go round (minutes). */
+      roundEveryMinutes: number;
+    };
   };
   /** Morning work against the yard's lead horse, on the clock. See gallop/index.ts. */
   gallop: {
@@ -848,6 +862,7 @@ export const defaultConfig: GameConfig = {
     bondTemperamentFactor: 0.1,
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
+    lads: { gemsPerLadWeek: 50, horsesPerLad: 5, maxLads: 2, maxWeeksAhead: 4, roundEveryMinutes: 10 },
   },
   gallop: { distances: [800, 1200, 1600], fatigue: 8, maxFatigue: 40, cooldownHours: 20, riderSkill: 50 },
   yard: {

@@ -462,6 +462,12 @@ The horse page has a "Daily care" section: jobs, why a job must wait, and time l
 cooldowns. The horses page has a "Yard round" with one-tap jobs for every horse. Config `care.*`,
 rules in `engine/care`.
 
+The "Yard round" section is folded by default. Inside it, owners can hire **stable lads** for
+gems to do the round for them (see economy §gem sinks). One lad handles up to 5 horses (the first
+5 in the string); two handle the whole yard. A job runner sends each paid team round every
+10 minutes to do whatever is due. The lads do the round only: no yard-event decisions, training
+or entries.
+
 Balance: the economy sim walks every horse each session and hoses after each race. This raised
 the median player's in-class win rate from about 24 % to about 26 %. The gate ceiling went from
 25 % to 28 % on purpose, as a reward for attentive owners. Casual and reckless policies stay

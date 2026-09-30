@@ -1,12 +1,12 @@
 "use client";
-import type { CareAction, CareRoundDto, HorseDetailDto } from "@thoroughline/contracts";
-import { Droplets, Footprints, Hammer, Hand, Sparkles } from "lucide-react";
+import type { CareAction, CareRoundDto, HorseDetailDto, StableLadsDto } from "@thoroughline/contracts";
+import { Droplets, Footprints, Gem, Hammer, Hand, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { Card, Meter, Section, useToast } from "@/components/ui";
+import { Button, Card, Meter, Section, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
 import { countdown, errorMessage } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
-import { type MessageKey, t } from "@/lib/i18n";
+import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { haptic } from "@/lib/telegram";
 
 export const CARE_ICON: Record<CareAction, typeof Sparkles> = {
@@ -110,17 +110,22 @@ export function HorseCare({ h }: { h: HorseDetailDto }) {
 /** The morning round of the yard: every horse with what it can have right now. */
 export function StableRound() {
   const { data } = useApi<CareRoundDto>("/horses/care/round", { refreshMs: 60_000 });
+  const lads = useApi<StableLadsDto>("/stable/lads", { refreshMs: 60_000 });
   const { busy, run } = useCare();
   if (!data || data.horses.length === 0) return null;
   const jobs = data.horses.reduce((n, h) => n + h.ready.length, 0);
+  const onDuty = lads.data?.lads ?? 0;
+  const summary = [
+    onDuty ? t("lads.onDuty", { n: onDuty }) : null,
+    jobs ? t("care.roundJobs", { n: jobs }) : t("care.roundDone"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  // Folded by default: the round is long, and the lads can do it for you.
   return (
-    <Section
-      id="round"
-      title={t("care.round")}
-      summary={jobs ? t("care.roundJobs", { n: jobs }) : t("care.roundDone")}
-      defaultOpen
-    >
-      <Card className="space-y-3">
+    <Section id="round" title={t("care.round")} summary={summary}>
+      {lads.data && <Lads d={lads.data} />}
+      <Card className="mt-2 space-y-3">
         {data.horses.map((h) => (
           <div key={h.horseId}>
             <div className="flex items-baseline justify-between gap-2">
@@ -154,5 +159,98 @@ export function StableRound() {
         ))}
       </Card>
     </Section>
+  );
+}
+
+/** Stable lads for gems: they do the round as jobs come due (only the round, nothing else). */
+function Lads({ d }: { d: StableLadsDto }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState<number | null>(null);
+  const date = (iso: string, time = false) =>
+    new Date(iso).toLocaleString(getLocale() === "uk" ? "uk-UA" : "en", {
+      day: "numeric",
+      month: "short",
+      ...(time ? { hour: "2-digit", minute: "2-digit" } : {}),
+    });
+  const hire = async (lads: number, gems: number, ask: string) => {
+    if (!window.confirm(t("lads.confirm", { what: ask, n: gems }))) return;
+    setBusy(lads);
+    try {
+      await post("/stable/lads", { lads });
+      haptic.success();
+      toast(t("lads.hired"));
+      invalidate("/stable/lads", "/wallet", "/horses/care/round", "/horses", "/home");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const team = (n: number) =>
+    t(n >= d.maxLads ? "lads.teamAll" : "lads.teamSome", { n, h: n * d.horsesPerLad });
+
+  return (
+    <Card>
+      <p className="flex items-center gap-2 font-semibold">
+        <Users className="size-4 text-gold" aria-hidden />
+        {t("lads.title")}
+      </p>
+      {d.lads === 0 ? (
+        <>
+          <p className="mt-1 text-sm text-muted">{t("lads.pitch", { n: d.needed })}</p>
+          <div className="mt-3 grid gap-2">
+            {Array.from({ length: d.maxLads }, (_, i) => i + 1).map((n) => (
+              <Button
+                key={n}
+                variant={n === d.needed ? "primary" : "secondary"}
+                className="text-sm"
+                loading={busy === n}
+                disabled={busy !== null}
+                onClick={() => void hire(n, n * d.gemsPerLadWeek, team(n))}
+              >
+                <Gem className="size-4" aria-hidden />
+                {t("lads.hire", { team: team(n), n: n * d.gemsPerLadWeek })}
+              </Button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="mt-1 text-sm">{t("lads.active", { team: team(d.lads), date: date(d.paidUntil!) })}</p>
+          {d.covered < d.horses && (
+            <p className="mt-1 text-sm text-warn">{t("lads.partial", { n: d.covered, of: d.horses })}</p>
+          )}
+          <p className="mt-1 text-xs text-muted">
+            {d.lastWorkAt
+              ? t("lads.lastWork", { at: date(d.lastWorkAt, true), n: d.lastWorkJobs })
+              : t("lads.noWorkYet")}
+          </p>
+          <div className="mt-3 grid gap-2">
+            {d.upgradeGems !== null && (
+              <Button
+                variant={d.covered < d.horses ? "primary" : "secondary"}
+                className="text-sm"
+                loading={busy === d.maxLads}
+                disabled={busy !== null}
+                onClick={() => void hire(d.maxLads, d.upgradeGems!, t("lads.addLad"))}
+              >
+                <Gem className="size-4" aria-hidden />
+                {t("lads.upgrade", { n: d.upgradeGems })}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              className="text-sm"
+              loading={busy === d.lads}
+              disabled={busy !== null || !d.canExtend}
+              onClick={() => void hire(d.lads, d.lads * d.gemsPerLadWeek, t("lads.aWeek"))}
+            >
+              {d.canExtend ? t("lads.extend", { n: d.lads * d.gemsPerLadWeek }) : t("lads.paidAhead")}
+            </Button>
+          </div>
+        </>
+      )}
+    </Card>
   );
 }

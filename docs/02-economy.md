@@ -174,6 +174,15 @@ with competitive horses for real money.
 - **Live events** are run by the game team within hard limits (purse ≤ ×1.5, XP ≤ ×3, ≤ 7 days) and
   are temporary credit sources to watch on the economy tab; limited horse drops are credit sinks.
 - **Expert trainer's advice** (live): 60 gems per horse, information from owner-visible data.
+- **Stable lads** (live, owner decision): 50 gems per lad per week (sink `STABLE_LADS`), paid
+  ahead, with no auto-renewal and at most 4 weeks ahead. One lad covers up to 5 horses; two lads
+  cover the whole yard. A second lad can be added pro rata for the rest of the paid week. Lads only
+  do the yard round: the free daily-care jobs, as each comes due, checked every 10 minutes. They
+  call the farrier only for worn shoes. This is the one gem purchase that touches readiness, and it
+  is allowed because it is pure convenience: every job is free and available to any owner by hand
+  (the economy sim already models an owner who walks every session and hoses after each race, and
+  its gates pass). Price: one lad for a month ≈ 215 gems ≈ 107⭐. That is below the Owners' Circle's
+  300 monthly gems, so a member can keep one lad on that allowance alone.
 - **Stripe is reserved for B2B**: real-brand sponsorship of named races/tournaments and news-feed
   placements, invoiced outside the game (and physical merch if ever sold). It is never used for
   in-app digital goods. The provider stub stays disabled until the owner connects an account

@@ -905,6 +905,30 @@ export interface CareDto {
   massaged: boolean;
 }
 
+/** Stable lads (hired for gems) who do the yard round for the owner. */
+export interface StableLadsDto {
+  /** Lads on duty now (0 = none). */
+  lads: number;
+  paidUntil: string | null;
+  /** Horses in the yard, the lads that takes, and how many the current team looks after. */
+  horses: number;
+  needed: number;
+  covered: number;
+  gemsPerLadWeek: number;
+  horsesPerLad: number;
+  maxLads: number;
+  /** Gems to add the second lad for the rest of the paid period (null if not possible). */
+  upgradeGems: number | null;
+  /** False once the paid period reaches the limit ahead. */
+  canExtend: boolean;
+  /** The last round that found work, and how many jobs it did. */
+  lastWorkAt: string | null;
+  lastWorkJobs: number;
+}
+
+export const HireLadsRequest = z.object({ lads: z.number().int().min(1).max(5) }).strict();
+export type HireLadsRequest = z.infer<typeof HireLadsRequest>;
+
 /** One piece of timed work. Margin in lengths: positive = beat the lead horse. */
 export interface GallopDto {
   id: string;

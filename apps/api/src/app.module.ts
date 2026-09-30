@@ -34,6 +34,8 @@ import { CareService } from "./modules/horses/care.service.js";
 import { YardController } from "./modules/horses/yard.controller.js";
 import { YardService } from "./modules/horses/yard.service.js";
 import { GallopService } from "./modules/horses/gallop.service.js";
+import { LadsController } from "./modules/horses/lads.controller.js";
+import { LadsService } from "./modules/horses/lads.service.js";
 import { JobRunnerService } from "./modules/jobs/job-runner.service.js";
 import { LeaderboardController } from "./modules/leaderboard/leaderboard.controller.js";
 import { BreedingController } from "./modules/breeding/breeding.controller.js";
@@ -112,6 +114,7 @@ export class AppModule {
         StableController,
         HorsesController,
         YardController,
+        LadsController,
         RacesController,
         ShopController,
         MarketController,
@@ -148,6 +151,7 @@ export class AppModule {
         CareService,
         YardService,
         GallopService,
+        LadsService,
         StableService,
         TrainingService,
         HouseService,

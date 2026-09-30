@@ -57,3 +57,15 @@ describe("daily care", () => {
     expect(careInjuryFactor({ massaged: false, shoeStarts: cfg.care.shoeStarts }, cfg)).toBeCloseTo(1.4);
   });
 });
+
+describe("stable lads", () => {
+  it("one lad per five horses, two for the whole yard", async () => {
+    const { ladsNeeded, ladsCover, ladJobs } = await import("./index.js");
+    const { defaultConfig: cfg } = await import("../config/index.js");
+    expect([0, 1, 5, 6, 20].map((n) => ladsNeeded(n, cfg))).toEqual([1, 1, 1, 2, 2]);
+    expect(ladsCover(1, cfg)).toBe(5);
+    expect(ladsCover(2, cfg)).toBe(Number.POSITIVE_INFINITY);
+    expect(ladJobs(["GROOM", "FARRIER"], { shoeStarts: 2 }, cfg)).toEqual(["GROOM"]);
+    expect(ladJobs(["GROOM", "FARRIER"], { shoeStarts: 6 }, cfg)).toEqual(["GROOM", "FARRIER"]);
+  });
+});

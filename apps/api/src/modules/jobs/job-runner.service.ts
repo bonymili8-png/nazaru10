@@ -6,6 +6,7 @@ import { SeasonsService } from "../seasons/seasons.service.js";
 import { FraudService } from "../fraud/fraud.service.js";
 import { StaffService } from "../staff/staff.service.js";
 import { NutritionService } from "../horses/nutrition.service.js";
+import { LadsService } from "../horses/lads.service.js";
 import { TournamentsService } from "../tournaments/tournaments.service.js";
 import { MarketService } from "../market/market.service.js";
 import { OffersService } from "../market/offers.service.js";
@@ -48,6 +49,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly lads: LadsService,
     @Inject(ENV) private readonly env: Env,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
@@ -83,6 +85,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("membership-expiry", () => this.subscriptions.expireDue());
         await this.step("comeback-nudges", () => this.engagement.nudgeDue());
         await this.step("offer-expiry", () => this.offers.expireDue());
+        await this.step("stable-lads", () => this.lads.runDue());
       }
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;

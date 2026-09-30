@@ -75,3 +75,27 @@ export function careInjuryFactor(s: Pick<CareState, "massaged" | "shoeStarts">, 
   if (s.shoeStarts >= cfg.care.shoeStarts) f *= cfg.care.wornShoeInjuryFactor;
   return f;
 }
+
+/** Lads a yard of `horses` needs to have every horse looked after (at least one). */
+export function ladsNeeded(horses: number, cfg: GameConfig): number {
+  const l = cfg.care.lads;
+  return Math.min(l.maxLads, Math.max(1, Math.ceil(horses / l.horsesPerLad)));
+}
+
+/** Horses `lads` look after: `horsesPerLad` each, and the full team the whole yard. */
+export function ladsCover(lads: number, cfg: GameConfig): number {
+  const l = cfg.care.lads;
+  return lads >= l.maxLads ? Number.POSITIVE_INFINITY : lads * l.horsesPerLad;
+}
+
+/**
+ * The jobs a lad does on the round from what is ready: everything, except that the farrier
+ * is only called for worn shoes (not after every start).
+ */
+export function ladJobs(
+  ready: readonly CareAction[],
+  s: Pick<CareState, "shoeStarts">,
+  cfg: GameConfig,
+): CareAction[] {
+  return ready.filter((a) => a !== "FARRIER" || s.shoeStarts >= cfg.care.shoeStarts);
+}

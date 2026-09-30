@@ -1364,6 +1364,26 @@ export const en = {
   "error.TOO_TIRED": "Too tired for fast work — let it recover first",
   "error.NOT_FIT": "Not fit enough for fast work",
   "error.TOO_YOUNG": "Too young for fast work",
+  "lads.title": "Stable lads",
+  "lads.onDuty": "lads on duty: {n}",
+  "lads.pitch":
+    "Hire lads to do this round for you: they groom, walk, cool legs, massage and call the farrier for worn shoes as each job comes due — only the round, nothing else. Your yard needs {n}.",
+  "lads.teamSome": "{n} lad (up to {h} horses)",
+  "lads.teamAll": "{n} lads (the whole yard)",
+  "lads.hire": "Hire {team} · {n} / week",
+  "lads.confirm": "{what}: spend {n} gems?",
+  "lads.hired": "The lads are on the job",
+  "lads.active": "{team} on duty until {date}.",
+  "lads.partial": "They only get round the first {n} of your {of} horses — add a lad for the rest.",
+  "lads.lastWork": "Last round with work: {at} · jobs done: {n}",
+  "lads.noWorkYet": "Nothing needed doing yet",
+  "lads.addLad": "A second lad for the rest of the paid time",
+  "lads.upgrade": "Add a second lad · {n}",
+  "lads.aWeek": "Another week",
+  "lads.extend": "Pay another week · {n}",
+  "lads.paidAhead": "Paid as far ahead as allowed",
+  "error.LADS_UNDER_CONTRACT": "The lads stay until their paid week ends",
+  "error.TOO_FAR_AHEAD": "Paid as far ahead as allowed",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

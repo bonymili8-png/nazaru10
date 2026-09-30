@@ -4,8 +4,16 @@ test("an owner does the yard round and cares for a horse between starts", async 
   await newOwner(page);
   await page.getByRole("link", { name: "Horses" }).click();
 
-  // The yard round offers grooming for every horse; one tap does the job.
+  // The yard round is folded until asked for; it offers lads for gems and grooming for every horse.
+  await expect(page.getByRole("heading", { name: "Yard round" }).getByRole("button")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
   await openSection(page, "Yard round");
+  await expect(page.getByText("Stable lads")).toBeVisible();
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: /^Hire 1 lad \(up to 5 horses\) · 50 \/ week/ }).click();
+  await expect(page.getByText(/Not enough gems/i)).toBeVisible();
   await page.getByRole("button", { name: "Groom" }).first().click();
   await expect(page.getByText(/groomed$/)).toBeVisible();
 

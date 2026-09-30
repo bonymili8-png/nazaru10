@@ -321,7 +321,8 @@ export class RaceRunnerService {
           raceIntelligence: h.genome.hidden.raceIntelligence,
           injurySusceptibility:
             h.genome.hidden.injurySusceptibility *
-            careInjuryFactor({ massaged: h.massaged, shoeStarts: h.shoe_starts }, cfg),
+            careInjuryFactor({ massaged: h.massaged, shoeStarts: h.shoe_starts }, cfg) *
+            h.next_start_injury,
           condition: this.horses.condition(h, race.starts_at),
           abilityRating: h.ability_rating,
           raceRating: h.race_rating,
@@ -567,9 +568,9 @@ export class RaceRunnerService {
                   earnings = earnings + $5, race_rating = $6, fatigue = $7, health = $8, form = $9,
                   condition_updated_at = $10, status = $11, injured_until = $12, updated_at = $13,
                   -- Care after a start: legs may be hosed now, one more run on these shoes,
-                  -- and any massage has done its job.
+                  -- and any massage (or untreated heat in a leg) has had its effect.
                   last_race_at = $10, hosed_last_race = false, massaged = false,
-                  shoe_starts = shoe_starts + 1
+                  shoe_starts = shoe_starts + 1, next_start_injury = 1
             WHERE id = $1`,
           [
             h.id,

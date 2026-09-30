@@ -12,6 +12,7 @@ import { defaultConfig } from "@thoroughline/engine";
 import { Dna, Dumbbell, Flag, Pencil, Stethoscope } from "lucide-react";
 import { StableRound } from "@/components/Care";
 import { HorseCard } from "@/components/HorseCard";
+import { YardEvents } from "@/components/YardEvents";
 import { RenameForm } from "@/components/RenameForm";
 import {
   Button,
@@ -106,6 +107,7 @@ export default function HorsesPage() {
         </Card>
       )}
       {stable.data && <Mastery stable={stable.data} />}
+      <YardEvents settled />
       <SectionTitle>{t("horses.string")}</SectionTitle>
       {horses.error && <ErrorState error={horses.error} retry={horses.reload} />}
       {!horses.data && !horses.error && <Skeleton className="h-40" />}

@@ -894,6 +894,45 @@ export interface CareDto {
   massaged: boolean;
 }
 
+export type YardEventKind = "LOST_SHOE" | "HEAT_IN_LEG" | "OFF_FEED" | "CAST_IN_BOX";
+export type YardChoice = "ACT" | "WAIT";
+
+/** What a yard-event choice did to the horse (and the wallet). */
+export interface YardOutcomeDto {
+  credits: number;
+  fatigue: number;
+  health: number;
+  bond: number;
+  shoesWorn: boolean;
+  freshShoes: boolean;
+  injuryFactor: number;
+  /** A risk that did not come off. */
+  bad: boolean;
+  /** The horse had left the stable before the event settled: nothing happened. */
+  void?: boolean;
+}
+
+/** Something that happened in the yard; open until answered or expired. */
+export interface YardEventDto {
+  id: string;
+  horseId: string;
+  horseName: string;
+  kind: YardEventKind;
+  happenedAt: string;
+  expiresAt: string;
+  /** Price of the ACT choice in credits (0: acting costs the horse time instead). */
+  actCost: number;
+  choice: YardChoice | null;
+  /** False when it settled on its own (nobody answered in time). */
+  answered: boolean;
+  outcome: YardOutcomeDto | null;
+}
+
+export interface YardDto {
+  /** Open events first, then the last day's settled ones. */
+  events: YardEventDto[];
+}
+
 /** The stable round: every horse with the care it can have right now. */
 export interface CareRoundDto {
   horses: { horseId: string; name: string; bond: number; ready: CareAction[] }[];

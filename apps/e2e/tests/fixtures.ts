@@ -84,3 +84,20 @@ export const test = base.extend<{ page: Page }>({
   },
 });
 export { expect };
+
+/** Plant a yard event for an owner's first horse (natural ones wait until the owner settles in). */
+export async function plantYardEvent(devId: number, kind: string): Promise<void> {
+  const client = new pg.Client({ connectionString: DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(
+      `INSERT INTO yard_events (user_id, horse_id, kind, window_no, happened_at, expires_at)
+       SELECT h.owner_id, h.id, $2, -1 - floor(random() * 1e6)::int, now(), now() + interval '12 hours'
+         FROM horses h JOIN users u ON u.id = h.owner_id WHERE u.telegram_id = $1
+        ORDER BY h.created_at LIMIT 1`,
+      [devId, kind],
+    );
+  } finally {
+    await client.end();
+  }
+}

@@ -12,6 +12,7 @@ import { CheckCircle2, ChevronRight, Circle, Flag, Gift, Handshake, Store, Ticke
 import { Crest } from "@/components/Crest";
 import { EventBanner } from "@/components/EventBanner";
 import { HomeScreenBanner } from "@/components/HomeScreen";
+import { YardEvents } from "@/components/YardEvents";
 import { FeedList } from "@/components/Feed";
 import { HorseCard } from "@/components/HorseCard";
 import { RaceCard } from "@/components/RaceCard";
@@ -82,6 +83,8 @@ export default function HomePage() {
           </LinkButton>
         </div>
       </Card>
+
+      <YardEvents />
 
       <Allowance />
 

@@ -40,6 +40,9 @@ import {
   randomEntrant,
   resolveTraining,
   Rng,
+  yardEventFor,
+  yardOutcome,
+  yardActCost,
   rollWeather,
   rollWetness,
   type SponsorDef,
@@ -87,6 +90,10 @@ interface SimHorse {
   trainedToday: number;
   /** Last walk in hand (hours), for its cooldown. */
   walkAt: number;
+  /** Last race (hours; null before the first), and yard-event risks for the next start. */
+  lastRaceH: number | null;
+  nextRisk: number;
+  wornUntil: number;
   /** Owner's plan: next race no earlier than this (hours). */
   nextRaceAt: number;
   /** Feed plan, paid in advance until `feedUntil` (hours). */
@@ -114,6 +121,8 @@ interface Player {
   bonusDay: number;
   /** Stable mastery experience (sessions, starts, podiums; the sim does not breed). */
   mastery: MasteryXp;
+  /** Last yard-event window handled. */
+  yardW: number;
   id: number;
 }
 
@@ -177,6 +186,9 @@ function newHorse(rng: Rng, quality: number, age: number, nowH: number, rarity?:
     injuredUntil: 0,
     trainedToday: 0,
     walkAt: -1e9,
+    lastRaceH: null,
+    nextRisk: 1,
+    wornUntil: -1e9,
     nextRaceAt: 0,
     feed: "STANDARD",
     feedUntil: 0,
@@ -360,12 +372,13 @@ function runRace(rng: Rng, p: Player, h: SimHorse, nowH: number, cond: Condition
       expectedPosition: 4,
       fieldSize: field.length,
       endurance: h.attributes.endurance,
-      susceptibility: h.genome.hidden.injurySusceptibility,
+      susceptibility: h.genome.hidden.injurySusceptibility * startRisk(h, nowH),
       strategy: "MID_PACK",
     },
     rng,
     cfg,
   );
+  h.lastRaceH = nowH;
   // Stable mastery (racing track) as in the API: the race tires the horse a little less.
   const relief = masteryPerks(p.mastery, cfg).raceFatigue;
   h.cond = { ...after.condition, fatigue: cond.fatigue + (after.condition.fatigue - cond.fatigue) * relief };
@@ -468,12 +481,13 @@ function tournamentRace(
         expectedPosition: 4,
         fieldSize: field.length,
         endurance: h.attributes.endurance,
-        susceptibility: h.genome.hidden.injurySusceptibility,
+        susceptibility: h.genome.hidden.injurySusceptibility * startRisk(h, nowH),
         strategy: "MID_PACK",
       },
       rng,
       cfg,
     );
+    h.lastRaceH = nowH;
     h.cond = after.condition;
     h.condAt = nowH + 0.05;
     if (after.injury) h.injuredUntil = nowH + after.injury.hours;
@@ -544,6 +558,9 @@ const stats = {
   jockeys: 0,
   facilities: 0,
   vet: 0,
+  yardEvents: 0,
+  yardActed: 0,
+  yardBad: 0,
   feeds: 0,
   gear: 0,
   gearRuns: 0,
@@ -566,7 +583,56 @@ function care(h: SimHorse, nowH: number, action: "HAND_WALK" | "COLD_HOSE"): voi
   h.condAt = nowH;
 }
 
+/** Injury-risk multiplier from yard events for a start now; a start uses up the one-off risk. */
+function startRisk(h: SimHorse, nowH: number): number {
+  const f = h.nextRisk * (nowH < h.wornUntil ? cfg.care.wornShoeInjuryFactor : 1);
+  h.nextRisk = 1;
+  return f;
+}
+
+/**
+ * Yard events as the API creates them: one seeded roll per window. The median owner pays a
+ * call-out when it is comfortably affordable and rests a hot leg; the reckless owner pays
+ * whenever the wallet allows; the casual owner lets every event settle on its own.
+ */
+function yard(rng: Rng, p: Player, nowH: number): void {
+  const last = Math.floor(nowH / cfg.yard.windowHours);
+  for (let w = p.yardW + 1; w <= last; w++) {
+    const list = p.horses.map((h, i) => ({
+      id: String(i),
+      lastRaceAt: h.lastRaceH === null ? null : at(h.lastRaceH),
+    }));
+    const ev = yardEventFor(`p${p.id}`, w, list, cfg);
+    const evH = ev ? ev.at.getTime() / 3_600_000 : 0;
+    if (ev && evH > nowH) break; // later in this window
+    p.yardW = w;
+    if (!ev) continue;
+    stats.yardEvents++;
+    const h = p.horses[Number(ev.horseId)]!;
+    const cost = yardActCost(ev.kind, cfg);
+    const seen = nowH <= evH + cfg.yard.expiresHours;
+    const act =
+      seen &&
+      POLICY !== "casual" &&
+      (cost === 0 || p.credits >= cost * (RECKLESS ? 1 : 4) + (RECKLESS ? 0 : 300));
+    const e = yardOutcome(ev.kind, act ? "ACT" : "WAIT", rng, cfg);
+    if (e.credits > 0 && !spend(p, "VET", e.credits)) continue;
+    if (act) stats.yardActed++;
+    if (e.bad) stats.yardBad++;
+    const c = condition(h, nowH);
+    h.cond = {
+      ...c,
+      fatigue: Math.min(100, Math.max(0, c.fatigue + e.fatigue)),
+      health: Math.min(100, Math.max(0, c.health + e.health)),
+    };
+    h.condAt = nowH;
+    h.nextRisk *= e.injuryFactor;
+    if (e.shoesWorn) h.wornUntil = nowH + cfg.care.actions.FARRIER.cooldownHours;
+  }
+}
+
 function session(rng: Rng, p: Player, nowH: number): void {
+  yard(rng, p, nowH);
   // Every session the owner walks each horse in hand (the free daily-care loop).
   for (const h of p.horses) if (nowH >= h.injuredUntil) care(h, nowH, "HAND_WALK");
   for (const h of p.horses) {
@@ -763,6 +829,7 @@ const players: Player[] = Array.from({ length: PLAYERS }, () => {
     passXp: 0,
     bonusDay: -1,
     mastery: { trainings: 0, starts: 0, podiums: 0, foals: 0 },
+    yardW: -1,
     id: nextId++,
   };
   earn(p, "STARTER_GRANT", cfg.economy.startingCredits);
@@ -825,7 +892,7 @@ const perPlayerDay = (m: Map<string, number>, excludeOneOff: boolean) => {
 };
 const fmt = (n: number) => Math.round(n).toLocaleString("en");
 console.log(
-  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} tournaments=${stats.tournaments}/${stats.tournamentEntries} jockeys=${stats.jockeys} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet}`,
+  `players=${PLAYERS} days=${DAYS} races=${stats.races} trainings=${stats.trainings} purchases=${stats.purchases} upgrades=${stats.upgrades} hires=${stats.hires} tournaments=${stats.tournaments}/${stats.tournamentEntries} jockeys=${stats.jockeys} facilities=${stats.facilities} injuries=${stats.injuries} vet=${stats.vet} yard=${stats.yardEvents} acted=${stats.yardActed} bad=${stats.yardBad}`,
 );
 console.log(
   "sources per player-day:",

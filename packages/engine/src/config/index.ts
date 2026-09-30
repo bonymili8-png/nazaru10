@@ -305,6 +305,33 @@ export interface GameConfig {
     shoeStarts: number;
     wornShoeInjuryFactor: number;
   };
+  /** Yard events: small things that go wrong in a real yard, each a choice. See yard/index.ts. */
+  yard: {
+    /** The day is cut into windows; each has this chance of one event for an owner. */
+    windowHours: number;
+    chancePerWindow: number;
+    /** Unanswered events settle on their own (the WAIT outcome) after this long. */
+    expiresHours: number;
+    /** New owners settle in first. */
+    minAccountAgeHours: number;
+    events: {
+      /** ACT: farrier call-out, fresh shoes. WAIT: worn shoes until the farrier's round. */
+      LOST_SHOE: { weight: number; actCost: number };
+      /** ACT: ice and box rest (fatigue). WAIT: carry on (injury risk of the next start). */
+      HEAT_IN_LEG: { weight: number; actFatigue: number; waitInjuryFactor: number; afterRaceHours: number };
+      /** ACT: vet. WAIT: health dips while it sorts itself out. */
+      OFF_FEED: { weight: number; actCost: number; waitHealth: number };
+      /** ACT: vet. WAIT: your people get it up — usually fine (trust), sometimes bruised. */
+      CAST_IN_BOX: {
+        weight: number;
+        actCost: number;
+        waitRisk: number;
+        waitHealth: number;
+        waitFatigue: number;
+        waitBond: number;
+      };
+    };
+  };
   /** Gear trades one attribute for another on race day (never a net gain on every course). */
   equipment: Record<GearItem, { cost: number; mods: Partial<Record<TrainableAttribute, number>> }>;
   /** Gear wears out after `races` starts; repairing costs repairRate × cost × the share worn. */
@@ -811,6 +838,18 @@ export const defaultConfig: GameConfig = {
     bondTemperamentFactor: 0.1,
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
+  },
+  yard: {
+    windowHours: 12,
+    chancePerWindow: 0.5,
+    expiresHours: 12,
+    minAccountAgeHours: 12,
+    events: {
+      LOST_SHOE: { weight: 3, actCost: 80 },
+      HEAT_IN_LEG: { weight: 3, actFatigue: 20, waitInjuryFactor: 1.6, afterRaceHours: 48 },
+      OFF_FEED: { weight: 2, actCost: 120, waitHealth: 12 },
+      CAST_IN_BOX: { weight: 2, actCost: 150, waitRisk: 0.35, waitHealth: 20, waitFatigue: 10, waitBond: 2 },
+    },
   },
   mastery: {
     thresholds: {

@@ -466,3 +466,28 @@ Balance: the economy sim walks every horse each session and hoses after each rac
 the median player's in-class win rate from about 24 % to about 26 %. The gate ceiling went from
 25 % to 28 % on purpose, as a reward for attentive owners. Casual and reckless policies stay
 inside all gates.
+
+## Yard events (choices, not advice)
+
+Small things go wrong in a real yard. The day is split into 12-hour windows, and each window has
+a 50 % chance of one event for an owner. The event's time and horse come from a seed of owner
+and window. The server creates events lazily when the owner looks (`GET /yard`), with no cron,
+at most one per window. Owners in their first 12 hours get none.
+
+| Event | When | ACT | WAIT |
+|---|---|---|---|
+| Pulled a shoe | horse has raced | farrier call-out 80 cr: fresh shoes | shoes worn (×1.4 injury risk) until the farrier's round in 24 h |
+| Heat in a leg | within 48 h of a race | ice and box rest: +20 fatigue | next start's injury risk ×1.6 |
+| Off its feed | any horse | vet 120 cr | −12 health |
+| Cast in the box | any horse | vet 150 cr | 35 %: −20 health, +10 fatigue; otherwise +2 trust |
+
+The game never says which choice is right. Credits, the horse's schedule and the risk are the
+owner's call. An event nobody answers within 12 h settles as WAIT; the yard carries on without
+you. If the horse was sold or retired first, the event settles with no effect. Call-outs go to
+the `VET` sink. The one-off risk (`horses.next_start_injury`) applies at the next race lock and
+resets when that race settles. Events show on the home screen, and the horses page also lists the
+last day's outcomes. Config `yard.*`, rules in `engine/yard`.
+
+Balance (economy sim, 300 owners × 28 days): about 1 event per owner-day. The median owner pays
+call-outs when comfortable, costing about 70 cr/day in `VET`. The casual policy never answers.
+All gates pass under every policy.

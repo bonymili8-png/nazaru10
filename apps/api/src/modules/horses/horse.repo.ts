@@ -60,6 +60,8 @@ export interface HorseRow {
   massaged: boolean;
   last_race_at: Date | null;
   hosed_last_race: boolean;
+  /** Yard events (0039): one-off injury-risk multiplier for the next start. */
+  next_start_injury: number;
 }
 
 export interface NewHorse {

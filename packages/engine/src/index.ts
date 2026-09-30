@@ -29,3 +29,4 @@ export * from "./sponsors/index.js";
 export * from "./stable/mastery.js";
 export * from "./care/index.js";
 export * from "./yard/index.js";
+export * from "./gallop/index.js";

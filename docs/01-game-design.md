@@ -491,3 +491,21 @@ last day's outcomes. Config `yard.*`, rules in `engine/yard`.
 Balance (economy sim, 300 owners × 28 days): about 1 event per owner-day. The median owner pays
 call-outs when comfortable, costing about 70 cr/day in `VET`. The casual policy never answers.
 All gates pass under every policy.
+
+## Morning work on the clock
+
+A trainer judges a horse by working it against a horse whose ability is known. The owner can
+send a horse out once every 20 h over 800, 1200 or 1600 m, on any surface, against the yard's
+lead horse for a chosen class. Each class has a fixed lead horse: a typical house runner, fresh,
+equally at home on every surface and suited to the trip. That makes pieces of work comparable
+over time. The work is a two-horse run of the race engine on a flat gallop (cloudy, good going)
+with 50-skill work riders. It uses the horse's current condition and its trust.
+
+The owner sees the time, the lead horse's time, the margin in lengths, and the fatigue the horse
+went out with. The game draws no conclusion: which class or trip to aim at is the owner's
+judgement. Single pieces are noisy (σ ≈ 4 lengths, where neighbouring classes are ≈ 15 lengths
+apart), so a good judge repeats and compares. Work costs +8 fatigue. It is allowed from IDLE,
+ENTERED or LISTED, at racing age, with health fit to race and fatigue ≤ 40. The cooldown follows
+the horse; the history shows only the current owner's work. There are no credits and no stat
+gains, so the economy is unchanged (the simulation needs no model of it). Config `gallop.*`,
+rules in `engine/gallop`, table `gallops`.

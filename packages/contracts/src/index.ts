@@ -3,6 +3,7 @@ import {
   GEAR_ITEMS,
   RACE_CLASSES,
   STRATEGIES,
+  SURFACES,
   TRAINING_INTENSITIES,
   TRAINING_TYPES,
   type Aptitudes,
@@ -73,6 +74,16 @@ export const StartTrainingRequest = z.object({
   intensity: z.enum(TRAINING_INTENSITIES),
 });
 export type StartTrainingRequest = z.infer<typeof StartTrainingRequest>;
+
+/** Send a horse out for timed morning work against the yard's lead horse for a class. */
+export const GallopRequest = z
+  .object({
+    distance: z.number().int().min(400).max(3000),
+    surface: z.enum(SURFACES),
+    leadClass: z.enum(RACE_CLASSES),
+  })
+  .strict();
+export type GallopRequest = z.infer<typeof GallopRequest>;
 
 /** Choose a horse's feed plan. STANDARD stops renewal: a paid week still runs to its end. */
 export const SetFeedRequest = z.object({ plan: z.enum(FEED_PLANS) }).strict();
@@ -892,6 +903,32 @@ export interface CareDto {
   shoeLimit: number;
   /** A massage is waiting to help the next start. */
   massaged: boolean;
+}
+
+/** One piece of timed work. Margin in lengths: positive = beat the lead horse. */
+export interface GallopDto {
+  id: string;
+  at: string;
+  distance: number;
+  surface: Surface;
+  leadClass: RaceClass;
+  /** The horse's fatigue when it went out. */
+  fatigue: number;
+  time: number;
+  leadTime: number;
+  margin: number;
+}
+
+export interface GallopsDto {
+  ready: boolean;
+  /** COOLDOWN (see availableAt), TOO_TIRED, NOT_FIT (health), BUSY (status), TOO_YOUNG. */
+  block: string | null;
+  availableAt: string | null;
+  distances: number[];
+  /** Fatigue the work costs. */
+  fatigueCost: number;
+  /** The owner's last pieces of work with this horse, newest first. */
+  history: GallopDto[];
 }
 
 export type YardEventKind = "LOST_SHOE" | "HEAT_IN_LEG" | "OFF_FEED" | "CAST_IN_BOX";

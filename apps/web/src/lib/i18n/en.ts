@@ -1342,6 +1342,28 @@ export const en = {
   "yard.out.fine": "all well",
   "error.YARD_SETTLED": "Already dealt with",
   "error.HORSE_GONE": "This horse is no longer in your yard",
+  "gallop.title": "Morning work",
+  "gallop.hint":
+    "Work the horse upsides the yard's lead horse for a class, on the clock. The lead horse is always the same horse, so you can compare pieces of work over time. What the times mean is up to you.",
+  "gallop.distance": "Distance",
+  "gallop.surface": "Surface",
+  "gallop.lead": "Lead horse of",
+  "gallop.send": "Send out · +{n} fatigue",
+  "gallop.ready": "Ready to work",
+  "gallop.again": "Can work again in {t}",
+  "gallop.block.BUSY": "Can't go out right now",
+  "gallop.block.TOO_YOUNG": "Too young for fast work",
+  "gallop.block.NOT_FIT": "Not fit enough for fast work",
+  "gallop.block.TOO_TIRED": "Too tired — let it recover first",
+  "gallop.history": "Last pieces of work",
+  "gallop.vsLead": "{cls} lead {t}",
+  "gallop.ahead": "beat it by {n} L",
+  "gallop.behind": "{n} L behind",
+  "gallop.level": "level",
+  "gallop.fatigueThen": "fatigue {n}",
+  "error.TOO_TIRED": "Too tired for fast work — let it recover first",
+  "error.NOT_FIT": "Not fit enough for fast work",
+  "error.TOO_YOUNG": "Too young for fast work",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

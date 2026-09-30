@@ -305,6 +305,16 @@ export interface GameConfig {
     shoeStarts: number;
     wornShoeInjuryFactor: number;
   };
+  /** Morning work against the yard's lead horse, on the clock. See gallop/index.ts. */
+  gallop: {
+    distances: number[];
+    /** Fatigue the work costs; not allowed above `maxFatigue`. */
+    fatigue: number;
+    maxFatigue: number;
+    cooldownHours: number;
+    /** Work riders on both horses (neither is a race jockey). */
+    riderSkill: number;
+  };
   /** Yard events: small things that go wrong in a real yard, each a choice. See yard/index.ts. */
   yard: {
     /** The day is cut into windows; each has this chance of one event for an owner. */
@@ -839,6 +849,7 @@ export const defaultConfig: GameConfig = {
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
   },
+  gallop: { distances: [800, 1200, 1600], fatigue: 8, maxFatigue: 40, cooldownHours: 20, riderSkill: 50 },
   yard: {
     windowHours: 12,
     chancePerWindow: 0.5,

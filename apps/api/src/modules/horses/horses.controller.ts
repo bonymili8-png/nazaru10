@@ -2,6 +2,9 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nest
 import {
   type CareRoundDto,
   type ExpertAdviceDto,
+  GallopRequest,
+  type GallopDto,
+  type GallopsDto,
   type HorseAdviceDto,
   type HorseOfferDto,
   MakeOfferRequest,
@@ -23,6 +26,7 @@ import { RacesService } from "../races/races.service.js";
 import { TrainingService } from "../training/training.service.js";
 import { CARE_ACTIONS, type CareAction, trainingAdvice } from "@thoroughline/engine";
 import { CareService } from "./care.service.js";
+import { GallopService } from "./gallop.service.js";
 import { getHorse, horsesByOwner } from "./horse.repo.js";
 import { HorsesService } from "./horses.service.js";
 import { NutritionService } from "./nutrition.service.js";
@@ -42,6 +46,7 @@ export class HorsesController {
     private readonly offers: OffersService,
     private readonly expert: ExpertAdviceService,
     private readonly care: CareService,
+    private readonly gallops: GallopService,
   ) {}
 
   @Get()
@@ -208,6 +213,21 @@ export class HorsesController {
       throw badRequest("UNKNOWN_CARE", `Care actions: ${CARE_ACTIONS.join(", ")}`);
     const h = await this.care.perform(user.id, id, action as CareAction);
     return this.horses.detail(h, user.id, this.clock.now(), null, null);
+  }
+
+  /** Morning work on the clock: availability and the owner's last pieces of work. */
+  @Get(":id/gallops")
+  gallopList(@CurrentUser() user: AuthUser, @Param("id", ParseUUIDPipe) id: string): Promise<GallopsDto> {
+    return this.gallops.list(user.id, id);
+  }
+
+  @Post(":id/gallops")
+  gallop(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<GallopDto> {
+    return this.gallops.work(user.id, id, parse(GallopRequest, body));
   }
 
   /** Choose the horse's feed plan (weekly, credits; recovery only). */

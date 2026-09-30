@@ -33,6 +33,7 @@ import { ExpertAdviceService } from "./modules/horses/expert-advice.service.js";
 import { CareService } from "./modules/horses/care.service.js";
 import { YardController } from "./modules/horses/yard.controller.js";
 import { YardService } from "./modules/horses/yard.service.js";
+import { GallopService } from "./modules/horses/gallop.service.js";
 import { JobRunnerService } from "./modules/jobs/job-runner.service.js";
 import { LeaderboardController } from "./modules/leaderboard/leaderboard.controller.js";
 import { BreedingController } from "./modules/breeding/breeding.controller.js";
@@ -146,6 +147,7 @@ export class AppModule {
         ExpertAdviceService,
         CareService,
         YardService,
+        GallopService,
         StableService,
         TrainingService,
         HouseService,

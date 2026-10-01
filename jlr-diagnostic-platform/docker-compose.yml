@@ -1,0 +1,92 @@
+# JLR Diagnostic Platform — local, simulation-first stack.
+#
+#   docker compose up --build
+#   open http://localhost:8080      (Mini App; dev sign-in outside Telegram)
+#
+# Every secret below has a development default so `docker compose up` works out of the box.
+# Copy .env.example to .env and replace them for anything beyond local development.
+
+name: jlr-diagnostics
+
+x-gateway-token: &gateway-token ${GATEWAY_TOKEN:-dev-only-gateway-token-change-me}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jlr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jlr}
+      POSTGRES_DB: ${POSTGRES_DB:-jlr_diagnostics}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Owns the vehicle connection. GATEWAY_INTERFACE=mock runs the JLRVehicleSimulator.
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      target: gateway
+      secrets: [extra_ca]
+    environment:
+      GATEWAY_INTERFACE: ${GATEWAY_INTERFACE:-mock}
+      GATEWAY_TOKEN: *gateway-token
+      GATEWAY_SIM_PROFILE: ${GATEWAY_SIM_PROFILE:-range_rover}
+      GATEWAY_SIM_CONTROL_ENABLED: ${GATEWAY_SIM_CONTROL_ENABLED:-true}
+      GATEWAY_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    expose:
+      - "8100"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+      target: api
+      secrets: [extra_ca]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jlr}:${POSTGRES_PASSWORD:-jlr}@postgres:5432/${POSTGRES_DB:-jlr_diagnostics}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-0123456789}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      ALLOW_DEV_AUTH: ${ALLOW_DEV_AUTH:-true}
+      DEFAULT_ROLE: ${DEFAULT_ROLE:-technician}
+      ADMIN_TELEGRAM_IDS: ${ADMIN_TELEGRAM_IDS:-}
+      GATEWAY_URL: http://gateway:8100
+      GATEWAY_TOKEN: *gateway-token
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      FORWARDED_ALLOW_IPS: "*"
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  # Telegram Mini App (static build + nginx reverse proxy for /api).
+  web:
+    build:
+      context: .
+      dockerfile: docker/mini-app.Dockerfile
+      args:
+        VITE_DEV_AUTH: ${VITE_DEV_AUTH:-true}
+      secrets: [extra_ca]
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+
+secrets:
+  # Optional CA bundle for image builds behind a TLS-intercepting proxy: EXTRA_CA_CERT=/path/ca.pem
+  extra_ca:
+    file: ${EXTRA_CA_CERT:-/dev/null}

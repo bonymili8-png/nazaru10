@@ -1,0 +1,22 @@
+[project]
+name = "jlr-simulator"
+version = "0.1.0"
+description = "JLRVehicleSimulator: simulated vehicle bus, ECUs and fault injection (simulation profiles only)"
+requires-python = ">=3.12"
+dependencies = [
+  "jlr-shared-types",
+  "jlr-protocols",
+  "jlr-diagnostic-core",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jlr_simulator"]
+
+[tool.uv.sources]
+jlr-shared-types = { workspace = true }
+jlr-protocols = { workspace = true }
+jlr-diagnostic-core = { workspace = true }

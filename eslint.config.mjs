@@ -10,6 +10,7 @@ export default tseslint.config(
       "**/out/**",
       "**/coverage/**",
       ".claude/**",
+      "jlr-diagnostic-platform/**", // separate project with its own toolchain
       "**/next-env.d.ts",
     ],
   },

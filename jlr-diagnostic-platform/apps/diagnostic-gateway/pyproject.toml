@@ -1,0 +1,30 @@
+[project]
+name = "jlr-gateway"
+version = "0.1.0"
+description = "Local diagnostic gateway service: owns the vehicle connection"
+requires-python = ">=3.12"
+dependencies = [
+  "jlr-shared-types",
+  "jlr-protocols",
+  "jlr-diagnostic-core",
+  "jlr-vehicle-model",
+  "jlr-simulator",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic-settings>=2.4",
+  "prometheus-client>=0.20",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jlr_gateway"]
+
+[tool.uv.sources]
+jlr-shared-types = { workspace = true }
+jlr-protocols = { workspace = true }
+jlr-diagnostic-core = { workspace = true }
+jlr-vehicle-model = { workspace = true }
+jlr-simulator = { workspace = true }

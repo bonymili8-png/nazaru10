@@ -1,0 +1,22 @@
+[project]
+name = "jlr-diagnostic-core"
+version = "0.1.0"
+description = "Hardware-independent diagnostic engine: interfaces, discovery, DTC, live data, safety"
+requires-python = ">=3.12"
+dependencies = [
+  "jlr-shared-types",
+  "jlr-protocols",
+  "jlr-vehicle-model",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jlr_diagnostic_core"]
+
+[tool.uv.sources]
+jlr-shared-types = { workspace = true }
+jlr-protocols = { workspace = true }
+jlr-vehicle-model = { workspace = true }

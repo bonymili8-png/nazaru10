@@ -1,0 +1,15 @@
+[project]
+name = "jlr-shared-types"
+version = "0.1.0"
+description = "Typed contracts, capability model and error model shared by every component"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jlr_shared_types"]

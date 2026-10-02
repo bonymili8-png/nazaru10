@@ -761,6 +761,7 @@ export class ShowdownsService {
           finishTime: res?.time ?? null,
           lengthsBehind: res?.lengthsBehind ?? null,
           prize: null,
+          ratingAfter: null,
           mine: f.userId !== null && f.userId === viewerId,
           silks: null,
           cloth: null,

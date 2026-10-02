@@ -367,7 +367,23 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
                       ? tr("live.sec", { n: r.finishTime?.toFixed(2) ?? "" })
                       : tr("live.lengths", { n: r.lengthsBehind?.toFixed(1) ?? "" })}
                   </p>
-                  {!!r.prize && !r.isHouse && <p className="num text-xs text-good">+{fmt(r.prize)}</p>}
+                  {!!r.prize && !r.isHouse && (
+                    <p className="num text-xs text-good">
+                      +{fmt(r.prize)} {tr("common.cr")}
+                    </p>
+                  )}
+                  {/* Race rating (Elo) moves a few points per race — separate from the prize money. */}
+                  {!r.isHouse && r.ratingAfter !== null && r.ratingAfter !== r.raceRating && (
+                    <p
+                      className={`num text-[11px] ${r.ratingAfter > r.raceRating ? "text-good" : "text-bad"}`}
+                    >
+                      {tr("live.ratingChange", {
+                        from: r.raceRating,
+                        to: r.ratingAfter,
+                        d: `${r.ratingAfter > r.raceRating ? "+" : ""}${r.ratingAfter - r.raceRating}`,
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

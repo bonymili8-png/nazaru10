@@ -575,7 +575,11 @@ function History({ id }: { id: string }) {
                 {r.position ? ordinal(r.position) : "—"}
                 <span className="text-xs text-muted">/{r.field}</span>
               </p>
-              {!!r.prize && <p className="num text-xs text-good">+{fmt(r.prize)}</p>}
+              {!!r.prize && (
+                <p className="num text-xs text-good">
+                  +{fmt(r.prize)} {t("common.cr")}
+                </p>
+              )}
             </div>
           </Link>
         ))}

@@ -132,6 +132,9 @@ describe("race lifecycle", () => {
     expect(done.body.seed).toBeTruthy();
     const mine = done.body.entryList.find((e) => e.mine)!;
     expect(mine.position).toBeGreaterThanOrEqual(1);
+    // The prize is credits; the race rating is a separate Elo number that moves a few points.
+    expect(mine.ratingAfter).not.toBeNull();
+    expect(Math.abs(mine.ratingAfter! - mine.raceRating)).toBeLessThanOrEqual(defaultConfig.race.eloK);
 
     const horse = await t.db.one<{ starts: number; earnings: number; status: string; fatigue: number }>(
       "SELECT starts, earnings, status, fatigue FROM horses WHERE id = $1",

@@ -1468,4 +1468,5 @@ export const uk: Record<MessageKey, Msg> = {
   "error.NOT_ENOUGH_PLAYERS": "Зачекайте, поки приєднаються інші гравці",
   "error.RACE_OFF": "Старт уже дано — тактику не змінити",
   "error.TOO_MANY_SHOWDOWNS": "Спершу завершіть один із відкритих турнірів",
+  "live.ratingChange": "рейтинг {from} → {to} ({d})",
 };

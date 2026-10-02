@@ -311,6 +311,7 @@ export class RacesService {
       finishTime: reveal ? e.finish_time : null,
       lengthsBehind: reveal ? e.lengths_behind : null,
       prize: reveal ? e.prize : null,
+      ratingAfter: reveal ? e.rating_after : null,
       mine,
       silks: e.is_house ? null : e.silks,
       cloth: e.is_house ? null : e.cloth,

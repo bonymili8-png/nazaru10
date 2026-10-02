@@ -1464,6 +1464,7 @@ export const en = {
   "error.NOT_ENOUGH_PLAYERS": "Wait for more players to join",
   "error.RACE_OFF": "They're off — too late to change tactics",
   "error.TOO_MANY_SHOWDOWNS": "Finish one of your open showdowns first",
+  "live.ratingChange": "rating {from} → {to} ({d})",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

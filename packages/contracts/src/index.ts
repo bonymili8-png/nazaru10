@@ -1122,6 +1122,8 @@ export interface RaceEntryDto {
   finishTime: number | null;
   lengthsBehind: number | null;
   prize: number | null;
+  /** Race rating after this race (with `raceRating` before it); null until the result is public. */
+  ratingAfter: number | null;
   mine: boolean;
   /** Owner's racing silks (null for house horses). */
   silks: Silks | null;

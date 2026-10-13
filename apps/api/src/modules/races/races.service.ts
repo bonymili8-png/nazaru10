@@ -299,6 +299,7 @@ export class RacesService {
       horseId: e.horse_id,
       horseName: e.snapshot?.name ?? e.horse_name,
       ownerName: e.is_house ? null : (e.snapshot?.ownerName ?? e.owner_name),
+      ownerId: e.is_house ? null : e.owner_id,
       isHouse: e.is_house,
       gate: e.gate === null ? null : e.gate + 1,
       // Tactics stay private until the result is public.

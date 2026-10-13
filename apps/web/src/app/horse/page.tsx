@@ -152,6 +152,13 @@ function HorsePage() {
               {t("horse.ageLine", { age: h.age.toFixed(1), sex: titleCase(h.sex) })} · {titleCase(h.coat)} ·{" "}
               {h.bloodline}
             </p>
+            {!mine && !h.isHouse && h.ownerId && (
+              <p className="text-sm">
+                <Link href={`/owner/?id=${h.ownerId}`} className="text-gold underline underline-offset-2">
+                  {t("owners.ownedBy", { name: h.ownerName ?? t("common.owner") })}
+                </Link>
+              </p>
+            )}
             <div className="mt-1 flex flex-wrap gap-1.5">
               <Badge tone="gold">{titleCase(h.rarity)}</Badge>
               <Badge>{titleCase(h.stage)}</Badge>
@@ -206,6 +213,7 @@ function HorsePage() {
 
       {(!mine || tab === "overview") && <Overview h={h} />}
       {mine && tab === "train" && <Train h={h} />}
+      {!mine && h.public && <PublicView h={h} />}
       {(!mine || tab === "history") && <History id={h.id} />}
       {(!mine || tab === "history") && <Pedigree id={h.id} />}
       {!h.isHouse && (!mine || tab === "overview") && <Syndicate horseId={h.id} horseName={h.name} />}
@@ -1139,5 +1147,80 @@ function FollowButton({ h }: { h: HorseDetailDto }) {
     >
       <Star className="size-5" fill={h.followed ? "currentColor" : "none"} aria-hidden />
     </button>
+  );
+}
+
+/** Another owner's horse: its attributes for everyone, its potential as a paid scouting report. */
+function PublicView({ h }: { h: HorseDetailDto }) {
+  const p = h.public!;
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const report = p.scouting?.report ?? null;
+  const scout = async () => {
+    if (!window.confirm(t("scout.confirm", { name: h.name, n: p.scouting!.priceGems }))) return;
+    setBusy(true);
+    try {
+      await post(`/horses/${h.id}/scout`);
+      haptic.success();
+      toast(t("scout.done"));
+      invalidate(`/horses/${h.id}`, "/wallet");
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <SectionTitle>{t("horse.attributes")}</SectionTitle>
+      <Card>
+        {Object.entries(ATTRIBUTE_LABELS).map(([k, label]) => (
+          <Meter
+            key={k}
+            label={label}
+            value={p.attributes[k as keyof typeof p.attributes]}
+            ceiling={report?.ceilings[k as keyof typeof p.attributes]}
+          />
+        ))}
+        {p.scouting && !report && (
+          <>
+            <p className="mt-3 text-sm text-muted">{t("scout.hint")}</p>
+            <Button
+              variant="secondary"
+              className="mt-2 w-full text-sm"
+              loading={busy}
+              onClick={() => void scout()}
+            >
+              <Microscope className="size-4" aria-hidden />
+              {t("scout.buy", { n: p.scouting.priceGems })}
+            </Button>
+          </>
+        )}
+        {report && (
+          <div className="mt-3 space-y-1 border-t border-line/40 pt-3 text-sm">
+            <p className="flex items-center justify-between">
+              <span className="text-muted">{t("horse.potential")}</span>
+              <Stars n={report.potentialStars} />
+            </p>
+            <p className="flex items-center justify-between">
+              <span className="text-muted">{t("scout.raceIq")}</span>
+              <span className="num">{Math.round(report.raceIntelligence)}</span>
+            </p>
+            <p className="flex items-center justify-between">
+              <span className="text-muted">{t("scout.injury")}</span>
+              <span>
+                {report.injurySusceptibility < 0.85
+                  ? t("scout.sound")
+                  : report.injurySusceptibility > 1.15
+                    ? t("scout.fragile")
+                    : t("scout.average")}
+              </span>
+            </p>
+            <p className="text-xs text-muted">{t("horse.ceilingHint")}</p>
+          </div>
+        )}
+      </Card>
+    </>
   );
 }

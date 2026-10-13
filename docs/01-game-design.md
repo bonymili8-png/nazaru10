@@ -547,3 +547,23 @@ credits, gems or ratings, and they have no effect on anyone's stable.
   and read-only `/public/showdowns/:code` plus `/public/showdowns/:code/races/:id/live`.
   Races run lazily on reads and from the job runner. Tables: `showdowns`, `showdown_players`,
   `showdown_races`. Config `showdown.*`, rules in `engine/showdown`.
+
+## Other owners: search, stables, scouting, offers
+
+* **Search** (Rankings → "Find owners", `GET /owners?q=`): owners whose stable name, username or
+  first name contains the query (at least 2 characters, matched literally). Shows up to 20 results.
+* **Stable** (`/owner/?id=…`, `GET /owners/:userId`): any player can open any owner's stable.
+  It shows the crest, level, reputation, member badge and stable record. Every active horse is
+  listed with its race rating, strength, record and all attributes. Each horse has a "Make an
+  offer to buy" button, which uses the existing offers: amount held in escrow, the market price
+  band, 48 h to answer, sale fee on acceptance.
+* **Another owner's horse**: the horse page shows the owner (linked to their stable) and the
+  horse's attributes. Its genetic potential stays hidden: attribute ceilings, potential stars,
+  racing brain and soundness. A **scouting report** reveals it for 300 gems
+  (`economy.scoutReportGems`, sink `DIAGNOSTICS`), once per viewer and horse, kept for good
+  (`scout_reports`). Owners use their own diagnostics instead (20 gems). House horses cannot be
+  scouted.
+* **Races**: in the runners list (entries and while the race runs) and in the result, each horse
+  links to its page and each owner to their stable (`RaceEntryDto.ownerId`; house horses say
+  "House"; showdown runners are not linked). Season and all-time rankings link owners to their
+  stables.

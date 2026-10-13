@@ -43,7 +43,7 @@ describe("race lifecycle", () => {
     );
     expect(res.status).toBe(201);
     expect(res.body.entryList).toHaveLength(1);
-    expect(res.body.entryList[0]).toMatchObject({ mine: true, strategy: "CLOSER" });
+    expect(res.body.entryList[0]).toMatchObject({ mine: true, strategy: "CLOSER", ownerId: alice.userId });
     const dup = await t.post<{ error: { code: string } }>(
       `/races/${race.id}/entries`,
       { horseId: aliceHorse, strategy: "CLOSER" },

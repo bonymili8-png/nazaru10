@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
 import { RaceReport } from "@/components/RaceReport";
+import { HorseLink, OwnerLink } from "@/components/RunnerLinks";
 import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -140,9 +141,11 @@ function RacePage() {
                   <span className="size-6" aria-hidden />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{e.horseName}</p>
+                  <p className="truncate font-medium">
+                    <HorseLink e={e} />
+                  </p>
                   <p className="truncate text-xs text-muted">
-                    {e.isHouse ? t("common.house") : e.ownerName}
+                    <OwnerLink e={e} />
                     {e.jockeyName ? ` · ${e.jockeyName}` : ""}
                     {e.strategy ? ` · ${STRATEGY_INFO[e.strategy]!.label}` : ""}
                   </p>

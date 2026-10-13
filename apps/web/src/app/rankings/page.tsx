@@ -9,7 +9,7 @@ import type {
   SeasonOwnerRowDto,
 } from "@thoroughline/contracts";
 import { defaultConfig, RACE_CLASSES } from "@thoroughline/engine";
-import { Crown, Trophy } from "lucide-react";
+import { Crown, Search, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClubsBoard } from "@/components/ClubsBoard";
 import { Crest } from "@/components/Crest";
@@ -32,7 +32,16 @@ export default function RankingsPage() {
   }, []);
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">{t("rank.title")}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-display text-3xl font-bold">{t("rank.title")}</h1>
+        <Link
+          href="/owners/"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3.5 text-sm font-medium text-gold"
+        >
+          <Search className="size-4" aria-hidden />
+          {t("owners.find")}
+        </Link>
+      </div>
       <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-surface p-1" role="tablist">
         {(
           [
@@ -125,6 +134,7 @@ function SeasonBoard() {
               ? owners.data?.map((r) => (
                   <Row
                     key={r.userId}
+                    href={`/owner/?id=${r.userId}`}
                     rank={r.rank}
                     crest={<Crest crest={r.crest} size={26} />}
                     member={r.member}
@@ -267,6 +277,7 @@ function AllTime() {
               : owners.data?.map((r) => (
                   <Row
                     key={r.userId}
+                    href={`/owner/?id=${r.userId}`}
                     rank={r.rank}
                     crest={<Crest crest={r.crest} size={26} />}
                     member={r.member}

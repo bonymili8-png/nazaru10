@@ -893,6 +893,15 @@ export interface HorseDetailDto extends HorseSummaryDto {
   /** Whether the viewer follows this horse, and how many players do. */
   followed: boolean;
   followers: number;
+  /**
+   * What any other player sees: the horse's attributes, and the scouting report on its genetic
+   * potential once the viewer has bought it (null for the owner).
+   */
+  public: {
+    attributes: Attributes;
+    /** Null for house horses (nobody can buy them). */
+    scouting: { priceGems: number; report: ScoutReportDto | null } | null;
+  } | null;
   /** Present only for the owner. */
   private: {
     attributes: Attributes;
@@ -919,6 +928,50 @@ export interface HorseDetailDto extends HorseSummaryDto {
     } | null;
   } | null;
 }
+
+/** Genetic potential of a horse, as the owner's diagnostics shows it (bought by other players). */
+export interface ScoutReportDto {
+  potentialStars: number;
+  ceilings: Attributes;
+  injurySusceptibility: number;
+  maturity: number;
+  raceIntelligence: number;
+}
+
+/** One owner in a player search. */
+export interface OwnerCardDto {
+  userId: string;
+  name: string;
+  stableName: string;
+  crest: Crest;
+  level: number;
+  member: boolean;
+  horses: number;
+}
+
+/** A horse as anyone sees it in another owner's stable. */
+export interface PublicStableHorseDto extends HorseSummaryDto {
+  attributes: Attributes;
+  /** Offer price band, or null when the viewer cannot make an offer on it. */
+  offerBand: { min: number; max: number } | null;
+}
+
+/** Any owner's stable, open to every player. */
+export interface PublicStableDto {
+  userId: string;
+  name: string;
+  stableName: string;
+  crest: Crest;
+  level: number;
+  reputation: number;
+  member: boolean;
+  isMe: boolean;
+  record: { starts: number; wins: number; earnings: number };
+  horses: PublicStableHorseDto[];
+}
+
+export const OwnerSearchQuery = z.object({ q: z.string().trim().min(2).max(40) });
+export type OwnerSearchQuery = z.infer<typeof OwnerSearchQuery>;
 
 export type CareAction = "GROOM" | "HAND_WALK" | "COLD_HOSE" | "MASSAGE" | "FARRIER";
 
@@ -1110,6 +1163,8 @@ export interface RaceEntryDto {
   horseId: string;
   horseName: string;
   ownerName: string | null;
+  /** The owner, for a link to their stable (null for house horses and showdown runners). */
+  ownerId: string | null;
   isHouse: boolean;
   gate: number | null;
   strategy: Strategy | null;

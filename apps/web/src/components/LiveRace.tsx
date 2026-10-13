@@ -10,6 +10,7 @@ import { commentaryText } from "@/lib/i18n/commentary";
 import { ovalBounds, ovalPoint } from "@/lib/oval";
 import { FinishEffect } from "./FinishEffect";
 import { RaceCamera } from "./RaceCamera";
+import { HorseLink, OwnerLink } from "./RunnerLinks";
 import { SilkMarks } from "./Silk";
 import { Button, Card, SectionTitle } from "./ui";
 
@@ -355,9 +356,11 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
                   {r.position ? ordinal(r.position) : "—"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{r.horseName}</p>
+                  <p className="truncate font-medium">
+                    <HorseLink e={r} />
+                  </p>
                   <p className="truncate text-xs text-muted">
-                    {r.isHouse ? tr("common.house") : r.ownerName} · {r.jockeyName} ·{" "}
+                    <OwnerLink e={r} /> · {r.jockeyName} ·{" "}
                     {r.strategy ? STRATEGY_INFO[r.strategy]!.label : ""}
                   </p>
                 </div>

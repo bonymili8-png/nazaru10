@@ -750,6 +750,7 @@ export class ShowdownsService {
           horseId: f.id,
           horseName: f.horseName,
           ownerName: f.displayName,
+          ownerId: null,
           isHouse: f.userId === null,
           gate: f.gate,
           strategy: f.strategy,

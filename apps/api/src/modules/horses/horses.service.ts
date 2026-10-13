@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type {
+  ScoutReportDto,
   CareDto,
   ConditionDto,
   FeedDto,
@@ -220,12 +221,26 @@ export class HorsesService {
     studFee: number | null = null,
     follow: { followed: boolean; followers: number } = { followed: false, followers: 0 },
     offerBand: { min: number; max: number } | null = null,
+    scouted = false,
   ): HorseDetailDto {
     const isOwner = viewerId !== null && h.owner_id === viewerId;
     return {
       ...this.summary(h, now, ownerName),
       ...follow,
       offerBand,
+      // Everyone else sees the attributes; the potential is a paid scouting report.
+      public: isOwner
+        ? null
+        : {
+            attributes: h.attributes,
+            scouting:
+              h.is_house || !h.owner_id
+                ? null
+                : {
+                    priceGems: this.config.get().economy.scoutReportGems,
+                    report: scouted ? this.scoutReport(h) : null,
+                  },
+          },
       private: isOwner
         ? {
             attributes: h.attributes,
@@ -403,6 +418,49 @@ export class HorsesService {
   }
 
   /** Paid veterinary diagnostics reveal the hidden genome (information economy, no power). */
+  scoutReport(h: HorseRow): ScoutReportDto {
+    return {
+      potentialStars: potentialStars(h.genome),
+      ceilings: h.genome.ceilings,
+      injurySusceptibility: h.genome.hidden.injurySusceptibility,
+      maturity: h.genome.hidden.maturity,
+      raceIntelligence: h.genome.hidden.raceIntelligence,
+    };
+  }
+
+  /** Whether `userId` has bought the scouting report on this horse. */
+  async scouted(userId: string, horseId: string): Promise<boolean> {
+    const r = await rows(this.db.pool, "SELECT 1 FROM scout_reports WHERE user_id = $1 AND horse_id = $2", [
+      userId,
+      horseId,
+    ]);
+    return r.length > 0;
+  }
+
+  /** Buy the scouting report on another owner's horse (gems, once per horse; kept for good). */
+  async scout(userId: string, horseId: string): Promise<void> {
+    await this.db.tx(async (c) => {
+      const h = await getHorse(c, horseId);
+      if (h.owner_id === userId) throw conflict("OWN_HORSE", "Use diagnostics for your own horse");
+      if (h.is_house || !h.owner_id) throw conflict("NOT_SCOUTABLE", "House horses cannot be scouted");
+      const fresh = await rows(
+        c,
+        "INSERT INTO scout_reports (user_id, horse_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING 1",
+        [userId, horseId, this.clock.now()],
+      );
+      if (!fresh.length) return;
+      await this.ledger.debit(c, {
+        userId,
+        currency: "GEMS",
+        amount: this.config.get().economy.scoutReportGems,
+        sink: "DIAGNOSTICS",
+        key: `scout:${userId}:${horseId}`,
+        type: "SCOUT_REPORT",
+        reason: `Scouting report on ${h.name}`,
+      });
+    });
+  }
+
   async diagnose(userId: string, horseId: string): Promise<HorseRow> {
     const now = this.clock.now();
     return this.db.tx(async (c) => {

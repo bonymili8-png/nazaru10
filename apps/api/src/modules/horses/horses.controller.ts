@@ -87,7 +87,18 @@ export class HorsesController {
       stud?.fee ?? null,
       await this.horses.followInfo(h.id, user.id),
       this.offers.canOffer(h, user.id) ? this.offers.band(h, this.clock.now()) : null,
+      !mine && (await this.horses.scouted(user.id, h.id)),
     );
+  }
+
+  /** Buy the scouting report (genetic potential) on another owner's horse. */
+  @Post(":id/scout")
+  async scout(
+    @CurrentUser() user: AuthUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<HorseDetailDto> {
+    await this.horses.scout(user.id, id);
+    return this.detail(user, id);
   }
 
   /** Offer to buy a horse that is not for sale (amount held in escrow until answered). */

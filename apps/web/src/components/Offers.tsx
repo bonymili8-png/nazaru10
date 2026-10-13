@@ -11,8 +11,19 @@ import { Badge, Button, Card, SectionTitle, useToast } from "./ui";
 
 const REFRESH = ["/market/offers", "/wallet", "/horses", "/home"];
 
-/** Offer form on another owner's horse that is not for sale. */
-export function MakeOffer({ h }: { h: HorseDetailDto }) {
+/**
+ * Offer form on another owner's horse that is not for sale. `bare` drops the section title
+ * (inside a stable list, under the horse it is for).
+ */
+export function MakeOffer({
+  h,
+  bare = false,
+  onSent,
+}: {
+  h: Pick<HorseDetailDto, "id" | "name" | "offerBand">;
+  bare?: boolean;
+  onSent?: () => void;
+}) {
   const band = h.offerBand!;
   const [value, setValue] = useState(String(band.min));
   const [busy, setBusy] = useState(false);
@@ -27,6 +38,7 @@ export function MakeOffer({ h }: { h: HorseDetailDto }) {
       haptic.success();
       toast(t("offer.sent"));
       invalidate(...REFRESH);
+      onSent?.();
     } catch (e) {
       haptic.error();
       toast(errorMessage(e), "bad");
@@ -36,14 +48,14 @@ export function MakeOffer({ h }: { h: HorseDetailDto }) {
   };
   return (
     <>
-      <SectionTitle>{t("offer.title")}</SectionTitle>
-      <Card>
+      {!bare && <SectionTitle>{t("offer.title")}</SectionTitle>}
+      <Card className={bare ? "mt-2" : undefined}>
         <p className="text-sm text-muted">{t("offer.hint", { min: fmt(band.min), max: fmt(band.max) })}</p>
-        <label htmlFor="offer" className="mt-3 block text-sm text-muted">
+        <label htmlFor={`offer-${h.id}`} className="mt-3 block text-sm text-muted">
           {t("offer.amount")}
         </label>
         <input
-          id="offer"
+          id={`offer-${h.id}`}
           inputMode="numeric"
           value={value}
           onChange={(e) => setValue(e.target.value.replace(/[^\d]/g, ""))}

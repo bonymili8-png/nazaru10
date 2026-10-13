@@ -41,7 +41,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { locale, setLocale } = useLocale();
   // The public showdown broadcast works without signing in (streamers open it in any browser).
-  const isPublic = usePathname().startsWith("/watch");
+  const path = usePathname();
+  const isPublic = path.startsWith("/watch") || path.startsWith("/go");
 
   const boot = useCallback(async () => {
     initTelegram();

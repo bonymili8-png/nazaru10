@@ -10,3 +10,9 @@ export function inviteCodeOf(param: string | null | undefined): string | null {
     /^(?:race|horse)_[0-9a-f-]{36}_r([A-Za-z0-9]{1,16})$/i.exec(param);
   return m ? m[1]!.toUpperCase() : null;
 }
+
+/** The campaign code carried by a tracked link's start parameter (`c_CODE`). */
+export function campaignCodeOf(param: string | null | undefined): string | null {
+  const m = param ? /^c_([A-Za-z0-9]{4,12})$/.exec(param) : null;
+  return m ? m[1]!.toUpperCase() : null;
+}

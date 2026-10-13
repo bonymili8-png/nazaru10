@@ -8,7 +8,7 @@ import { type Lang, langOf } from "../../common/i18n.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
 import { recordOwnership } from "../horses/horse.repo.js";
-import { inviteCodeOf } from "../../common/invite.js";
+import { campaignCodeOf, inviteCodeOf } from "../../common/invite.js";
 import { QuestsService } from "../quests/quests.service.js";
 
 export interface TelegramProfile {
@@ -90,7 +90,17 @@ export class OnboardingService {
         );
         await c.query("RELEASE SAVEPOINT upsert_user");
         const { inserted, ...user } = r!;
-        if (inserted) await this.bootstrap(c, user, p, startParam, now);
+        // A new player may have come through the bot's /start: that parameter counts too.
+        const param = inserted ? await this.bootstrap(c, user, p, startParam, now) : startParam;
+        // Campaign links: who opened the game from which link (and whom it brought in).
+        const campaign = campaignCodeOf(param);
+        if (campaign)
+          await c.query(
+            `INSERT INTO campaign_users (campaign_id, user_id, is_new, opened_at)
+             SELECT id, $2, $3, $4 FROM campaigns WHERE code = $1 AND archived_at IS NULL
+             ON CONFLICT DO NOTHING`,
+            [campaign, user.id, inserted, now],
+          );
         // Daily activity for retention analytics (one row per UTC day).
         await c.query(
           "INSERT INTO user_activity (user_id, day) VALUES ($1, ($2::timestamptz AT TIME ZONE 'UTC')::date) ON CONFLICT DO NOTHING",
@@ -112,7 +122,7 @@ export class OnboardingService {
     p: TelegramProfile,
     startParam: string | null,
     now: Date,
-  ) {
+  ): Promise<string | null> {
     const cfg = this.config.get();
     // An invite that reached the bot's /start (within a week) counts as if it came with the app link.
     const pending = await row<{ param: string; fresh: boolean }>(
@@ -160,5 +170,6 @@ export class OnboardingService {
       actorId: user.id,
       payload: { startParam, starterHorseId: horse.id },
     });
+    return startParam ?? (pending?.fresh ? pending.param : null);
   }
 }

@@ -31,6 +31,8 @@ import {
   NAME_LIMITS,
   SILK_PATTERNS,
   SILK_COLORS,
+  CAMPAIGN_PLATFORMS,
+  type CampaignPlatform,
   MEMBER_COLORS,
   CREST_SHAPES,
   CREST_ICONS,
@@ -944,6 +946,59 @@ export interface HorseDetailDto extends HorseSummaryDto {
       raceIntelligence: number;
     } | null;
   } | null;
+}
+
+export const CreateCampaignRequest = z
+  .object({
+    name: z.string().trim().min(2).max(80),
+    partner: z.string().trim().max(80).optional(),
+    platform: z.enum(CAMPAIGN_PLATFORMS).default("OTHER"),
+    note: z.string().trim().max(500).optional(),
+    /** Optional custom code (letters and digits); generated when omitted. */
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9]{4,12}$/, "4–12 Latin letters or digits")
+      .optional(),
+  })
+  .strict();
+export type CreateCampaignRequest = z.infer<typeof CreateCampaignRequest>;
+
+/** Optional period for campaign analytics: ISO dates, `to` exclusive. */
+export const CampaignPeriodQuery = z.object({
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
+});
+
+/** One tracked link and its funnel for the chosen period. */
+export interface CampaignDto {
+  id: string;
+  code: string;
+  name: string;
+  partner: string | null;
+  platform: CampaignPlatform;
+  note: string | null;
+  createdAt: string;
+  archived: boolean;
+  /** Start parameter the Mini App receives (`c_CODE`). */
+  startParam: string;
+  funnel: {
+    /** Visits to the tracked link, and distinct visitors. */
+    clicks: number;
+    visitors: number;
+    /** Players who opened the game from the link (new and returning). */
+    opened: number;
+    /** New players the link brought in (counted once, by the first link they came from). */
+    newPlayers: number;
+    /** Of the new players: ran a race, came back on a later day, active in the last 7 days. */
+    firstRace: number;
+    returned: number;
+    active7d: number;
+    /** Of the new players: bought gems, and the Stars they paid (net of refunds). */
+    payers: number;
+    stars: number;
+  };
 }
 
 /** Genetic potential of a horse, as the owner's diagnostics shows it (bought by other players). */

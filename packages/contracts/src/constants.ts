@@ -106,3 +106,14 @@ export type FeedKind = (typeof FEED_KINDS)[number];
 
 /** At or below this fatigue a horse races at (almost) full strength (see fatigueModifier). */
 export const FRESH_FATIGUE = 20;
+
+/** Where a campaign link is posted (admin console, campaign analytics). */
+export const CAMPAIGN_PLATFORMS = [
+  "TELEGRAM",
+  "FACEBOOK",
+  "INSTAGRAM",
+  "TIKTOK",
+  "YOUTUBE",
+  "OTHER",
+] as const;
+export type CampaignPlatform = (typeof CAMPAIGN_PLATFORMS)[number];

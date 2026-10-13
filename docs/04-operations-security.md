@@ -14,6 +14,7 @@ FRAUD_ANALYST.
 | Audit log viewer | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
 | Economy dashboard (supply, mint/burn by reason, daily) | ECONOMY, FINANCE | ✅ console |
 | Revenue (Stars 7/30 days, payers, products, members, gem sinks) | ECONOMY, FINANCE | ✅ console |
+| Campaign links for partners (create, archive) and their funnel | ECONOMY, FINANCE, CONTENT | ✅ console |
 | Players (DAU/WAU/MAU, signups, D1/D7 retention by cohort from `user_activity`) | ECONOMY, FINANCE, GAME | ✅ console |
 | Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |
 | Payments list; refund (Telegram Stars refund + gem clawback, atomic, reason required) | FINANCE | ✅ console |
@@ -106,3 +107,26 @@ ledger mint/burn; alerts on economy anomaly, payment failures, race-run errors, 
 Managed Postgres with PITR (7–30 days), daily logical dump to object storage,
 **monthly restore drill** (a backup is only valid after a successful restore test),
 migrations always have down scripts, jobs are idempotent and resumable.
+
+
+## Campaign links (partner attribution)
+
+The admin console's **campaigns** tab creates one link per partner: a group admin, author or
+channel on Telegram, Facebook, Instagram, TikTok or YouTube. Each link gets a code, generated or
+custom (4–12 letters and digits), and two URLs:
+
+* **Tracked link** `https://<web>/go/?c=CODE`: a public landing page. It reports the visit
+  (`POST /public/campaigns/:code/click`; the visitor is stored as a keyed hash of IP and user
+  agent, never the IP itself), then opens the Mini App with start parameter `c_CODE`. Use this one
+  in posts.
+* **Direct Telegram link** `https://t.me/<bot>/<app>?startapp=c_CODE`: opens the game straight
+  away, without counting visits.
+
+At sign-in, a `c_CODE` start parameter records the player in `campaign_users`. Bot `/start c_CODE`
+works too for new players, through `pending_start_params`. `is_new` marks the players the link
+brought in; each player is acquired by one link only (first touch), and later links count only
+as opens. Funnel per link: visits (and unique visitors) → opened the game → new players → ran a
+first race → came back on a later day → active in the last 7 days → bought gems (payers, Stars
+net of refunds). The period filters visits and opens; what the new players did afterwards is
+counted to date. Archived links stop counting visits and opens; their history stays. Creating,
+archiving and restoring a link are audited.

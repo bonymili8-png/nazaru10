@@ -9,6 +9,7 @@ import {
 } from "@thoroughline/contracts";
 import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
+import { Campaigns } from "@/components/admin/Campaigns";
 import { useState } from "react";
 import {
   Badge,
@@ -30,6 +31,7 @@ import { invalidate, useApi } from "@/lib/hooks";
  */
 type Tab =
   | "revenue"
+  | "campaigns"
   | "players"
   | "liveops"
   | "economy"
@@ -41,6 +43,7 @@ type Tab =
   | "config";
 const TAB_ROLES: Record<Tab, string[]> = {
   revenue: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
+  campaigns: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "CONTENT_ADMIN"],
   players: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "GAME_ADMIN"],
   liveops: ["GAME_ADMIN", "CONTENT_ADMIN"],
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
@@ -62,6 +65,7 @@ export default function AdminPage() {
   const tabs = (
     [
       "revenue",
+      "campaigns",
       "players",
       "liveops",
       "economy",
@@ -94,6 +98,7 @@ export default function AdminPage() {
         ))}
       </div>
       {active === "revenue" && <Revenue />}
+      {active === "campaigns" && <Campaigns />}
       {active === "players" && <Players />}
       {active === "liveops" && <LiveOps />}
       {active === "economy" && <Economy />}

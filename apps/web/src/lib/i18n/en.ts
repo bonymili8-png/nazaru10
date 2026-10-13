@@ -1496,6 +1496,23 @@ export const en = {
   "scout.fragile": "Injury-prone",
   "error.OWN_HORSE": "Use diagnostics for your own horse",
   "error.NOT_SCOUTABLE": "House horses cannot be scouted",
+  "showdown.mode.OWN_HORSES": "Own horses",
+  "showdown.modeHint.OWN_HORSES":
+    "Race 1–3 horses from your own stable against other owners' horses — exactly as you trained them. No pace horses. Exhibition only: your horses don't tire, get hurt or change rating.",
+  "showdown.pickHorses": "Your horses (1–{n})",
+  "showdown.noHorses": "You have no active horses.",
+  "showdown.horseLine": "rating {r} · strength {a}",
+  "showdown.joinHintOwn": "Pick your name on air and 1–3 horses from your stable.",
+  "showdown.yourHorses": "Your horses",
+  "showdown.ownHint":
+    "They run as they are today: trained attributes, condition and trust. Points add up for all your horses.",
+  "showdown.changeHorses": "Change horses",
+  "showdown.saveHorses": "Save horses",
+  "showdown.tacticsEach": "Tactics for each of your horses",
+  "showdown.ratings": "ratings {r}",
+  "error.PICK_HORSES": "Pick 1 to 3 different horses from your stable",
+  "error.PICK_HORSE": "Choose one of your entered horses",
+  "error.NOT_YOUR_HORSE": "Only your own active horses can run",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

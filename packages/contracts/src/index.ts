@@ -117,17 +117,28 @@ const handle = z
       .regex(/^@?[A-Za-z0-9][A-Za-z0-9 _'&.-]*$/, "Latin letters, digits, spaces and _ ' & . - only"),
   );
 
+/** 1–3 horses from the player's own stable (OWN_HORSES showdowns). */
+const showdownHorseIds = z.array(z.string().uuid()).min(1).max(3);
+
 export const CreateShowdownRequest = z
   .object({
     name: latinName(40),
     mode: z.enum(SHOWDOWN_MODES),
     fillField: z.boolean().default(true),
     displayName: handle,
+    /** OWN_HORSES mode: the host's 1–3 horses. */
+    horseIds: showdownHorseIds.optional(),
   })
   .strict();
 export type CreateShowdownRequest = z.infer<typeof CreateShowdownRequest>;
 
-export const JoinShowdownRequest = z.object({ displayName: handle }).strict();
+export const JoinShowdownRequest = z
+  .object({ displayName: handle, horseIds: showdownHorseIds.optional() })
+  .strict();
+
+/** Change the horses entered (OWN_HORSES), between races. */
+export const SetShowdownHorsesRequest = z.object({ horseIds: showdownHorseIds }).strict();
+export type SetShowdownHorsesRequest = z.infer<typeof SetShowdownHorsesRequest>;
 export type JoinShowdownRequest = z.infer<typeof JoinShowdownRequest>;
 
 /** Call the next race: a distance and surface, or leave either to chance. */
@@ -140,7 +151,13 @@ export const CallShowdownRaceRequest = z
 export type CallShowdownRaceRequest = z.infer<typeof CallShowdownRaceRequest>;
 
 /** Tactics for the called race; null sits the race out (a tired horse can rest). */
-export const ShowdownTacticsRequest = z.object({ strategy: z.enum(STRATEGIES).nullable() }).strict();
+export const ShowdownTacticsRequest = z
+  .object({
+    strategy: z.enum(STRATEGIES).nullable(),
+    /** OWN_HORSES: which of the player's horses (each has its own tactics). */
+    horseId: z.string().uuid().optional(),
+  })
+  .strict();
 export type ShowdownTacticsRequest = z.infer<typeof ShowdownTacticsRequest>;
 
 export const RenameStableRequest = z.object({ name: latinName(NAME_LIMITS.stable) }).strict();
@@ -1011,6 +1028,8 @@ export interface ShowdownPlayerDto {
   favouriteSurface: Surface;
   isHost: boolean;
   me: boolean;
+  /** OWN_HORSES: the player's entered horses from their stable (empty in other modes). */
+  horses: { id: string; name: string; raceRating: number; abilityRating: number }[];
 }
 
 export type ShowdownRaceStatus = "CALLED" | "RUNNING" | "COMPLETED" | "CANCELLED";
@@ -1032,6 +1051,8 @@ export interface ShowdownRaceDto {
   /** The viewer's choice for a called race (null: sitting out or not a player). */
   myStrategy: Strategy | null;
   myResting: boolean;
+  /** OWN_HORSES: the viewer's horses with their tactics (strategy null: sitting this one out). */
+  myHorses: { horseId: string; horseName: string; strategy: Strategy | null }[];
 }
 
 export interface ShowdownDto {
@@ -1045,6 +1066,9 @@ export interface ShowdownDto {
   isHost: boolean;
   joined: boolean;
   maxPlayers: number;
+  /** OWN_HORSES: horses per player, and the most runners in one race. */
+  maxHorsesPerPlayer: number;
+  maxOwnField: number;
   callSeconds: number;
   distances: number[];
   players: ShowdownPlayerDto[];

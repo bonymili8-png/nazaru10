@@ -2,6 +2,7 @@
 import type { ShowdownDto, ShowdownRaceDto } from "@thoroughline/contracts";
 import { STRATEGIES, type Strategy } from "@thoroughline/engine";
 import { Trophy, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
 import { Badge, Card, SectionTitle, useToast } from "@/components/ui";
@@ -13,7 +14,8 @@ import { haptic } from "@/lib/telegram";
 
 /** "No fatigue" / "Normal" badge. */
 export function ModeBadge({ mode }: { mode: ShowdownDto["mode"] }) {
-  return <Badge tone={mode === "NO_FATIGUE" ? "good" : "warn"}>{t(`showdown.mode.${mode}`)}</Badge>;
+  const tone = mode === "NO_FATIGUE" ? "good" : mode === "OWN_HORSES" ? "gold" : "warn";
+  return <Badge tone={tone}>{t(`showdown.mode.${mode}`)}</Badge>;
 }
 
 /** One line about a race: "Race 3 · 1400m Turf · Good". */
@@ -61,10 +63,10 @@ export function Tactics({ s }: { s: ShowdownDto }) {
   const [busy, setBusy] = useState(false);
   const r = s.races[0];
   if (!s.joined || !r || r.status !== "CALLED") return null;
-  const choose = async (strategy: Strategy | null) => {
+  const choose = async (strategy: Strategy | null, horseId?: string) => {
     setBusy(true);
     try {
-      await post(`/showdowns/${s.code}/races/${r.id}/tactics`, { strategy });
+      await post(`/showdowns/${s.code}/races/${r.id}/tactics`, { strategy, horseId });
       haptic.success();
       invalidate(`/showdowns/${s.code}`);
     } catch (e) {
@@ -75,6 +77,34 @@ export function Tactics({ s }: { s: ShowdownDto }) {
     }
   };
   const options: (Strategy | null)[] = [...STRATEGIES, null];
+  const chip = (on: boolean) =>
+    `min-h-11 cursor-pointer rounded-xl border px-3 text-sm transition-colors disabled:opacity-60 ${on ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"}`;
+  // Own horses: each horse gets its own tactics, and any of them can sit the race out.
+  if (s.mode === "OWN_HORSES")
+    return (
+      <Card className="mt-2 space-y-4">
+        <p className="text-sm font-semibold">{t("showdown.tacticsEach")}</p>
+        {r.myHorses.map((h) => (
+          <div key={h.horseId}>
+            <p className="truncate text-sm font-medium">{h.horseName}</p>
+            <div className="mt-1 grid grid-cols-2 gap-2" role="radiogroup" aria-label={h.horseName}>
+              {options.map((o) => (
+                <button
+                  key={o ?? "rest"}
+                  role="radio"
+                  aria-checked={h.strategy === o}
+                  disabled={busy}
+                  onClick={() => void choose(o, h.horseId)}
+                  className={chip(h.strategy === o)}
+                >
+                  {o === null ? t("showdown.sitOut") : STRATEGY_INFO[o]!.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Card>
+    );
   return (
     <Card className="mt-2">
       <p className="text-sm font-semibold">{t("showdown.tactics")}</p>
@@ -132,9 +162,26 @@ export function Standings({ s, compact = false }: { s: ShowdownDto; compact?: bo
                 )}
               </p>
               <p className="truncate text-xs text-muted">
-                {p.horseName}
+                {/* Stable horses link to their pages (not on the public broadcast). */}
+                {s.mode === "OWN_HORSES" && !compact
+                  ? p.horses.map((h, i) => (
+                      <span key={h.id}>
+                        {i > 0 && ", "}
+                        <Link
+                          href={`/horse/?id=${h.id}`}
+                          className="underline underline-offset-2 hover:text-gold"
+                        >
+                          {h.name}
+                        </Link>
+                      </span>
+                    ))
+                  : p.horseName}
                 {!compact &&
+                  s.mode !== "OWN_HORSES" &&
                   ` · ~${t("unit.m", { n: p.optimalDistance })} · ${titleCase(p.favouriteSurface)}`}
+                {s.mode === "OWN_HORSES" &&
+                  p.horses.length > 0 &&
+                  ` · ${t("showdown.ratings", { r: p.horses.map((h) => h.raceRating).join(" / ") })}`}
                 {s.mode === "NORMAL" && ` · ${t("showdown.fatigue", { n: p.fatigue })}`}
               </p>
             </div>
@@ -178,9 +225,11 @@ export function PastRaces({ s }: { s: ShowdownDto }) {
             <p className="text-sm font-semibold">{raceLine(r)}</p>
             <p className="text-xs text-muted">
               {r.results!.map((x, i) => (
-                <span key={x.displayName}>
+                <span key={`${x.displayName}:${x.horseName}`}>
                   {i > 0 && " · "}
-                  {x.position}. {x.displayName} (+{x.points})
+                  {x.position}.{" "}
+                  {s.mode === "OWN_HORSES" ? `${x.horseName} (${x.displayName})` : x.displayName} (+
+                  {x.points})
                 </span>
               ))}
             </p>

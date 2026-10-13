@@ -13,6 +13,7 @@ import type {
   ShowdownSummaryDto,
 } from "@thoroughline/contracts";
 import {
+  bondNow,
   buildCommentary,
   favouriteSurface,
   goingLabel,
@@ -37,6 +38,7 @@ import {
   type Surface,
   TRACKS,
   trackByCode,
+  traitsWithBond,
   type Weather,
 } from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
@@ -44,6 +46,8 @@ import { Db, type Queryable, row, rows } from "../../common/db.js";
 import { badRequest, conflict, forbidden, notFound } from "../../common/errors.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { ENV, type Env } from "../../config/env.js";
+import type { HorseRow } from "../horses/horse.repo.js";
+import { HorsesService } from "../horses/horses.service.js";
 
 interface ShowdownRow {
   id: string;
@@ -60,7 +64,9 @@ interface PlayerRow {
   showdown_id: string;
   user_id: string;
   display_name: string;
-  horse: ShowdownHorse;
+  /** A tournament horse (NORMAL, NO_FATIGUE), or null with `horse_ids` set (OWN_HORSES). */
+  horse: ShowdownHorse | null;
+  horse_ids: string[] | null;
   fatigue: number;
   fatigue_at: Date;
   points: number;
@@ -72,6 +78,8 @@ interface PlayerRow {
 /** One runner as it went to post (players and pace horses). */
 interface FieldEntry {
   id: string;
+  /** A real stable horse (OWN_HORSES); absent for tournament and pace horses. */
+  horseId?: string;
   userId: string | null;
   displayName: string | null;
   horseName: string;
@@ -129,6 +137,7 @@ export class ShowdownsService {
     private readonly db: Db,
     private readonly config: GameConfigService,
     private readonly clock: Clock,
+    private readonly horses: HorsesService,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -152,10 +161,11 @@ export class ShowdownsService {
           c,
           `INSERT INTO showdowns (code, name, mode, fill_field, host_id) VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (code) DO NOTHING RETURNING id`,
-          [code, req.name, req.mode, req.fillField, userId],
+          // OWN_HORSES races only the players' own horses: never pace horses.
+          [code, req.name, req.mode, req.mode !== "OWN_HORSES" && req.fillField, userId],
         );
         if (!s) continue;
-        await this.addPlayer(c, s.id, userId, req.displayName);
+        await this.addPlayer(c, { id: s.id, mode: req.mode }, userId, req.displayName, req.horseIds);
         return code;
       }
       throw conflict("TRY_AGAIN", "Could not create a showdown code, try again");
@@ -163,7 +173,7 @@ export class ShowdownsService {
     return this.get(code, userId);
   }
 
-  async join(userId: string, code: string, displayName: string): Promise<ShowdownDto> {
+  async join(userId: string, code: string, displayName: string, horseIds?: string[]): Promise<ShowdownDto> {
     await this.db.tx(async (c) => {
       const s = await this.lockShowdown(c, code);
       if (s.status !== "OPEN") throw conflict("SHOWDOWN_FINISHED", "This showdown has finished");
@@ -175,23 +185,91 @@ export class ShowdownsService {
       if (players.some((p) => p.user_id === userId)) return;
       if (players.length >= this.config.get().showdown.maxPlayers)
         throw conflict("SHOWDOWN_FULL", "This showdown is full");
-      await this.addPlayer(c, s.id, userId, displayName);
+      await this.addPlayer(c, s, userId, displayName, horseIds);
     });
     return this.get(code, userId);
   }
 
-  private async addPlayer(c: Queryable, showdownId: string, userId: string, displayName: string) {
+  /** OWN_HORSES: change the entered horses, between races. */
+  async setHorses(userId: string, code: string, horseIds: string[]): Promise<ShowdownDto> {
+    await this.db.tx(async (c) => {
+      const s = await this.lockShowdown(c, code);
+      if (s.mode !== "OWN_HORSES")
+        throw badRequest("NOT_OWN_HORSES", "This showdown races tournament horses");
+      if (s.status !== "OPEN") throw conflict("SHOWDOWN_FINISHED", "This showdown has finished");
+      const me = await row(c, "SELECT 1 FROM showdown_players WHERE showdown_id = $1 AND user_id = $2", [
+        s.id,
+        userId,
+      ]);
+      if (!me) throw forbidden("You are not riding in this showdown");
+      await this.assertNoRaceOn(c, s.id);
+      await this.assertHorses(c, s.id, userId, horseIds);
+      await c.query("UPDATE showdown_players SET horse_ids = $3 WHERE showdown_id = $1 AND user_id = $2", [
+        s.id,
+        userId,
+        horseIds,
+      ]);
+    });
+    return this.get(code, userId);
+  }
+
+  /** The horses must be the player's own, active, distinct, and the field must have room. */
+  private async assertHorses(
+    c: Queryable,
+    showdownId: string,
+    userId: string,
+    horseIds: string[] | undefined,
+  ) {
+    const cfg = this.config.get().showdown;
+    if (!horseIds?.length) throw badRequest("PICK_HORSES", "Pick 1 to 3 horses from your stable");
+    if (new Set(horseIds).size !== horseIds.length || horseIds.length > cfg.maxHorsesPerPlayer)
+      throw badRequest("PICK_HORSES", `Pick 1 to ${cfg.maxHorsesPerPlayer} different horses`);
+    const owned = await row<{ n: number }>(
+      c,
+      `SELECT count(*)::int AS n FROM horses
+        WHERE id = ANY($1::uuid[]) AND owner_id = $2 AND retired_at IS NULL AND NOT is_house`,
+      [horseIds, userId],
+    );
+    if (owned!.n !== horseIds.length) throw conflict("NOT_YOUR_HORSE", "Only your own active horses can run");
+    const others = await row<{ n: number }>(
+      c,
+      `SELECT COALESCE(sum(cardinality(horse_ids)), 0)::int AS n FROM showdown_players
+        WHERE showdown_id = $1 AND user_id <> $2`,
+      [showdownId, userId],
+    );
+    if (others!.n + horseIds.length > cfg.maxOwnField)
+      throw conflict("FIELD_FULL", `At most ${cfg.maxOwnField} horses can run in one race`);
+  }
+
+  private async assertNoRaceOn(c: Queryable, showdownId: string) {
+    const busy = await row<{ n: number }>(
+      c,
+      "SELECT count(*)::int AS n FROM showdown_races WHERE showdown_id = $1 AND status IN ('CALLED', 'RUN')",
+      [showdownId],
+    );
+    if (busy!.n > 0) throw conflict("RACE_IN_PROGRESS", "Wait until the current race is over");
+  }
+
+  private async addPlayer(
+    c: Queryable,
+    s: Pick<ShowdownRow, "id" | "mode">,
+    userId: string,
+    displayName: string,
+    horseIds?: string[],
+  ) {
     const taken = await row<{ n: number }>(
       c,
       "SELECT count(*)::int AS n FROM showdown_players WHERE showdown_id = $1 AND lower(display_name) = lower($2)",
-      [showdownId, displayName],
+      [s.id, displayName],
     );
     if (taken!.n > 0) throw conflict("NAME_TAKEN", "Someone in this showdown already uses that name");
-    const horse = showdownHorse(`${showdownId}:${userId}`, this.config.get());
+    const own = s.mode === "OWN_HORSES";
+    if (own) await this.assertHorses(c, s.id, userId, horseIds);
+    const horse = own ? null : showdownHorse(`${s.id}:${userId}`, this.config.get());
     await c.query(
-      `INSERT INTO showdown_players (showdown_id, user_id, display_name, horse, fatigue_at, joined_at)
-       VALUES ($1, $2, $3, $4, $5, $5)`,
-      [showdownId, userId, displayName, JSON.stringify(horse), this.clock.now()],
+      `INSERT INTO showdown_players (showdown_id, user_id, display_name, horse, horse_ids, fatigue_at, joined_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $6)`,
+      [s.id, userId, displayName, horse && JSON.stringify(horse), own ? horseIds : null, this.clock.now()],
     );
   }
 
@@ -235,12 +313,7 @@ export class ShowdownsService {
       const s = await this.lockShowdown(c, code);
       this.assertHost(s, hostId);
       if (s.status !== "OPEN") throw conflict("SHOWDOWN_FINISHED", "This showdown has finished");
-      const busy = await row<{ n: number }>(
-        c,
-        "SELECT count(*)::int AS n FROM showdown_races WHERE showdown_id = $1 AND status IN ('CALLED', 'RUN')",
-        [s.id],
-      );
-      if (busy!.n > 0) throw conflict("RACE_IN_PROGRESS", "Wait until the current race is over");
+      await this.assertNoRaceOn(c, s.id);
       const players = await row<{ n: number }>(
         c,
         "SELECT count(*)::int AS n FROM showdown_players WHERE showdown_id = $1",
@@ -286,14 +359,20 @@ export class ShowdownsService {
     code: string,
     raceId: string,
     strategy: Strategy | null,
+    horseId?: string,
   ): Promise<ShowdownDto> {
     await this.db.tx(async (c) => {
       const s = await this.showdownByCode(c, code);
-      const me = await row(c, "SELECT 1 FROM showdown_players WHERE showdown_id = $1 AND user_id = $2", [
-        s.id,
-        userId,
-      ]);
+      const me = await row<{ horse_ids: string[] | null }>(
+        c,
+        "SELECT horse_ids FROM showdown_players WHERE showdown_id = $1 AND user_id = $2",
+        [s.id, userId],
+      );
       if (!me) throw forbidden("You are not riding in this showdown");
+      // Tactics are per horse with own horses (each may also sit out), per player otherwise.
+      if (s.mode === "OWN_HORSES" && (!horseId || !me.horse_ids?.includes(horseId)))
+        throw badRequest("PICK_HORSE", "Choose one of your entered horses");
+      const key = s.mode === "OWN_HORSES" ? horseId! : userId;
       const r = await row<RaceRow>(
         c,
         "SELECT * FROM showdown_races WHERE id = $1 AND showdown_id = $2 FOR UPDATE",
@@ -310,7 +389,7 @@ export class ShowdownsService {
                            ELSE COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(resting) x WHERE x <> $2), '[]'::jsonb)
                       END
           WHERE id = $1`,
-        [r.id, userId, strategy],
+        [r.id, key, strategy],
       );
     });
     return this.get(code, userId);
@@ -363,9 +442,10 @@ export class ShowdownsService {
       "SELECT * FROM showdown_players WHERE showdown_id = $1 ORDER BY joined_at",
       [s.id],
     );
-    const riding = players.filter((p) => !r.resting.includes(p.user_id));
     const seed = this.seed(`race:${r.id}`);
     const rng = new Rng(`field:${seed}`);
+    if (s.mode === "OWN_HORSES") return this.runOwn(c, r, players, seed, rng);
+    const riding = players.filter((p) => !r.resting.includes(p.user_id));
     const entrants: (RaceEntrant & { field: Omit<FieldEntry, "gate"> })[] = riding.map((p) => {
       const fatigue =
         s.mode === "NO_FATIGUE"
@@ -373,17 +453,17 @@ export class ShowdownsService {
           : projectCondition(
               { fatigue: p.fatigue, health: 100, form: 0, updatedAt: p.fatigue_at },
               r.starts_at,
-              p.horse.attributes.endurance,
+              p.horse!.attributes.endurance,
               cfg,
             ).fatigue;
       const strategy = r.tactics[p.user_id] ?? "MID_PACK";
       return {
-        ...this.entrant(`p:${p.user_id}`, p.horse, strategy, fatigue),
+        ...this.entrant(`p:${p.user_id}`, p.horse!, strategy, fatigue),
         field: {
           id: `p:${p.user_id}`,
           userId: p.user_id,
           displayName: p.display_name,
-          horseName: p.horse.name,
+          horseName: p.horse!.name,
           strategy,
           fatigue,
         },
@@ -402,6 +482,71 @@ export class ShowdownsService {
       await c.query("UPDATE showdown_races SET status = 'CANCELLED' WHERE id = $1", [r.id]);
       return true;
     }
+    return this.simulate(c, r, s.mode, entrants, seed, rng);
+  }
+
+  /**
+   * OWN_HORSES: the players' own horses as they are today: trained attributes, current condition
+   * (fatigue, health, form) and trust. Jockeys are equal for everyone; there are no pace horses.
+   * Nothing is written back: the exhibition never tires, injures or rates a real horse.
+   */
+  private async runOwn(
+    c: Queryable,
+    r: RaceRow,
+    players: PlayerRow[],
+    seed: string,
+    rng: Rng,
+  ): Promise<boolean> {
+    const cfg = this.config.get();
+    const ids = players.flatMap((p) => p.horse_ids ?? []);
+    const rows_ = await rows<HorseRow>(c, "SELECT * FROM horses WHERE id = ANY($1::uuid[])", [ids]);
+    const byId = new Map(rows_.map((h) => [h.id, h] as const));
+    const entrants: (RaceEntrant & { field: Omit<FieldEntry, "gate"> })[] = [];
+    for (const p of players)
+      for (const id of p.horse_ids ?? []) {
+        const h = byId.get(id);
+        // Sold, retired or injured since it was entered, or sitting this one out: it does not run.
+        if (!h || h.owner_id !== p.user_id || h.retired_at || r.resting.includes(id)) continue;
+        if (this.horses.effectiveStatus(h, r.starts_at) === "INJURED") continue;
+        const condition = this.horses.condition(h, r.starts_at);
+        const strategy = r.tactics[id] ?? "MID_PACK";
+        entrants.push({
+          id: h.id,
+          name: h.name,
+          attributes: h.attributes,
+          traits: traitsWithBond(h.genome.traits, bondNow(h.bond, h.bond_at, r.starts_at, cfg), cfg),
+          aptitudes: h.genome.aptitudes,
+          raceIntelligence: h.genome.hidden.raceIntelligence,
+          condition,
+          strategy,
+          jockey: { id: "showdown-jockey", name: JOCKEY, skill: cfg.showdown.jockeySkill },
+          field: {
+            id: h.id,
+            horseId: h.id,
+            userId: p.user_id,
+            displayName: p.display_name,
+            horseName: h.name,
+            strategy,
+            fatigue: condition.fatigue,
+          },
+        });
+      }
+    if (new Set(entrants.map((e) => e.field.userId)).size < 2) {
+      await c.query("UPDATE showdown_races SET status = 'CANCELLED' WHERE id = $1", [r.id]);
+      return true;
+    }
+    return this.simulate(c, r, "OWN_HORSES", entrants, seed, rng);
+  }
+
+  private async simulate(
+    c: Queryable,
+    r: RaceRow,
+    mode: ShowdownMode,
+    entrants: (RaceEntrant & { field: Omit<FieldEntry, "gate"> })[],
+    seed: string,
+    rng: Rng,
+  ): Promise<boolean> {
+    const cfg = this.config.get();
     const gates = rng.shuffle(entrants.map((_, i) => i + 1));
     const field: FieldEntry[] = entrants.map((e, i) => ({ ...e.field, gate: gates[i]! }));
     const byGate = [...entrants].sort((a, b) => gates[entrants.indexOf(a)]! - gates[entrants.indexOf(b)]!);
@@ -416,7 +561,7 @@ export class ShowdownsService {
       Object.fromEntries(entrants.map((e) => [e.id, e.name])),
       seed,
     );
-    const results = this.score(sim.results, field, entrants, r, s.mode, rng);
+    const results = this.score(sim.results, field, entrants, r, mode, rng);
     const resultsAt = new Date(r.starts_at.getTime() + Math.ceil(sim.winningTime + 2) * 1000);
     await c.query(
       `UPDATE showdown_races SET status = 'RUN', results_at = $2, field = $3, results = $4, frames = $5,
@@ -487,16 +632,24 @@ export class ShowdownsService {
 
   private async settle(c: Queryable, r: RaceRow): Promise<boolean> {
     const field = new Map(r.field!.map((f) => [f.id, f] as const));
+    // Per player: points of all their runners, wins, one race run, fatigue (tournament horses).
+    const byPlayer = new Map<string, { points: number; wins: number; fatigue: number }>();
     for (const res of r.results!) {
       const f = field.get(res.id)!;
       if (!f.userId) continue;
+      const t = byPlayer.get(f.userId) ?? { points: 0, wins: 0, fatigue: 0 };
+      t.points += res.points;
+      t.wins += res.position === 1 ? 1 : 0;
+      t.fatigue = Math.max(t.fatigue, res.fatigueAfter);
+      byPlayer.set(f.userId, t);
+    }
+    for (const [userId, t] of byPlayer)
       await c.query(
         `UPDATE showdown_players SET points = points + $3, wins = wins + $4, races = races + 1,
                 fatigue = $5, fatigue_at = $6
           WHERE showdown_id = $1 AND user_id = $2`,
-        [r.showdown_id, f.userId, res.points, res.position === 1 ? 1 : 0, res.fatigueAfter, r.results_at],
+        [r.showdown_id, userId, t.points, t.wins, t.fatigue, r.results_at],
       );
-    }
     await c.query("UPDATE showdown_races SET status = 'SETTLED' WHERE id = $1", [r.id]);
     return true;
   }
@@ -558,6 +711,14 @@ export class ShowdownsService {
          FROM showdown_races WHERE showdown_id = $1 ORDER BY no DESC LIMIT 30`,
       [s.id],
     );
+    // OWN_HORSES: the entered stable horses, for the table and the viewer's tactics.
+    const stableHorses = new Map(
+      (
+        await rows<HorseRow>(this.db.pool, "SELECT * FROM horses WHERE id = ANY($1::uuid[])", [
+          players.flatMap((p) => p.horse_ids ?? []),
+        ])
+      ).map((h) => [h.id, h] as const),
+    );
     const host = players.find((p) => p.user_id === s.host_id);
     const hostName =
       host?.display_name ??
@@ -570,31 +731,44 @@ export class ShowdownsService {
       )?.name ??
       "Host";
     let rank = 0;
-    const playerDtos: ShowdownPlayerDto[] = players.map((p) => ({
-      userId: p.user_id,
-      displayName: p.display_name,
-      horseName: p.horse.name,
-      rank: ++rank,
-      points: p.points,
-      wins: p.wins,
-      races: p.races,
-      fatigue:
-        s.mode === "NO_FATIGUE"
-          ? 0
-          : Math.round(
-              projectCondition(
-                { fatigue: p.fatigue, health: 100, form: 0, updatedAt: p.fatigue_at },
-                now,
-                p.horse.attributes.endurance,
-                cfg,
-              ).fatigue,
-            ),
-      optimalDistance: Math.round(p.horse.aptitudes.optimalDistance / 50) * 50,
-      favouriteSurface: favouriteSurface(p.horse.aptitudes),
-      isHost: p.user_id === s.host_id,
-      me: p.user_id === viewerId,
-    }));
-    const raceDtos = races.map((r) => this.raceDto(r, viewerId, now));
+    const playerDtos: ShowdownPlayerDto[] = players.map((p) => {
+      const own = (p.horse_ids ?? []).map((id) => stableHorses.get(id)).filter((h) => !!h) as HorseRow[];
+      const aptitudes = p.horse?.aptitudes ?? own[0]?.genome.aptitudes;
+      return {
+        userId: p.user_id,
+        displayName: p.display_name,
+        horseName: p.horse?.name ?? own.map((h) => h.name).join(", "),
+        rank: ++rank,
+        points: p.points,
+        wins: p.wins,
+        races: p.races,
+        fatigue:
+          s.mode !== "NORMAL" || !p.horse
+            ? 0
+            : Math.round(
+                projectCondition(
+                  { fatigue: p.fatigue, health: 100, form: 0, updatedAt: p.fatigue_at },
+                  now,
+                  p.horse.attributes.endurance,
+                  cfg,
+                ).fatigue,
+              ),
+        optimalDistance: aptitudes ? Math.round(aptitudes.optimalDistance / 50) * 50 : 0,
+        favouriteSurface: aptitudes ? favouriteSurface(aptitudes) : "TURF",
+        isHost: p.user_id === s.host_id,
+        me: p.user_id === viewerId,
+        horses: own.map((h) => ({
+          id: h.id,
+          name: h.name,
+          raceRating: h.race_rating,
+          abilityRating: Math.round(h.ability_rating),
+        })),
+      };
+    });
+    const myHorses = (players.find((p) => p.user_id === viewerId)?.horse_ids ?? [])
+      .map((id) => stableHorses.get(id))
+      .filter((h) => !!h) as HorseRow[];
+    const raceDtos = races.map((r) => this.raceDto(r, viewerId, now, myHorses));
     const latest = races[0];
     const current =
       latest && (latest.status !== "CANCELLED" || latest.starts_at.getTime() > now.getTime() - 60_000)
@@ -611,6 +785,8 @@ export class ShowdownsService {
       isHost: s.host_id === viewerId,
       joined: players.some((p) => p.user_id === viewerId),
       maxPlayers: cfg.showdown.maxPlayers,
+      maxHorsesPerPlayer: cfg.showdown.maxHorsesPerPlayer,
+      maxOwnField: cfg.showdown.maxOwnField,
       callSeconds: cfg.showdown.callSeconds,
       distances: cfg.showdown.distances,
       players: playerDtos,
@@ -669,6 +845,7 @@ export class ShowdownsService {
     r: Omit<RaceRow, "frames" | "events" | "commentary">,
     viewerId: string | null,
     now: Date,
+    myHorses: HorseRow[] = [],
   ): ShowdownRaceDto {
     const status = this.status(r, now);
     const track = trackByCode(r.track_code);
@@ -700,6 +877,11 @@ export class ShowdownsService {
         ? (r.tactics[viewerId] ?? (r.resting.includes(viewerId) ? null : "MID_PACK"))
         : null,
       myResting: viewerId ? r.resting.includes(viewerId) : false,
+      myHorses: myHorses.map((h) => ({
+        horseId: h.id,
+        horseName: h.name,
+        strategy: r.resting.includes(h.id) ? null : (r.tactics[h.id] ?? "MID_PACK"),
+      })),
     };
   }
 
@@ -728,7 +910,10 @@ export class ShowdownsService {
       locksAt: r.starts_at.toISOString(),
       startsAt: r.starts_at.toISOString(),
       entries: r.field?.length ?? 0,
-      maxField: this.config.get().showdown.fieldSize,
+      maxField:
+        s.mode === "OWN_HORSES"
+          ? this.config.get().showdown.maxOwnField
+          : this.config.get().showdown.fieldSize,
       seedHash: "",
       tournamentId: null,
       entryList: this.entries(r, viewerId, status === "COMPLETED"),
@@ -750,7 +935,8 @@ export class ShowdownsService {
           horseId: f.id,
           horseName: f.horseName,
           ownerName: f.displayName,
-          ownerId: null,
+          // Stable horses (OWN_HORSES) link to their owner; tournament horses have no stable.
+          ownerId: f.horseId ? f.userId : null,
           isHouse: f.userId === null,
           gate: f.gate,
           strategy: f.strategy,

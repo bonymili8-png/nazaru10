@@ -10,9 +10,11 @@ import { Rng } from "../rng.js";
  * sprinter, a stayer, a mudlark), so reading your horse and choosing tactics still does.
  *
  * Modes: NORMAL — the horses tire from race to race and recover in real time, as in the game;
- * NO_FATIGUE — every race is run fresh.
+ * NO_FATIGUE — every race is run fresh; OWN_HORSES — players race 1–3 horses from their own
+ * stables, as trained (attributes, condition, trust), with no pace horses: a test of strength
+ * between real stables. Exhibition races never change the real horses.
  */
-export const SHOWDOWN_MODES = ["NORMAL", "NO_FATIGUE"] as const;
+export const SHOWDOWN_MODES = ["NORMAL", "NO_FATIGUE", "OWN_HORSES"] as const;
 export type ShowdownMode = (typeof SHOWDOWN_MODES)[number];
 
 export interface ShowdownHorse {

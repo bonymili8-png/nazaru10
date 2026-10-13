@@ -1501,4 +1501,21 @@ export const uk: Record<MessageKey, Msg> = {
   "scout.fragile": "Схильний до травм",
   "error.OWN_HORSE": "Для свого коня використовуйте діагностику",
   "error.NOT_SCOUTABLE": "Коней дому не можна скаутити",
+  "showdown.mode.OWN_HORSES": "Свої коні",
+  "showdown.modeHint.OWN_HORSES":
+    "Виставте 1–3 коней зі своєї стайні проти коней інших власників — саме такими, якими ви їх натренували. Без пейсмейкерів. Лише показово: коні не втомлюються, не травмуються і рейтинг не змінюється.",
+  "showdown.pickHorses": "Ваші коні (1–{n})",
+  "showdown.noHorses": "У вас немає активних коней.",
+  "showdown.horseLine": "рейтинг {r} · сила {a}",
+  "showdown.joinHintOwn": "Оберіть ім'я для ефіру та 1–3 коней зі своєї стайні.",
+  "showdown.yourHorses": "Ваші коні",
+  "showdown.ownHint":
+    "Біжать такими, які вони сьогодні: натреновані характеристики, стан і довіра. Очки всіх ваших коней сумуються.",
+  "showdown.changeHorses": "Змінити коней",
+  "showdown.saveHorses": "Зберегти коней",
+  "showdown.tacticsEach": "Тактика для кожного вашого коня",
+  "showdown.ratings": "рейтинги {r}",
+  "error.PICK_HORSES": "Оберіть від 1 до 3 різних коней зі своєї стайні",
+  "error.PICK_HORSE": "Оберіть одного зі своїх заявлених коней",
+  "error.NOT_YOUR_HORSE": "Бігти можуть лише ваші активні коні",
 };

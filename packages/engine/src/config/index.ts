@@ -340,6 +340,9 @@ export interface GameConfig {
     jockeySkill: number;
     /** Showdowns a host may have open at once. */
     maxOpenPerHost: number;
+    /** OWN_HORSES mode: horses each player may enter, and the most runners in one race. */
+    maxHorsesPerPlayer: number;
+    maxOwnField: number;
   };
   /** Morning work against the yard's lead horse, on the clock. See gallop/index.ts. */
   gallop: {
@@ -897,6 +900,8 @@ export const defaultConfig: GameConfig = {
     points: [10, 8, 6, 5, 4, 3, 2, 1],
     jockeySkill: 60,
     maxOpenPerHost: 3,
+    maxHorsesPerPlayer: 3,
+    maxOwnField: 16,
   },
   gallop: { distances: [800, 1200, 1600], fatigue: 8, maxFatigue: 40, cooldownHours: 20, riderSkill: 50 },
   yard: {

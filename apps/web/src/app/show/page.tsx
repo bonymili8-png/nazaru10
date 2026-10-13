@@ -1,5 +1,5 @@
 "use client";
-import type { ShowdownDto, ShowdownSummaryDto } from "@thoroughline/contracts";
+import type { HorseSummaryDto, ShowdownDto, ShowdownSummaryDto } from "@thoroughline/contracts";
 import { SURFACES, type Surface } from "@thoroughline/engine";
 import { Copy, MonitorPlay, Send, Share2 } from "lucide-react";
 import Link from "next/link";
@@ -39,13 +39,21 @@ function ShowdownHome() {
   const [mode, setMode] = useState<ShowdownDto["mode"]>("NO_FATIGUE");
   const [fillField, setFillField] = useState(true);
   const [handle, setHandle] = useState("");
+  const [horseIds, setHorseIds] = useState<string[]>([]);
+  const own = mode === "OWN_HORSES";
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   const create = async () => {
     setBusy(true);
     try {
-      const s = await post<ShowdownDto>("/showdowns", { name, mode, fillField, displayName: handle });
+      const s = await post<ShowdownDto>("/showdowns", {
+        name,
+        mode,
+        fillField: !own && fillField,
+        displayName: handle,
+        ...(own ? { horseIds } : {}),
+      });
       haptic.success();
       invalidate("/showdowns");
       router.push(`/show/?code=${s.code}`);
@@ -136,7 +144,7 @@ function ShowdownHome() {
         </label>
         <p className="mt-3 text-sm">{t("showdown.modeLabel")}</p>
         <div className="mt-1 space-y-2" role="radiogroup" aria-label={t("showdown.modeLabel")}>
-          {(["NO_FATIGUE", "NORMAL"] as const).map((m) => (
+          {(["NO_FATIGUE", "NORMAL", "OWN_HORSES"] as const).map((m) => (
             <button
               key={m}
               role="radio"
@@ -149,19 +157,23 @@ function ShowdownHome() {
             </button>
           ))}
         </div>
-        <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={fillField}
-            onChange={(e) => setFillField(e.target.checked)}
-            className="size-5 accent-[var(--color-gold,#e0b43a)]"
-          />
-          {t("showdown.fillField")}
-        </label>
+        {own ? (
+          <HorsePicker value={horseIds} onChange={setHorseIds} max={3} />
+        ) : (
+          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={fillField}
+              onChange={(e) => setFillField(e.target.checked)}
+              className="size-5 accent-[var(--color-gold,#e0b43a)]"
+            />
+            {t("showdown.fillField")}
+          </label>
+        )}
         <Button
           className="mt-3 w-full"
           loading={busy}
-          disabled={name.trim().length < 2 || handle.trim().length < 2}
+          disabled={name.trim().length < 2 || handle.trim().length < 2 || (own && horseIds.length === 0)}
           onClick={() => void create()}
         >
           {t("showdown.createBtn")}
@@ -203,7 +215,8 @@ function ShowdownView({ code }: { code: string }) {
       <CurrentRace s={s} livePath={(id) => `/showdowns/${s.code}/races/${id}/live`} />
       <Tactics s={s} />
 
-      {me && (
+      {me && s.mode === "OWN_HORSES" && <MyStableHorses s={s} />}
+      {me && s.mode !== "OWN_HORSES" && (
         <>
           <SectionTitle>{t("showdown.yourHorse")}</SectionTitle>
           <Card className="text-sm">
@@ -279,12 +292,14 @@ function ShareRow({ s }: { s: ShowdownDto }) {
 function JoinCard({ s }: { s: ShowdownDto }) {
   const toast = useToast();
   const [handle, setHandle] = useState("");
+  const [horseIds, setHorseIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const own = s.mode === "OWN_HORSES";
   const full = s.players.length >= s.maxPlayers;
   const join = async () => {
     setBusy(true);
     try {
-      await post(`/showdowns/${s.code}/join`, { displayName: handle });
+      await post(`/showdowns/${s.code}/join`, { displayName: handle, ...(own ? { horseIds } : {}) });
       haptic.success();
       toast(t("showdown.joined"));
       invalidate(`/showdowns/${s.code}`, "/showdowns");
@@ -298,7 +313,10 @@ function JoinCard({ s }: { s: ShowdownDto }) {
   return (
     <Card className="mt-4">
       <p className="font-semibold">{t("showdown.joinTitle")}</p>
-      <p className="mt-1 text-sm text-muted">{full ? t("showdown.full") : t("showdown.joinHint")}</p>
+      <p className="mt-1 text-sm text-muted">
+        {full ? t("showdown.full") : t(own ? "showdown.joinHintOwn" : "showdown.joinHint")}
+      </p>
+      {!full && own && <HorsePicker value={horseIds} onChange={setHorseIds} max={s.maxHorsesPerPlayer} />}
       {!full && (
         <form
           className="mt-2 flex gap-2"
@@ -315,7 +333,11 @@ function JoinCard({ s }: { s: ShowdownDto }) {
             aria-label={t("showdown.yourName")}
             className={`${inputClass} mt-0 flex-1`}
           />
-          <Button type="submit" loading={busy} disabled={handle.trim().length < 2}>
+          <Button
+            type="submit"
+            loading={busy}
+            disabled={handle.trim().length < 2 || (own && !horseIds.length)}
+          >
             {t("showdown.joinBtn")}
           </Button>
         </form>
@@ -397,6 +419,122 @@ function HostPanel({ s }: { s: ShowdownDto }) {
         >
           {t("showdown.finish")}
         </Button>
+      </Card>
+    </>
+  );
+}
+
+/** Pick 1–`max` horses from your own stable for an OWN_HORSES showdown. */
+function HorsePicker({
+  value,
+  onChange,
+  max,
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+  max: number;
+}) {
+  const { data } = useApi<HorseSummaryDto[]>("/horses");
+  if (!data) return <Skeleton className="mt-3 h-24" />;
+  const toggle = (id: string) =>
+    onChange(
+      value.includes(id) ? value.filter((x) => x !== id) : value.length < max ? [...value, id] : value,
+    );
+  return (
+    <fieldset className="mt-3">
+      <legend className="text-sm">{t("showdown.pickHorses", { n: max })}</legend>
+      {data.length === 0 && <p className="mt-1 text-sm text-muted">{t("showdown.noHorses")}</p>}
+      <div className="mt-1 space-y-2">
+        {data.map((h) => {
+          const on = value.includes(h.id);
+          return (
+            <label
+              key={h.id}
+              className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${on ? "border-gold bg-gold/10" : "border-line/60 bg-surface-2"} ${!on && value.length >= max ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={!on && value.length >= max}
+                onChange={() => toggle(h.id)}
+                className="size-5 accent-[var(--color-gold,#e0b43a)]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{h.name}</span>
+                <span className="block text-xs text-muted">
+                  {t("showdown.horseLine", { r: h.raceRating, a: Math.round(h.abilityRating) })}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** OWN_HORSES: the horses you run, each linked to its page; changeable between races. */
+function MyStableHorses({ s }: { s: ShowdownDto }) {
+  const toast = useToast();
+  const me = s.players.find((p) => p.me)!;
+  const [editing, setEditing] = useState(false);
+  const [ids, setIds] = useState<string[]>(me.horses.map((h) => h.id));
+  const [busy, setBusy] = useState(false);
+  const raceOn = s.races[0]?.status === "CALLED" || s.races[0]?.status === "RUNNING";
+  const save = async () => {
+    setBusy(true);
+    try {
+      await post(`/showdowns/${s.code}/horses`, { horseIds: ids });
+      haptic.success();
+      setEditing(false);
+      invalidate(`/showdowns/${s.code}`);
+    } catch (e) {
+      haptic.error();
+      toast(errorMessage(e), "bad");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <SectionTitle>{t("showdown.yourHorses")}</SectionTitle>
+      <Card className="text-sm">
+        <ul className="space-y-1">
+          {me.horses.map((h) => (
+            <li key={h.id} className="flex justify-between gap-2">
+              <Link href={`/horse/?id=${h.id}`} className="truncate font-semibold hover:text-gold">
+                {h.name}
+              </Link>
+              <span className="num shrink-0 text-muted">
+                {t("showdown.horseLine", { r: h.raceRating, a: h.abilityRating })}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-muted">{t("showdown.ownHint")}</p>
+        {s.status === "OPEN" &&
+          (editing ? (
+            <>
+              <HorsePicker value={ids} onChange={setIds} max={s.maxHorsesPerPlayer} />
+              <Button
+                className="mt-3 w-full"
+                loading={busy}
+                disabled={!ids.length || raceOn}
+                onClick={() => void save()}
+              >
+                {t("showdown.saveHorses")}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="ghost"
+              className="mt-2 w-full text-sm"
+              disabled={raceOn}
+              onClick={() => setEditing(true)}
+            >
+              {raceOn ? t("showdown.raceOn") : t("showdown.changeHorses")}
+            </Button>
+          ))}
       </Card>
     </>
   );

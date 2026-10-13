@@ -539,6 +539,16 @@ credits, gems or ratings, and they have no effect on anyone's stable.
 * **Modes.** *Normal*: horses tire from race to race (the game's post-race fatigue, tactics
   included) and recover in real time, so resting a tired horse is a real choice. *No fatigue*:
   every race is run fresh.
+  *Own horses*: a test of strength between real stables. Each player enters 1–3 horses from
+  their own stable (owned, active, not house horses), up to 16 runners per race. There are no
+  pace horses, and a race needs runners from at least two players. Horses run as they are at
+  the off: trained attributes, current condition (fatigue, health, form) and trust. All horses
+  ride with equal 60-skill jockeys. Each horse has its own tactics and can sit a race out;
+  injured, sold or retired horses do not run. Points (10-8-6-…) go to every horse by finishing
+  order, and a player's score is the sum of their horses' points. Players can change their
+  horses between races. Exhibition only: nothing is written back to the real horses (no
+  fatigue, injury, rating, record or earnings). In the race and the table, each horse links to
+  its page and each owner to their stable.
 * **Broadcast.** `/watch/?code=…` is a public, sign-in-free, portrait page with a full-screen
   button, made to be screen-shared or recorded (TikTok Live, Instagram, YouTube, OBS). It shows
   the called race's countdown, the live race (track or camera view), the standings and past

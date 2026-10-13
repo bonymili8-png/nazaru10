@@ -5,6 +5,7 @@ import {
   JoinShowdownRequest,
   type LiveRaceDto,
   type ShowdownDto,
+  SetShowdownHorsesRequest,
   ShowdownTacticsRequest,
   type ShowdownSummaryDto,
 } from "@thoroughline/contracts";
@@ -38,7 +39,22 @@ export class ShowdownsController {
     @Param("code") code: string,
     @Body() body: unknown,
   ): Promise<ShowdownDto> {
-    return this.showdowns.join(user.id, code.toUpperCase(), parse(JoinShowdownRequest, body).displayName);
+    const req = parse(JoinShowdownRequest, body);
+    return this.showdowns.join(user.id, code.toUpperCase(), req.displayName, req.horseIds);
+  }
+
+  /** OWN_HORSES: change the horses you enter, between races. */
+  @Post(":code/horses")
+  horses(
+    @CurrentUser() user: AuthUser,
+    @Param("code") code: string,
+    @Body() body: unknown,
+  ): Promise<ShowdownDto> {
+    return this.showdowns.setHorses(
+      user.id,
+      code.toUpperCase(),
+      parse(SetShowdownHorsesRequest, body).horseIds,
+    );
   }
 
   @Post(":code/races")
@@ -57,12 +73,8 @@ export class ShowdownsController {
     @Param("raceId", ParseUUIDPipe) raceId: string,
     @Body() body: unknown,
   ): Promise<ShowdownDto> {
-    return this.showdowns.setTactics(
-      user.id,
-      code.toUpperCase(),
-      raceId,
-      parse(ShowdownTacticsRequest, body).strategy,
-    );
+    const req = parse(ShowdownTacticsRequest, body);
+    return this.showdowns.setTactics(user.id, code.toUpperCase(), raceId, req.strategy, req.horseId);
   }
 
   @Get(":code/races/:raceId/live")

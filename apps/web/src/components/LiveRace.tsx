@@ -290,7 +290,21 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
                   {e?.mine && e.cloth && (
                     <circle cx={p.x} cy={p.y} r={21} fill="none" stroke="#fafaf9" strokeWidth={2.5} />
                   )}
-                  {!e?.silks && (
+                  {e?.silks ? (
+                    <text
+                      x={p.x}
+                      y={p.y + 5}
+                      textAnchor="middle"
+                      fontSize={15}
+                      fontWeight={800}
+                      fill="#fafaf9"
+                      stroke="#0c0a09"
+                      strokeWidth={3.5}
+                      paintOrder="stroke"
+                    >
+                      {e.gate ?? i + 1}
+                    </text>
+                  ) : (
                     <text
                       x={p.x}
                       y={p.y + 5}

@@ -118,6 +118,19 @@ export function RaceCamera({
                 stroke={e?.cloth ? SILK_COLORS[e.cloth.color] : e?.mine ? "#fafaf9" : "#0c0a09"}
                 strokeWidth={e?.mine ? 3.5 : 2}
               />
+              <text
+                x={x}
+                y={y + 3.5}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={800}
+                fill="#fafaf9"
+                stroke="#0c0a09"
+                strokeWidth={2.5}
+                paintOrder="stroke"
+              >
+                {e?.gate ?? i + 1}
+              </text>
               {e?.mine && (
                 <text x={x} y={y - r - 4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#fafaf9">
                   {e.horseName.length > 14 ? `${e.horseName.slice(0, 13)}…` : e.horseName}

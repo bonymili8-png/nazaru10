@@ -120,12 +120,14 @@ function RacePage() {
             <RaceReport key={e.horseId} raceId={race.id} horseId={e.horseId} distance={race.distance} />
           ))}
 
-      {race.status !== "COMPLETED" && (
-        <>
-          <SectionTitle>{t("race.runnersTitle", { n: race.entryList.length })}</SectionTitle>
-          <Card className="divide-y divide-line/40 p-0">
-            {race.entryList.length === 0 && <p className="p-4 text-sm text-muted">{t("race.noRunners")}</p>}
-            {race.entryList.map((e) => (
+      {/* Runners stay listed after the race too (by gate), under the replay and result. */}
+      <>
+        <SectionTitle>{t("race.runnersTitle", { n: race.entryList.length })}</SectionTitle>
+        <Card className="divide-y divide-line/40 p-0">
+          {race.entryList.length === 0 && <p className="p-4 text-sm text-muted">{t("race.noRunners")}</p>}
+          {[...race.entryList]
+            .sort((a, b) => (race.status === "COMPLETED" ? (a.gate ?? 99) - (b.gate ?? 99) : 0))
+            .map((e) => (
               <div
                 key={e.horseId}
                 className={`flex items-center gap-3 px-4 py-2.5 ${e.mine ? "bg-gold/10" : ""}`}
@@ -156,9 +158,8 @@ function RacePage() {
                 )}
               </div>
             ))}
-          </Card>
-        </>
-      )}
+        </Card>
+      </>
 
       {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
 

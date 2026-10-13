@@ -9,7 +9,7 @@ import { coatColor } from "@/components/HorseCard";
 import { MemberBadge } from "@/components/MemberBadge";
 import { MakeOffer } from "@/components/Offers";
 import { Badge, Card, EmptyState, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
-import { ATTRIBUTE_LABELS, fmt, titleCase } from "@/lib/format";
+import { fmt, titleCase } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { type MessageKey, t } from "@/lib/i18n";
 
@@ -21,7 +21,7 @@ export default function OwnerPageWrapper() {
   );
 }
 
-/** Any owner's stable: who they are, and every horse with its rating and attributes. */
+/** Any owner's stable: who they are, and every horse with its rating. */
 function OwnerPage() {
   const id = useSearchParams().get("id");
   const { data: s, error, reload } = useApi<PublicStableDto>(id ? `/owners/${id}` : null);
@@ -70,7 +70,7 @@ function OwnerPage() {
   );
 }
 
-/** One horse: name, rating, record and the attributes; an offer form on request. */
+/** One horse: name, rating and record (attributes on its own page); an offer form on request. */
 function StableHorse({ h }: { h: PublicStableHorseDto }) {
   const [offering, setOffering] = useState(false);
   return (
@@ -100,14 +100,6 @@ function StableHorse({ h }: { h: PublicStableHorseDto }) {
         <Badge>{t("owners.strength", { n: Math.round(h.abilityRating) })}</Badge>
         {h.status !== "IDLE" && <Badge tone="warn">{t(`hstatus.${h.status}` as MessageKey)}</Badge>}
       </div>
-      <dl className="mt-3 grid grid-cols-4 gap-x-2 gap-y-1.5 text-xs" aria-label={t("horse.attributes")}>
-        {Object.entries(ATTRIBUTE_LABELS).map(([k, label]) => (
-          <div key={k} className="min-w-0">
-            <dt className="truncate text-muted">{label}</dt>
-            <dd className="num font-semibold">{Math.round(h.attributes[k as keyof typeof h.attributes])}</dd>
-          </div>
-        ))}
-      </dl>
       {h.offerBand && (
         <>
           <button

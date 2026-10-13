@@ -554,7 +554,7 @@ credits, gems or ratings, and they have no effect on anyone's stable.
   first name contains the query (at least 2 characters, matched literally). Shows up to 20 results.
 * **Stable** (`/owner/?id=…`, `GET /owners/:userId`): any player can open any owner's stable.
   It shows the crest, level, reputation, member badge and stable record. Every active horse is
-  listed with its race rating, strength, record and all attributes. Each horse has a "Make an
+  listed with its race rating, strength and record; its attributes show only on its own page. Each horse has a "Make an
   offer to buy" button, which uses the existing offers: amount held in escrow, the market price
   band, 48 h to answer, sale fee on acceptance.
 * **Another owner's horse**: the horse page shows the owner (linked to their stable) and the

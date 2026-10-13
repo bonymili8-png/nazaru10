@@ -29,14 +29,14 @@ describe("other owners: search, stables, scouting", () => {
     expect((await t.get("/owners?q=a", bob.token)).status).toBe(400);
   });
 
-  it("anyone can look round a stable: ratings, attributes and an offer band", async () => {
+  it("anyone can look round a stable: ratings and an offer band", async () => {
     const r = await t.get<PublicStableDto>(`/owners/${alice.userId}`, bob.token);
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ userId: alice.userId, isMe: false, level: 1 });
     expect(r.body.horses).toHaveLength(1);
     const h = r.body.horses[0]!;
     expect(h.id).toBe(aliceHorse);
-    expect(Object.keys(h.attributes).length).toBeGreaterThan(4);
+    expect(h).not.toHaveProperty("attributes"); // shown only on the horse's own page
     expect(h.offerBand!.max).toBeGreaterThan(h.offerBand!.min);
     const own = (await t.get<PublicStableDto>(`/owners/${alice.userId}`, alice.token)).body;
     expect(own.isMe).toBe(true);

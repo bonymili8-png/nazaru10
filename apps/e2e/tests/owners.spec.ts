@@ -29,9 +29,10 @@ test("owners find each other through a race, look round a stable and make an off
   await expect(b.locator("a[href^='/horse/?id=']").first()).toBeVisible();
   await ownerLink.click();
 
-  // The stable: horses with rating and attributes, and an offer on request.
+  // The stable: horses with their rating (no attributes here), and an offer on request.
   await expect(b.getByText(/^Owner: /)).toBeVisible();
-  await expect(b.getByText("Speed", { exact: true }).first()).toBeVisible();
+  await expect(b.getByText("Race rating").first()).toBeVisible();
+  await expect(b.getByText("Speed", { exact: true })).toHaveCount(0);
   await b.getByRole("button", { name: "Make an offer to buy" }).first().click();
   b.once("dialog", (d) => void d.accept());
   await b
@@ -44,6 +45,7 @@ test("owners find each other through a race, look round a stable and make an off
   await b.locator("main a[href^='/horse/?id=']").first().click();
   await expect(b.getByRole("link", { name: /^Owner: / })).toBeVisible();
   await expect(b.getByRole("button", { name: /^Scouting report · 300 gems/ })).toBeVisible();
+  await expect(b.getByText("Speed", { exact: true })).toBeVisible();
 
   // Search finds owners by name.
   await b.getByRole("link", { name: "Rankings" }).click();

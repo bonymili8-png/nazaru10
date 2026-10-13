@@ -949,9 +949,8 @@ export interface OwnerCardDto {
   horses: number;
 }
 
-/** A horse as anyone sees it in another owner's stable. */
+/** A horse as anyone sees it in another owner's stable (attributes only on its own page). */
 export interface PublicStableHorseDto extends HorseSummaryDto {
-  attributes: Attributes;
   /** Offer price band, or null when the viewer cannot make an offer on it. */
   offerBand: { min: number; max: number } | null;
 }

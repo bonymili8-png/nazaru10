@@ -61,7 +61,7 @@ export class OwnersController {
     }));
   }
 
-  /** An owner's stable: every active horse with its rating and attributes. */
+  /** An owner's stable: every active horse with its rating (attributes only on the horse page). */
   @Get(":userId")
   async stable(
     @CurrentUser() viewer: AuthUser,
@@ -90,7 +90,6 @@ export class OwnersController {
     );
     const list = horses.map((h) => ({
       ...this.horses.summary(h, now, o.name),
-      attributes: h.attributes,
       offerBand: this.offers.canOffer(h, viewer.id) ? this.offers.band(h, now) : null,
     }));
     return {

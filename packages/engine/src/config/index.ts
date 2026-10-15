@@ -344,6 +344,27 @@ export interface GameConfig {
     maxHorsesPerPlayer: number;
     maxOwnField: number;
   };
+  /**
+   * Tipster league: free predictions of the first three in upcoming races, scored by how hard
+   * the pick was; a weekly table with small rewards. No stakes of any kind. See tipster/index.ts.
+   */
+  tipster: {
+    /** New tips per player per UTC day (changing an existing tip is free). */
+    dailyLimit: number;
+    /** Win probabilities from strength: softmax over (strength × this). */
+    strengthSpread: number;
+    /** A winner's value = scale ÷ win probability, rounded and kept within [min, max]. */
+    valueScale: number;
+    minValue: number;
+    maxValue: number;
+    /** 2nd/3rd pick in its exact place; any pick finishing in the first three otherwise. */
+    placeExact: number;
+    placeAny: number;
+    /** All three picks in the exact order. */
+    tricastBonus: number;
+    /** Weekly table rewards by final rank (index 0 = 1st). */
+    weeklyRewards: { gems: number; reputation: number }[];
+  };
   /** Morning work against the yard's lead horse, on the clock. See gallop/index.ts. */
   gallop: {
     distances: number[];
@@ -889,6 +910,28 @@ export const defaultConfig: GameConfig = {
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
     lads: { gemsPerLadWeek: 50, horsesPerLad: 5, maxLads: 2, maxWeeksAhead: 4, roundEveryMinutes: 10 },
+  },
+  tipster: {
+    dailyLimit: 10,
+    strengthSpread: 0.07,
+    valueScale: 3,
+    minValue: 3,
+    maxValue: 40,
+    placeExact: 5,
+    placeAny: 2,
+    tricastBonus: 10,
+    weeklyRewards: [
+      { gems: 30, reputation: 50 },
+      { gems: 20, reputation: 30 },
+      { gems: 10, reputation: 20 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+      { gems: 0, reputation: 10 },
+    ],
   },
   showdown: {
     quality: 0.6,

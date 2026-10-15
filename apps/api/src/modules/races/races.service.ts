@@ -293,13 +293,31 @@ export class RacesService {
     );
   }
 
-  private entryDto(e: EntryViewRow, viewerId: string | null, reveal: boolean): RaceEntryDto {
+  /** Recent form per horse: finishing positions of its last 5 starts, oldest first ("4-2-1"). */
+  async formOf(horseIds: string[], exceptRaceId: string | null = null): Promise<Map<string, string>> {
+    if (!horseIds.length) return new Map();
+    const r = await rows<{ horse_id: string; form: string }>(
+      this.db.pool,
+      `SELECT horse_id, string_agg(position::text, '-' ORDER BY created_at) AS form FROM (
+         SELECT e.horse_id, e.position, e.created_at,
+                row_number() OVER (PARTITION BY e.horse_id ORDER BY e.created_at DESC) AS rn
+           FROM race_entries e
+          WHERE e.horse_id = ANY($1::uuid[]) AND e.status = 'RAN' AND e.position IS NOT NULL
+            AND ($2::uuid IS NULL OR e.race_id <> $2)
+       ) x WHERE rn <= 5 GROUP BY horse_id`,
+      [horseIds, exceptRaceId],
+    );
+    return new Map(r.map((x) => [x.horse_id, x.form] as const));
+  }
+
+  private entryDto(e: EntryViewRow, viewerId: string | null, reveal: boolean, form?: string): RaceEntryDto {
     const mine = viewerId !== null && e.owner_id === viewerId;
     return {
       horseId: e.horse_id,
       horseName: e.snapshot?.name ?? e.horse_name,
       ownerName: e.is_house ? null : (e.snapshot?.ownerName ?? e.owner_name),
       ownerId: e.is_house ? null : e.owner_id,
+      form: form ?? null,
       isHouse: e.is_house,
       gate: e.gate === null ? null : e.gate + 1,
       // Tactics stay private until the result is public.
@@ -327,7 +345,11 @@ export class RacesService {
     const reveal =
       r.status === "COMPLETED" || (r.status === "RUNNING" && !!r.results_at && r.results_at <= now);
     const entries = await this.entryViews(this.db.pool, raceId);
-    const list = entries.map((e) => this.entryDto(e, viewerId, reveal));
+    const forms = await this.formOf(
+      entries.map((e) => e.horse_id),
+      raceId,
+    );
+    const list = entries.map((e) => this.entryDto(e, viewerId, reveal, forms.get(e.horse_id)));
     if (reveal) list.sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
     return {
       ...this.summary(r, entries.length, now),

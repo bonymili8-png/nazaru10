@@ -948,6 +948,73 @@ export interface HorseDetailDto extends HorseSummaryDto {
   } | null;
 }
 
+/** A tip: the 1st pick, optionally the 2nd and 3rd (distinct runners of the race). */
+export const TipRequest = z.object({ picks: z.array(z.string().uuid()).min(1).max(3) }).strict();
+export type TipRequest = z.infer<typeof TipRequest>;
+
+/** Tipping on one race: each runner's tip value and the viewer's tip. */
+export interface RaceTipsDto {
+  /** Tips can be placed or changed until the start. */
+  open: boolean;
+  closesAt: string;
+  /** The field is final (entries closed); until then values move as runners join. */
+  final: boolean;
+  /** Points for naming each runner the winner. */
+  values: { horseId: string; value: number }[];
+  myTip: {
+    picks: string[];
+    points: number | null;
+    slots: number[] | null;
+    tricast: number;
+    void: boolean;
+  } | null;
+  /** How many players tipped this race. */
+  tipsters: number;
+  dailyLeft: number;
+}
+
+export interface TipsterRowDto {
+  rank: number;
+  userId: string;
+  name: string;
+  points: number;
+  tips: number;
+  /** Tips whose 1st pick won. */
+  winners: number;
+  me: boolean;
+}
+
+export interface TipsDto {
+  weekStart: string;
+  weekEnd: string;
+  dailyLimit: number;
+  dailyLeft: number;
+  me: { rank: number | null; points: number; tips: number; winners: number };
+  table: TipsterRowDto[];
+  /** Last week's final table (top 3) and what the places win. */
+  lastWeek: TipsterRowDto[];
+  rewards: { gems: number; reputation: number }[];
+  rules: { placeExact: number; placeAny: number; tricastBonus: number; minValue: number; maxValue: number };
+  /** Races open for tips (with players' horses), soonest first. */
+  upcoming: {
+    raceId: string;
+    name: string;
+    class: RaceClass;
+    startsAt: string;
+    runners: number;
+    tipped: boolean;
+  }[];
+  /** The viewer's recent tips. */
+  myTips: {
+    raceId: string;
+    raceName: string;
+    startsAt: string;
+    status: "PENDING" | "SCORED" | "VOID";
+    picks: { horseId: string; horseName: string }[];
+    points: number | null;
+  }[];
+}
+
 export const CreateCampaignRequest = z
   .object({
     name: z.string().trim().min(2).max(80),
@@ -1243,6 +1310,8 @@ export interface RaceEntryDto {
   ownerName: string | null;
   /** The owner, for a link to their stable (null for house horses and showdown runners). */
   ownerId: string | null;
+  /** Recent form: finishing positions of the last starts, most recent last (e.g. "4-2-1"). */
+  form: string | null;
   isHouse: boolean;
   gate: number | null;
   strategy: Strategy | null;

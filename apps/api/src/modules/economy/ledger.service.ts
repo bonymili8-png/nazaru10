@@ -41,7 +41,8 @@ export type SystemAccount =
   | "SPONSORS"
   | "RACING_PASS"
   | "PASS_REWARDS"
-  | "STABLE_LADS";
+  | "STABLE_LADS"
+  | "TIPSTER_REWARDS";
 
 /** Non-negative holding accounts (money in flight, e.g. auction bids). */
 export type EscrowAccount = "MARKET";

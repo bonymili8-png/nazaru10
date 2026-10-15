@@ -577,3 +577,26 @@ credits, gems or ratings, and they have no effect on anyone's stable.
   links to its page and each owner to their stable (`RaceEntryDto.ownerId`; house horses say
   "House"; showdown runners are not linked). Season and all-time rankings link owners to their
   stables.
+
+## Tipster league (predictions, never stakes)
+
+Players predict the first three of upcoming races for points, with no stakes of any kind (Races →
+Tips, and a "Your tip" card on every race page).
+
+* **What can be tipped.** Any race with at least one player's horse entered (empty races are
+  called off). Tips open as soon as a player enters and close at the off. Before the lock the
+  field can still grow (house horses join at the lock), so tips can be changed until the start.
+  Each player has up to 10 new tips a UTC day; changing a tip is free.
+* **Racecard.** Each runner shows its strength, recent form (last five finishing positions) and
+  its **tip value**: the points for naming it the winner. The value is `3 ÷ p`, clamped to 3–40,
+  where `p` is a softmax over strength (×0.07). Favourites are worth little and outsiders a lot.
+  The value is a simple public yardstick; reading form, trip and going is the tipster's edge.
+  Values are frozen from the lock snapshot.
+* **Scoring** (when the race settles): the 1st pick winning earns its value; a 2nd or 3rd pick in
+  its exact place +5; any other pick finishing in the first three +2; all three in order +10. A
+  pick that did not run scores 0. A cancelled race voids the tip.
+* **Weekly table** (Monday–Sunday UTC, by points, then winners named, then fewer tips). The week
+  closes 3 h after it ends (job runner), once and idempotently. Rewards: #1 30 gems + 50
+  reputation, #2 20 + 30, #3 10 + 20, #4–10 10 reputation (source `TIPSTER_REWARDS`). Last
+  week's top three are shown on the league page.
+* Tables `tips`, `tipster_weeks`. Config `tipster.*`, rules in `engine/tipster`.

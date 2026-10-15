@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS tipster_weeks; DROP TABLE IF EXISTS tips;

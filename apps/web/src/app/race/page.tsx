@@ -16,6 +16,7 @@ import { Suspense, useEffect, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
 import { RaceReport } from "@/components/RaceReport";
 import { HorseLink, OwnerLink } from "@/components/RunnerLinks";
+import { TipCard } from "@/components/TipCard";
 import { Silk } from "@/components/Silk";
 import { WEATHER_ICON } from "@/components/RaceCard";
 import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -120,6 +121,8 @@ function RacePage() {
             <RaceReport key={e.horseId} raceId={race.id} horseId={e.horseId} distance={race.distance} />
           ))}
 
+      {!race.tournamentId && <TipCard race={race} />}
+
       {/* Runners stay listed after the race too (by gate), under the replay and result. */}
       <>
         <SectionTitle>{t("race.runnersTitle", { n: race.entryList.length })}</SectionTitle>
@@ -148,6 +151,7 @@ function RacePage() {
                   </p>
                   <p className="truncate text-xs text-muted">
                     <OwnerLink e={e} />
+                    {e.form ? ` · ${t("tips.form", { f: e.form })}` : ""}
                     {e.jockeyName ? ` · ${e.jockeyName}` : ""}
                     {e.strategy ? ` · ${STRATEGY_INFO[e.strategy]!.label}` : ""}
                   </p>

@@ -41,6 +41,8 @@ import {
   CampaignsPublicController,
 } from "./modules/campaigns/campaigns.controller.js";
 import { CampaignsService } from "./modules/campaigns/campaigns.service.js";
+import { TipsController } from "./modules/tips/tips.controller.js";
+import { TipsService } from "./modules/tips/tips.service.js";
 import { LadsService } from "./modules/horses/lads.service.js";
 import { PublicShowdownsController, ShowdownsController } from "./modules/showdowns/showdowns.controller.js";
 import { ShowdownsService } from "./modules/showdowns/showdowns.service.js";
@@ -126,6 +128,7 @@ export class AppModule {
         OwnersController,
         CampaignsAdminController,
         CampaignsPublicController,
+        TipsController,
         ShowdownsController,
         PublicShowdownsController,
         RacesController,
@@ -167,6 +170,7 @@ export class AppModule {
         LadsService,
         ShowdownsService,
         CampaignsService,
+        TipsService,
         StableService,
         TrainingService,
         HouseService,

@@ -937,6 +937,7 @@ export class ShowdownsService {
           ownerName: f.displayName,
           // Stable horses (OWN_HORSES) link to their owner; tournament horses have no stable.
           ownerId: f.horseId ? f.userId : null,
+          form: null,
           isHouse: f.userId === null,
           gate: f.gate,
           strategy: f.strategy,

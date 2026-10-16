@@ -10,17 +10,9 @@ import { trackByCode } from "@thoroughline/engine";
 import { Crown } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { qualificationText, STATUS_LABEL, TIER_NAMES } from "@/components/TournamentCard";
-import {
-  Badge,
-  Button,
-  Card,
-  ErrorState,
-  LinkButton,
-  SectionTitle,
-  Skeleton,
-  useToast,
-} from "@/components/ui";
+import { cancelText, qualificationText, STATUS_LABEL, TIER_NAMES } from "@/components/TournamentCard";
+import { Rounds, Standings } from "@/components/TournamentResults";
+import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { del, post } from "@/lib/api";
 import { countdown, errorMessage, fmt, ordinal, STRATEGY_INFO, trackName } from "@/lib/format";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
@@ -101,45 +93,41 @@ function TournamentPage() {
 
       {open && <RegisterForm t={t} />}
 
-      {(t.heatRaceIds.length > 0 || t.finalRaceId) && (
-        <>
-          <SectionTitle>{tr("tour.races")}</SectionTitle>
-          <div className="grid grid-cols-2 gap-2">
-            {t.heatRaceIds.map((rid, i) => (
-              <LinkButton key={rid} href={`/race/?id=${rid}`}>
-                {tr("tour.heatN", { n: i + 1 })}
-              </LinkButton>
-            ))}
-            {t.finalRaceId && (
-              <LinkButton href={`/race/?id=${t.finalRaceId}`} variant="primary">
-                {tr("tour.final")}
-              </LinkButton>
-            )}
-          </div>
-        </>
+      {t.status === "CANCELLED" && (
+        <Card className="mt-3 text-sm">
+          {tr("tres.cancelled", { why: cancelText(t.cancelReason) })}
+          {t.entries.some((e) => e.mine && e.status === "SCRATCHED") && ` ${tr("tres.refundNote")}`}
+        </Card>
       )}
 
-      <SectionTitle>{tr("tour.fieldN", { n: t.entries.length })}</SectionTitle>
-      <Card className="divide-y divide-line/40 p-0">
-        {t.entries.length === 0 && <p className="p-4 text-sm text-muted">{tr("tour.noEntries")}</p>}
-        {t.entries.map((e) => (
-          <div
-            key={e.horseId}
-            className={`flex items-center gap-3 px-4 py-2.5 ${e.mine ? "bg-gold/10" : ""}`}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{e.horseName}</p>
-              <p className="truncate text-xs text-muted">
-                {e.ownerName}
-                {e.heatPosition ? tr("tour.heatPos", { p: ordinal(e.heatPosition) }) : ""}
-                {e.finalPosition ? tr("tour.finalPos", { p: ordinal(e.finalPosition) }) : ""}
-              </p>
-            </div>
-            <Badge tone={ENTRY_TONE[e.status]}>{tr(`tentry.${e.status}`)}</Badge>
-            {e.mine && open && e.status === "REGISTERED" && <Withdraw id={t.id} horseId={e.horseId} />}
-          </div>
-        ))}
-      </Card>
+      {t.status !== "REGISTRATION" && t.standings.length > 0 && <Standings t={t} />}
+      <Rounds t={t} />
+
+      {t.status === "REGISTRATION" && (
+        <>
+          <SectionTitle>{tr("tour.fieldN", { n: t.entries.length })}</SectionTitle>
+          <Card className="divide-y divide-line/40 p-0">
+            {t.entries.length === 0 && <p className="p-4 text-sm text-muted">{tr("tour.noEntries")}</p>}
+            {t.entries.map((e) => (
+              <div
+                key={e.horseId}
+                className={`flex items-center gap-3 px-4 py-2.5 ${e.mine ? "bg-gold/10" : ""}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{e.horseName}</p>
+                  <p className="truncate text-xs text-muted">
+                    {e.ownerName}
+                    {e.heatPosition ? tr("tour.heatPos", { p: ordinal(e.heatPosition) }) : ""}
+                    {e.finalPosition ? tr("tour.finalPos", { p: ordinal(e.finalPosition) }) : ""}
+                  </p>
+                </div>
+                <Badge tone={ENTRY_TONE[e.status]}>{tr(`tentry.${e.status}`)}</Badge>
+                {e.mine && open && e.status === "REGISTERED" && <Withdraw id={t.id} horseId={e.horseId} />}
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
     </div>
   );
 }

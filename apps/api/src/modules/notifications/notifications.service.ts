@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Db } from "../../common/db.js";
 import { LOGGER, type Logger } from "../../common/logger.js";
 import { ENV, type Env } from "../../config/env.js";
-import { credits, type Lang, langOf, num, ordinal } from "../../common/i18n.js";
+import { credits, type Lang, langOf, num, ordinal, ukPlural } from "../../common/i18n.js";
 import { BOT_API, type BotApi } from "../telegram/bot-api.js";
 
 interface EventRow {
@@ -28,7 +28,10 @@ export class NotificationsService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  render(e: EventRow, lang: Lang = "en"): { userId: string; text: string; openApp?: boolean } | null {
+  render(
+    e: EventRow,
+    lang: Lang = "en",
+  ): { userId: string; text: string; openApp?: boolean; path?: string } | null {
     const p = e.payload;
     const uk = lang === "uk";
     const userId = String(p.userId);
@@ -91,13 +94,16 @@ export class NotificationsService {
             ? `🔔 Вашу ставку на ${name("horseName")} перебито (${credits(p.amount, lang)}). Депозит повернено.`
             : `🔔 You were outbid on ${name("horseName")} (${credits(p.amount, lang)}). Your escrow has been returned.`,
         };
+      // Folded into "tournament_result", which tells every owner how the tournament went.
       case "tournament_champion":
-        return {
-          userId,
-          text: uk
-            ? `🏆 ${name("horseName")} виграв «${escape(p.tournamentName)}»! Нагороди чемпіона вже у вашому гаманці.`
-            : `🏆 ${name("horseName")} won the ${escape(p.tournamentName)}! Champion honours are in your wallet.`,
-        };
+        return null;
+      case "tournament_draw":
+      case "tournament_heats_result":
+      case "tournament_result":
+      case "tournament_called_off": {
+        const text = tournamentText(e.type, p, lang, Date.now());
+        return { userId, text, openApp: true, path: `/tournament/?id=${String(p.tournamentId)}` };
+      }
       case "trainer_left":
         return {
           userId,
@@ -212,7 +218,7 @@ export class NotificationsService {
       await c.query("UPDATE domain_events SET processed_at = now() WHERE id = ANY($1::bigint[])", [
         events.rows.map((e) => e.id),
       ]);
-      const out: { chatId: number; text: string; button?: string }[] = [];
+      const out: { chatId: number; text: string; button?: string; path?: string }[] = [];
       for (const e of events.rows) {
         const userId = this.render(e)?.userId;
         if (!userId) continue;
@@ -231,14 +237,25 @@ export class NotificationsService {
         out.push({
           chatId: user.telegram_id,
           text: m.text,
-          button: m.openApp ? (lang === "uk" ? "Відкрити стайню" : "Open the stable") : undefined,
+          button: !m.openApp
+            ? undefined
+            : m.path
+              ? lang === "uk"
+                ? "Відкрити турнір"
+                : "Open the tournament"
+              : lang === "uk"
+                ? "Відкрити стайню"
+                : "Open the stable",
+          path: m.path,
         });
       }
       return out;
     });
     for (const m of messages) {
       try {
-        const url = this.env.WEBAPP_URL;
+        // A deep link opens the Mini App straight on the page the message is about.
+        const base = this.env.WEBAPP_URL;
+        const url = base && m.path ? `${base.replace(/\/$/, "")}${m.path}` : base;
         await this.bot.sendMessage(
           m.chatId,
           m.text,
@@ -249,5 +266,133 @@ export class NotificationsService {
       }
     }
     return messages.length;
+  }
+}
+
+const TOURNAMENT_REASON_UK: Record<string, string> = {
+  "Not enough entrants": "замало учасників",
+  "Final cancelled": "фінал скасовано",
+  "No eligible finalists": "жоден фіналіст не зміг бігти",
+  "Heat cancelled": "забіг скасовано",
+};
+
+/**
+ * Tournament messages, one per owner and step: the draw, the heats, the final result, or a
+ * call-off with the refund. Each lists the owner's horses.
+ */
+export function tournamentText(type: string, p: Record<string, unknown>, lang: Lang, now: number): string {
+  const uk = lang === "uk";
+  const b = (v: unknown) => `<b>${escape(v)}</b>`;
+  const cup = b(p.tournamentName);
+  const horses = (p.horses ?? []) as Record<string, unknown>[];
+  const mins = (iso: unknown) => Math.max(1, Math.round((new Date(String(iso)).getTime() - now) / 60_000));
+  const off = (iso: unknown) => (uk ? `старт приблизно за ${mins(iso)} хв` : `off in about ${mins(iso)} min`);
+  const pos = (n: unknown) => (uk ? place(Number(n)) : ordinal(Number(n), lang));
+  switch (type) {
+    case "tournament_draw": {
+      const heats = Number(p.heats);
+      const head =
+        heats === 0
+          ? uk
+            ? `🏁 ${cup}: лише ${Number(p.entrants)} ${ukPlural(Number(p.entrants), "учасник", "учасники", "учасників")}, тож одразу фінал.`
+            : `🏁 ${cup}: only ${Number(p.entrants)} runners, so it goes straight to the final.`
+          : uk
+            ? `🏁 ${cup}: жеребкування — ${Number(p.entrants)} ${ukPlural(Number(p.entrants), "кінь", "коні", "коней")} у ${heats} забігах; до фіналу виходять ${Number(p.qualifiersPerHeat)} найкращі з кожного.`
+            : `🏁 ${cup}: the draw is out — ${Number(p.entrants)} horses in ${heats} heats; the top ${Number(p.qualifiersPerHeat)} of each go to the final.`;
+      const lines = horses.map((h) =>
+        Number(h.heat) === 0
+          ? `• ${b(h.horseName)} — ${uk ? "фінал" : "the final"}, ${off(h.startsAt)}`
+          : `• ${b(h.horseName)} — ${uk ? `забіг ${Number(h.heat)}` : `Heat ${Number(h.heat)}`}, ${off(h.startsAt)}`,
+      );
+      return [head, ...lines].join("\n");
+    }
+    case "tournament_heats_result": {
+      const lines = horses.map((h) => {
+        const heat = uk ? `у забігу ${Number(h.heat)}` : `in Heat ${Number(h.heat)}`;
+        switch (h.result) {
+          case "QUALIFIED":
+            return uk
+              ? `✅ ${b(h.horseName)} — ${pos(h.position)} ${heat}, вийшов у фінал`
+              : `✅ ${b(h.horseName)} — ${pos(h.position)} ${heat}, through to the final`;
+          case "SCRATCHED":
+            return uk
+              ? `⚠️ ${b(h.horseName)} — ${pos(h.position)} ${heat}, але не готовий бігти фінал`
+              : `⚠️ ${b(h.horseName)} — ${pos(h.position)} ${heat}, but not fit to run the final`;
+          case "REFUNDED":
+            return uk
+              ? `↩️ ${b(h.horseName)} — забіг ${Number(h.heat)} скасовано, внесок повернено`
+              : `↩️ ${b(h.horseName)} — Heat ${Number(h.heat)} was cancelled, entry fee refunded`;
+          default:
+            return uk
+              ? `❌ ${b(h.horseName)} — ${h.position ? `${pos(h.position)} ${heat}` : `не фінішував ${heat}`}, вибув`
+              : `❌ ${b(h.horseName)} — ${h.position ? `${pos(h.position)} ${heat}` : `did not finish ${heat}`}, out`;
+        }
+      });
+      const tailLine = p.finalAt
+        ? uk
+          ? `Фінал: ${off(p.finalAt)}.`
+          : `The final is ${off(p.finalAt)}.`
+        : uk
+          ? "Жоден фіналіст не зміг бігти — турнір скасовано."
+          : "No finalist could run, so the tournament is called off.";
+      return [uk ? `🏇 ${cup}: забіги завершено.` : `🏇 ${cup}: the heats are run.`, ...lines, tailLine].join(
+        "\n",
+      );
+    }
+    case "tournament_result": {
+      const mineChamp = horses.find((h) => h.champion);
+      const honours = [
+        Number(p.championReputation) > 0
+          ? `+${Number(p.championReputation)} ${uk ? "репутації" : "reputation"}`
+          : null,
+        Number(p.championPrestige) > 0
+          ? `+${Number(p.championPrestige)} ${uk ? "престижу" : "prestige"}`
+          : null,
+      ].filter(Boolean);
+      const champLine = p.championHorse
+        ? uk
+          ? `Чемпіон: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : ""}.`
+          : `Champion: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : ""}.`
+        : "";
+      const head = mineChamp
+        ? uk
+          ? `🏆 ${b(mineChamp.horseName)} виграв ${cup}!`
+          : `🏆 ${b(mineChamp.horseName)} won the ${cup}!`
+        : uk
+          ? `🏁 ${cup} завершено. ${champLine}`
+          : `🏁 The ${cup} is over. ${champLine}`;
+      const lines = horses.map((h) => {
+        const prize = Number(h.prize) > 0 ? `, +${credits(h.prize, lang)}` : "";
+        if (h.champion)
+          return `🥇 ${b(h.horseName)} — ${uk ? "чемпіон" : "champion"}${prize}${honours.length ? `, ${honours.join(", ")}` : ""}`;
+        if (h.finalRank) {
+          const medal = Number(h.finalRank) === 2 ? "🥈" : Number(h.finalRank) === 3 ? "🥉" : "•";
+          return uk
+            ? `${medal} ${b(h.horseName)} — ${pos(h.finalRank)} з ${Number(p.finalists)} у фіналі${prize}`
+            : `${medal} ${b(h.horseName)} — ${pos(h.finalRank)} of ${Number(p.finalists)} in the final${prize}`;
+        }
+        if (h.status === "ELIMINATED")
+          return uk
+            ? `• ${b(h.horseName)} — вибув у відбіркових забігах${h.heatPosition ? ` (${pos(h.heatPosition)})` : ""}`
+            : `• ${b(h.horseName)} — out in the heats${h.heatPosition ? ` (${pos(h.heatPosition)})` : ""}`;
+        return uk ? `• ${b(h.horseName)} — не стартував` : `• ${b(h.horseName)} — did not run`;
+      });
+      return [
+        head,
+        ...lines,
+        uk ? "Повна таблиця — на сторінці турніру." : "Full table on the tournament page.",
+      ].join("\n");
+    }
+    case "tournament_called_off": {
+      const why = uk
+        ? (TOURNAMENT_REASON_UK[String(p.reason)] ?? String(p.reason))
+        : String(p.reason).toLowerCase();
+      const names = horses.map((h) => b(h)).join(", ");
+      return uk
+        ? `↩️ ${cup} скасовано (${escape(why)}). Внесок повернено: ${credits(p.refund, lang)} за ${names}.`
+        : `↩️ The ${cup} was called off (${escape(why)}). Entry fee refunded: ${credits(p.refund, lang)} for ${names}.`;
+    }
+    default:
+      return "";
   }
 }

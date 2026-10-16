@@ -326,6 +326,18 @@ export const TournamentRegisterRequest = z.object({
 });
 export type TournamentRegisterRequest = z.infer<typeof TournamentRegisterRequest>;
 
+/** Finished tournaments, newest first: everyone's, or only those the viewer entered. */
+export const TournamentHistoryQuery = z.object({
+  mine: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
+  /** Cursor: the `heatsAt` of the last tournament already shown. */
+  before: z.string().datetime({ offset: true }).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type TournamentHistoryQuery = z.infer<typeof TournamentHistoryQuery>;
+
 export const FacilityParam = z.enum(["TRAINING_TRACK", "VET_CLINIC"]);
 export const GearParam = z.enum(GEAR_ITEMS);
 
@@ -1674,10 +1686,71 @@ export interface TournamentDto {
   finalRaceId: string | null;
   winner: { horseId: string; horseName: string; ownerName: string | null } | null;
   myEntries: TournamentEntryDto[];
+  /** Why a cancelled tournament did not run (e.g. "Not enough entrants"); null otherwise. */
+  cancelReason: string | null;
+  completedAt: string | null;
+}
+
+/** One runner of a heat or the final, as it finished. House horses keep the field full. */
+export interface TournamentRunnerDto {
+  horseId: string;
+  horseName: string;
+  ownerId: string | null;
+  ownerName: string | null;
+  house: boolean;
+  mine: boolean;
+  gate: number | null;
+  strategy: string;
+  position: number | null;
+  finishTime: number | null;
+  lengthsBehind: number | null;
+  prize: number | null;
+  /** Heats: went through to the final. */
+  qualified: boolean;
+}
+
+/** A heat or the final: the race and who ran in it. */
+export interface TournamentRoundDto {
+  raceId: string;
+  stage: "HEAT" | "FINAL";
+  /** Heat number (1-based); 0 for the final. */
+  no: number;
+  name: string;
+  status: RaceStatus;
+  startsAt: string;
+  trackName: string;
+  surface: string;
+  distance: number;
+  going: string;
+  weather: string;
+  runners: TournamentRunnerDto[];
+}
+
+/** The tournament table: finalists by their final placing, then the rest by how far they got. */
+export interface TournamentStandingDto {
+  /** Shared by horses that went out at the same stage with the same heat placing; null if scratched. */
+  rank: number | null;
+  tied: boolean;
+  horseId: string;
+  horseName: string;
+  ownerId: string;
+  ownerName: string | null;
+  mine: boolean;
+  status: TournamentEntryDto["status"];
+  champion: boolean;
+  heatNo: number | null;
+  heatPosition: number | null;
+  finalPosition: number | null;
+  /** Credits won in the final (heats carry no purse). */
+  prize: number;
 }
 
 export interface TournamentDetailDto extends TournamentDto {
   entries: TournamentEntryDto[];
+  rounds: TournamentRoundDto[];
+  standings: TournamentStandingDto[];
+  /** What the champion's owner received besides the purse. */
+  championHonours: { prestige: number; reputation: number };
 }
 
 export interface ProductDto {

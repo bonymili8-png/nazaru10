@@ -1,5 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import type { TournamentDetailDto, TournamentDto, TournamentEntryDto } from "@thoroughline/contracts";
+import type {
+  TournamentDetailDto,
+  TournamentDto,
+  TournamentEntryDto,
+  TournamentHistoryQuery,
+  TournamentRoundDto,
+  TournamentRunnerDto,
+  TournamentStandingDto,
+} from "@thoroughline/contracts";
 import {
   assertTransition,
   canRaceAtAge,
@@ -57,6 +65,7 @@ interface TournamentRow {
   winner_horse_id: string | null;
   winner_owner_id: string | null;
   completed_at: Date | null;
+  cancel_reason: string | null;
 }
 
 interface EntryRow {
@@ -348,9 +357,9 @@ export class TournamentsService {
   /** Registration closed: seed the field into heats (snake by rating) or go straight to the final. */
   private async draw(c: PoolClient, t: TournamentRow, now: Date): Promise<boolean> {
     const cfg = this.config.get();
-    const entries = await rows<EntryRow & { race_rating: number }>(
+    const entries = await rows<EntryRow & { race_rating: number; horse_name: string }>(
       c,
-      `SELECT e.*, h.race_rating FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
+      `SELECT e.*, h.race_rating, h.name AS horse_name FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
         WHERE e.tournament_id = $1 AND e.status = 'REGISTERED' ORDER BY h.race_rating DESC, e.horse_id`,
       [t.id],
     );
@@ -360,6 +369,13 @@ export class TournamentsService {
     }
     if (entries.length <= t.players_per_heat) {
       await this.createFinal(c, t, entries, t.heats_at, now);
+      await this.notifyOwners(
+        c,
+        t,
+        "tournament_draw",
+        group(entries, (e) => ({ horseName: e.horse_name, heat: 0, startsAt: t.heats_at.toISOString() })),
+        { heats: 0, entrants: entries.length },
+      );
       return true;
     }
     const heats = Math.ceil(entries.length / t.players_per_heat);
@@ -368,13 +384,15 @@ export class TournamentsService {
       const pass = Math.floor(i / heats);
       buckets[pass % 2 === 0 ? i % heats : heats - 1 - (i % heats)]!.push(e);
     });
+    const drawn: { e: (typeof entries)[number]; heat: number; startsAt: Date }[] = [];
     for (const [k, bucket] of buckets.entries()) {
+      const startsAt = new Date(t.heats_at.getTime() + k * cfg.tournaments.heatSpacingMinutes * MINUTE);
       const raceId = await this.runner.insertRace({
         c,
         cls: t.race_class,
         trackCode: t.track_code,
         distance: t.distance,
-        startsAt: new Date(t.heats_at.getTime() + k * cfg.tournaments.heatSpacingMinutes * MINUTE),
+        startsAt,
         rng: new Rng(`tournament:${t.id}:heat:${k}`),
         special: true,
         name: `${t.name} — Heat ${k + 1}`,
@@ -391,6 +409,7 @@ export class TournamentsService {
           "UPDATE tournament_entries SET status = 'IN_HEAT', heat_race_id = $3 WHERE tournament_id = $1 AND horse_id = $2",
           [t.id, e.horse_id, raceId],
         );
+        drawn.push({ e, heat: k + 1, startsAt });
       }
     }
     await c.query("UPDATE tournaments SET status = 'HEATS' WHERE id = $1", [t.id]);
@@ -400,6 +419,16 @@ export class TournamentsService {
       aggregateId: t.id,
       payload: { entrants: entries.length, heats },
     });
+    await this.notifyOwners(
+      c,
+      t,
+      "tournament_draw",
+      group(
+        drawn.map((d) => ({ ...d.e, heat: d.heat, startsAt: d.startsAt })),
+        (d) => ({ horseName: d.horse_name, heat: d.heat, startsAt: d.startsAt.toISOString() }),
+      ),
+      { heats, entrants: entries.length, qualifiersPerHeat: t.qualifiers_per_heat },
+    );
     return true;
   }
 
@@ -412,10 +441,16 @@ export class TournamentsService {
     );
     if (heats.some((h) => h.status !== "COMPLETED" && h.status !== "CANCELLED")) return false;
     const finalists: EntryRow[] = [];
-    for (const heat of heats) {
-      const entries = await rows<EntryRow>(
+    // What each owner hears: every horse's heat, placing and whether it goes on.
+    const outcome = new Map<
+      string,
+      { e: EntryRow & { horse_name: string }; heat: number; position: number | null; result: string }
+    >();
+    for (const [k, heat] of heats.entries()) {
+      const entries = await rows<EntryRow & { horse_name: string }>(
         c,
-        "SELECT * FROM tournament_entries WHERE tournament_id = $1 AND heat_race_id = $2 AND status = 'IN_HEAT'",
+        `SELECT e.*, h.name AS horse_name FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
+          WHERE e.tournament_id = $1 AND e.heat_race_id = $2 AND e.status = 'IN_HEAT'`,
         [t.id, heat.id],
       );
       if (heat.status === "CANCELLED") {
@@ -423,6 +458,7 @@ export class TournamentsService {
         for (const e of entries) {
           await this.setEntry(c, t.id, e.horse_id, "SCRATCHED");
           await this.refund(c, t, e, "Heat cancelled");
+          outcome.set(e.horse_id, { e, heat: k + 1, position: null, result: "REFUNDED" });
         }
         continue;
       }
@@ -442,8 +478,15 @@ export class TournamentsService {
           "UPDATE tournament_entries SET heat_position = $3 WHERE tournament_id = $1 AND horse_id = $2",
           [t.id, e.horse_id, pos.get(e.horse_id) ?? null],
         );
-        if (i < t.qualifiers_per_heat && pos.has(e.horse_id)) finalists.push(e);
+        const through = i < t.qualifiers_per_heat && pos.has(e.horse_id);
+        if (through) finalists.push(e);
         else await this.setEntry(c, t.id, e.horse_id, "ELIMINATED");
+        outcome.set(e.horse_id, {
+          e,
+          heat: k + 1,
+          position: pos.get(e.horse_id) ?? null,
+          result: through ? "QUALIFIED" : "ELIMINATED",
+        });
       }
     }
     // A finalist must still be fit, idle and with the same owner (it may have been injured in its heat).
@@ -457,17 +500,28 @@ export class TournamentsService {
         this.horses.effectiveStatus(h, now) === "IDLE" &&
         this.horses.condition(h, t.final_at).health >= this.config.get().condition.minHealthToRace;
       if (ok) fit.push(e);
-      else await this.setEntry(c, t.id, e.horse_id, "SCRATCHED");
+      else {
+        await this.setEntry(c, t.id, e.horse_id, "SCRATCHED");
+        outcome.get(e.horse_id)!.result = "SCRATCHED";
+      }
     }
+    const told = group(
+      [...outcome.values()].map((o) => ({ ...o, owner_id: o.e.owner_id })),
+      (o) => ({
+        horseName: o.e.horse_name,
+        heat: o.heat,
+        position: o.position,
+        result: o.result,
+      }),
+    );
     if (fit.length === 0) {
-      await c.query("UPDATE tournaments SET status = 'CANCELLED', completed_at = $2 WHERE id = $1", [
-        t.id,
-        now,
-      ]);
+      await this.markCancelled(c, t, "No eligible finalists", now);
+      await this.notifyOwners(c, t, "tournament_heats_result", told, { finalAt: null });
       await this.emitClosed(c, t, "No eligible finalists");
       return true;
     }
     await this.createFinal(c, t, fit, t.final_at, now);
+    await this.notifyOwners(c, t, "tournament_heats_result", told, { finalAt: t.final_at.toISOString() });
     return true;
   }
 
@@ -522,19 +576,18 @@ export class TournamentsService {
     ]);
     if (!final || (final.status !== "COMPLETED" && final.status !== "CANCELLED")) return false;
     if (final.status === "CANCELLED") {
-      const entries = await rows<EntryRow>(
+      const entries = await rows<EntryRow & { horse_name: string }>(
         c,
-        "SELECT * FROM tournament_entries WHERE tournament_id = $1 AND status = 'FINALIST'",
+        `SELECT e.*, h.name AS horse_name FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
+          WHERE e.tournament_id = $1 AND e.status = 'FINALIST'`,
         [t.id],
       );
       for (const e of entries) {
         await this.setEntry(c, t.id, e.horse_id, "SCRATCHED");
         await this.refund(c, t, e, "Final cancelled");
       }
-      await c.query("UPDATE tournaments SET status = 'CANCELLED', completed_at = $2 WHERE id = $1", [
-        t.id,
-        now,
-      ]);
+      await this.markCancelled(c, t, "Final cancelled", now);
+      await this.notifyCancelled(c, t, entries, "Final cancelled");
       await this.emitClosed(c, t, "Final cancelled");
       return true;
     }
@@ -551,8 +604,8 @@ export class TournamentsService {
       );
     }
     const champ = results[0] ?? null;
+    const tier = this.config.get().tournaments.tiers[t.tier];
     if (champ) {
-      const tier = this.config.get().tournaments.tiers[t.tier];
       for (const [currency, amount] of [
         ["PRESTIGE", tier.championPrestige],
         ["REPUTATION", tier.championReputation],
@@ -582,14 +635,51 @@ export class TournamentsService {
         WHERE id = $1`,
       [t.id, now, champ?.horse_id ?? null, champ?.owner_id ?? null],
     );
+    // Every owner who took part hears how the whole tournament went for their horses.
+    const all = await rows<EntryRow & { horse_name: string; prize: number | null }>(
+      c,
+      `SELECT e.*, h.name AS horse_name, re.prize FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
+         LEFT JOIN race_entries re ON re.race_id = $2 AND re.horse_id = e.horse_id
+        WHERE e.tournament_id = $1 AND e.status <> 'WITHDRAWN' ORDER BY e.final_position NULLS LAST`,
+      [t.id, t.final_race_id],
+    );
+    const finalRank = new Map(results.map((r, i) => [r.horse_id, i + 1] as const));
+    const champOwner = champ
+      ? await row<{ name: string | null }>(
+          c,
+          "SELECT COALESCE(username, first_name) AS name FROM users WHERE id = $1",
+          [champ.owner_id],
+        )
+      : null;
+    await this.notifyOwners(
+      c,
+      t,
+      "tournament_result",
+      group(all, (e) => ({
+        horseName: e.horse_name,
+        status: e.status,
+        finalRank: finalRank.get(e.horse_id) ?? null,
+        heatPosition: e.heat_position,
+        prize: e.prize ?? 0,
+        champion: e.horse_id === champ?.horse_id,
+      })),
+      {
+        finalists: results.length,
+        championHorse: champ?.name ?? null,
+        championOwner: champOwner?.name ?? null,
+        championReputation: tier.championReputation,
+        championPrestige: tier.championPrestige,
+      },
+    );
     await this.emitClosed(c, t, null);
     return true;
   }
 
   private async cancelInTx(c: PoolClient, t: TournamentRow, reason: string, now: Date): Promise<void> {
-    const entries = await rows<EntryRow>(
+    const entries = await rows<EntryRow & { horse_name: string }>(
       c,
-      "SELECT * FROM tournament_entries WHERE tournament_id = $1 AND status = 'REGISTERED' FOR UPDATE",
+      `SELECT e.*, h.name AS horse_name FROM tournament_entries e JOIN horses h ON h.id = e.horse_id
+        WHERE e.tournament_id = $1 AND e.status = 'REGISTERED' FOR UPDATE OF e`,
       [t.id],
     );
     for (const e of entries) {
@@ -600,11 +690,65 @@ export class TournamentsService {
         [e.horse_id, now],
       );
     }
-    await c.query("UPDATE tournaments SET status = 'CANCELLED', completed_at = $2 WHERE id = $1", [
-      t.id,
-      now,
-    ]);
+    await this.markCancelled(c, t, reason, now);
+    await this.notifyCancelled(c, t, entries, reason);
     await this.emitClosed(c, t, reason);
+  }
+
+  private markCancelled(c: Queryable, t: TournamentRow, reason: string, now: Date) {
+    return c.query(
+      "UPDATE tournaments SET status = 'CANCELLED', completed_at = $2, cancel_reason = $3 WHERE id = $1",
+      [t.id, now, reason],
+    );
+  }
+
+  /** Owners whose horses were refunded hear that the tournament is off and their fee is back. */
+  private async notifyCancelled(
+    c: Queryable,
+    t: TournamentRow,
+    entries: (EntryRow & { horse_name: string })[],
+    reason: string,
+  ): Promise<void> {
+    const byOwner = new Map<string, { names: string[]; refund: number }>();
+    for (const e of entries) {
+      const o = byOwner.get(e.owner_id) ?? { names: [], refund: 0 };
+      o.names.push(e.horse_name);
+      o.refund += e.entry_fee;
+      byOwner.set(e.owner_id, o);
+    }
+    for (const [userId, o] of byOwner)
+      await this.events.emit(c, {
+        type: "tournament_called_off",
+        aggregateType: "tournament",
+        aggregateId: t.id,
+        actorId: userId,
+        payload: {
+          userId,
+          tournamentId: t.id,
+          tournamentName: t.name,
+          horses: o.names,
+          refund: o.refund,
+          reason,
+        },
+      });
+  }
+
+  /** One outbox event per owner (one Telegram message), listing what happened to each horse. */
+  private async notifyOwners(
+    c: Queryable,
+    t: TournamentRow,
+    type: string,
+    byOwner: Map<string, Record<string, unknown>[]>,
+    extra: Record<string, unknown>,
+  ): Promise<void> {
+    for (const [userId, horses] of byOwner)
+      await this.events.emit(c, {
+        type,
+        aggregateType: "tournament",
+        aggregateId: t.id,
+        actorId: userId,
+        payload: { userId, tournamentId: t.id, tournamentName: t.name, horses, ...extra },
+      });
   }
 
   private setEntry(c: Queryable, id: string, horseId: string, status: EntryRow["status"]) {
@@ -705,6 +849,8 @@ export class TournamentsService {
             ? { horseId: t.winner_horse_id, horseName: w.horse_name, ownerName: w.owner_name }
             : null,
         myEntries: mine.get(t.id) ?? [],
+        cancelReason: t.status === "CANCELLED" ? (t.cancel_reason ?? null) : null,
+        completedAt: t.completed_at?.toISOString() ?? null,
       };
     });
   }
@@ -723,11 +869,183 @@ export class TournamentsService {
     return this.toDtos([...active, ...done], viewerId);
   }
 
+  /** Finished tournaments, newest first — all of them, or only those the viewer had a horse in. */
+  async history(
+    viewerId: string,
+    q: TournamentHistoryQuery,
+  ): Promise<{ items: TournamentDto[]; nextBefore: string | null }> {
+    const list = await this.db.query<TournamentRow>(
+      `SELECT t.* FROM tournaments t
+        WHERE t.status IN ('COMPLETED','CANCELLED') AND ($2::timestamptz IS NULL OR t.heats_at < $2)
+          AND (NOT $3 OR EXISTS (SELECT 1 FROM tournament_entries e
+                                  WHERE e.tournament_id = t.id AND e.owner_id = $1 AND e.status <> 'WITHDRAWN'))
+        ORDER BY t.heats_at DESC LIMIT $4`,
+      [viewerId, q.before ?? null, q.mine, q.limit],
+    );
+    const items = await this.toDtos(list, viewerId);
+    return {
+      items,
+      nextBefore: list.length === q.limit ? list[list.length - 1]!.heats_at.toISOString() : null,
+    };
+  }
+
   async detail(id: string, viewerId: string): Promise<TournamentDetailDto> {
     const t = await this.db.one<TournamentRow>("SELECT * FROM tournaments WHERE id = $1", [id]);
     if (!t) throw notFound("Tournament");
     const [dto] = await this.toDtos([t], viewerId);
     const entries = await this.entryViews([id], viewerId, false);
-    return { ...dto!, entries: entries.get(id) ?? [] };
+    const rounds = await this.rounds(t, viewerId);
+    const tier = this.config.get().tournaments.tiers[t.tier];
+    return {
+      ...dto!,
+      entries: entries.get(id) ?? [],
+      rounds,
+      standings: await this.standings(t, viewerId, rounds),
+      championHonours: { prestige: tier.championPrestige, reputation: tier.championReputation },
+    };
   }
+
+  /** Every heat and the final with its whole field (house horses too) and how they finished. */
+  private async rounds(t: TournamentRow, viewerId: string): Promise<TournamentRoundDto[]> {
+    const races = await this.db.query<{
+      id: string;
+      stage: "HEAT" | "FINAL";
+      name: string;
+      status: TournamentRoundDto["status"];
+      starts_at: Date;
+      track_code: string;
+      surface: string;
+      distance: number;
+      going: string;
+      weather: string;
+    }>(
+      `SELECT id, stage, name, status, starts_at, track_code, surface, distance, going, weather
+         FROM races WHERE tournament_id = $1 ORDER BY stage = 'FINAL', starts_at`,
+      [t.id],
+    );
+    if (!races.length) return [];
+    const runners = await this.db.query<{
+      race_id: string;
+      horse_id: string;
+      horse_name: string;
+      owner_id: string | null;
+      owner_name: string | null;
+      is_house: boolean;
+      gate: number | null;
+      strategy: string;
+      position: number | null;
+      finish_time: string | null;
+      lengths_behind: string | null;
+      prize: number | null;
+    }>(
+      `SELECT e.race_id, e.horse_id, COALESCE(e.snapshot->>'name', h.name) AS horse_name, e.owner_id,
+              COALESCE(u.username, u.first_name) AS owner_name, e.is_house, e.gate, e.strategy, e.position,
+              e.finish_time, e.lengths_behind, e.prize
+         FROM race_entries e JOIN horses h ON h.id = e.horse_id LEFT JOIN users u ON u.id = e.owner_id
+        WHERE e.race_id = ANY($1::uuid[]) AND e.status IN ('ENTERED','RAN')
+        ORDER BY e.position NULLS LAST, e.gate NULLS LAST, h.name`,
+      [races.map((r) => r.id)],
+    );
+    const finalId = races.find((r) => r.stage === "FINAL")?.id;
+    const inFinal = new Set(
+      runners.filter((r) => r.race_id === finalId && !r.is_house).map((r) => r.horse_id),
+    );
+    let heatNo = 0;
+    return races.map((r) => ({
+      raceId: r.id,
+      stage: r.stage,
+      no: r.stage === "HEAT" ? ++heatNo : 0,
+      name: r.name,
+      status: r.status,
+      startsAt: r.starts_at.toISOString(),
+      trackName: trackByCode(r.track_code).name,
+      surface: r.surface,
+      distance: r.distance,
+      going: r.going,
+      weather: r.weather,
+      runners: runners
+        .filter((x) => x.race_id === r.id)
+        .map((x): TournamentRunnerDto => ({
+          horseId: x.horse_id,
+          horseName: x.horse_name,
+          ownerId: x.is_house ? null : x.owner_id,
+          ownerName: x.is_house ? null : x.owner_name,
+          house: x.is_house,
+          mine: !x.is_house && x.owner_id === viewerId,
+          gate: x.gate === null ? null : x.gate + 1,
+          strategy: x.strategy,
+          position: x.position,
+          finishTime: x.finish_time === null ? null : Number(x.finish_time),
+          lengthsBehind: x.lengths_behind === null ? null : Number(x.lengths_behind),
+          prize: x.prize,
+          qualified: r.stage === "HEAT" && inFinal.has(x.horse_id),
+        })),
+    }));
+  }
+
+  /**
+   * The table: finalists in their final order, then horses out in the heats grouped by their heat
+   * placing (equal placings share a rank), scratched horses last without a rank. Ranks are given
+   * once the tournament is over.
+   */
+  private async standings(
+    t: TournamentRow,
+    viewerId: string,
+    rounds: TournamentRoundDto[],
+  ): Promise<TournamentStandingDto[]> {
+    const list = await this.db.query<EntryRow & { horse_name: string; owner_name: string | null }>(
+      `SELECT e.*, h.name AS horse_name, COALESCE(u.username, u.first_name) AS owner_name
+         FROM tournament_entries e JOIN horses h ON h.id = e.horse_id JOIN users u ON u.id = e.owner_id
+        WHERE e.tournament_id = $1 AND e.status <> 'WITHDRAWN'`,
+      [t.id],
+    );
+    const heatNo = new Map(rounds.filter((r) => r.stage === "HEAT").map((r) => [r.raceId, r.no] as const));
+    const final = rounds.find((r) => r.stage === "FINAL");
+    const prize = new Map((final?.runners ?? []).map((r) => [r.horseId, r.prize ?? 0] as const));
+    const stage = (e: EntryRow) =>
+      e.final_position !== null ? 0 : e.status === "FINALIST" ? 1 : e.status === "ELIMINATED" ? 2 : 3;
+    const sorted = [...list].sort(
+      (a, b) =>
+        stage(a) - stage(b) ||
+        (a.final_position ?? 99) - (b.final_position ?? 99) ||
+        (a.heat_position ?? 99) - (b.heat_position ?? 99) ||
+        a.horse_name.localeCompare(b.horse_name),
+    );
+    const done = t.status === "COMPLETED";
+    const key = (e: EntryRow) => (stage(e) === 0 ? `F${e.final_position}` : `H${e.heat_position}`);
+    const out: TournamentStandingDto[] = [];
+    sorted.forEach((e, i) => {
+      const ranked = done && (stage(e) === 0 || (stage(e) === 2 && e.heat_position !== null));
+      const prev = out[i - 1];
+      const same = ranked && prev !== undefined && prev.rank !== null && key(sorted[i - 1]!) === key(e);
+      const rank = !ranked ? null : same ? prev!.rank : i + 1;
+      if (same) prev!.tied = true;
+      out.push({
+        rank,
+        tied: same,
+        horseId: e.horse_id,
+        horseName: e.horse_name,
+        ownerId: e.owner_id,
+        ownerName: e.owner_name,
+        mine: e.owner_id === viewerId,
+        status: e.status,
+        champion: e.horse_id === t.winner_horse_id,
+        heatNo: e.heat_race_id ? (heatNo.get(e.heat_race_id) ?? null) : null,
+        heatPosition: e.heat_position,
+        finalPosition: e.final_position,
+        prize: prize.get(e.horse_id) ?? 0,
+      });
+    });
+    return out;
+  }
+}
+
+/** Group rows by owner, mapping each to what the owner's message says about that horse. */
+function group<T extends { owner_id: string }>(
+  list: T[],
+  f: (e: T) => Record<string, unknown>,
+): Map<string, Record<string, unknown>[]> {
+  const out = new Map<string, Record<string, unknown>[]>();
+  for (const e of list) out.set(e.owner_id, [...(out.get(e.owner_id) ?? []), f(e)]);
+  return out;
 }

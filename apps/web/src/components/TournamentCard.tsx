@@ -3,7 +3,7 @@ import type { TournamentDto, TournamentStatus, TournamentTier } from "@thoroughl
 import { Crown, Trophy } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
-import { countdown, fmt } from "@/lib/format";
+import { countdown, fmt, ordinal } from "@/lib/format";
 import { getLocale, type MessageKey, t as tr } from "@/lib/i18n";
 
 const labels = <K extends string>(prefix: string) =>
@@ -21,6 +21,24 @@ export const qualificationText = (q: TournamentDto["qualification"]) => {
   ]
     .filter(Boolean)
     .join(tr("tour.or"));
+};
+
+/** One of my horses in a tournament: "Bold Ruler — champion", "— 2nd in the final", "— out in Heat 1 (4th)". */
+export const myEntryText = (e: TournamentDto["myEntries"][number], t: TournamentDto): string => {
+  if (t.winner?.horseId === e.horseId) return tr("tres.myChampion", { h: e.horseName });
+  if (e.finalPosition !== null) return tr("tres.myFinal", { h: e.horseName, p: ordinal(e.finalPosition) });
+  if (e.status === "ELIMINATED")
+    return e.heatPosition
+      ? tr("tres.myOut", { h: e.horseName, p: ordinal(e.heatPosition) })
+      : tr("tres.myOutNoPos", { h: e.horseName });
+  if (e.status === "SCRATCHED" && t.status === "CANCELLED") return tr("tres.myRefunded", { h: e.horseName });
+  return `${e.horseName} — ${tr(`tentry.${e.status}`)}`;
+};
+
+/** Cancellation reasons come from the server in English; known ones are translated. */
+export const cancelText = (reason: string | null) => {
+  const key = `tres.reason.${(reason ?? "").replace(/\s+/g, "_")}` as MessageKey;
+  return reason && tr(key) !== key ? tr(key) : (reason ?? tr("tres.reason.none"));
 };
 
 export function TournamentCard({ t, now }: { t: TournamentDto; now: number }) {
@@ -74,6 +92,21 @@ export function TournamentCard({ t, now }: { t: TournamentDto; now: number }) {
           <p className="num text-xs text-muted">{tr("tour.entryFee", { fee: fmt(t.entryFee) })}</p>
         </div>
       </div>
+      {t.status === "CANCELLED" && (
+        <p className="mt-2 text-xs text-muted">{tr("tres.cancelled", { why: cancelText(t.cancelReason) })}</p>
+      )}
+      {(t.status === "COMPLETED" || t.status === "CANCELLED") && t.myEntries.length > 0 && (
+        <ul
+          className="mt-2 space-y-0.5 border-t border-line/40 pt-2 text-sm"
+          aria-label={tr("tres.myHorses")}
+        >
+          {t.myEntries.map((e) => (
+            <li key={e.horseId} className="truncate">
+              {myEntryText(e, t)}
+            </li>
+          ))}
+        </ul>
+      )}
     </Link>
   );
 }

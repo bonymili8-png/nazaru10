@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
 import {
   type TournamentDetailDto,
   type TournamentDto,
+  TournamentHistoryQuery,
   TournamentRegisterRequest,
 } from "@thoroughline/contracts";
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
@@ -15,6 +16,15 @@ export class TournamentsController {
   @Get()
   list(@CurrentUser() user: AuthUser): Promise<TournamentDto[]> {
     return this.tournaments.list(user.id);
+  }
+
+  /** Finished tournaments, newest first; `mine=true` keeps those the viewer had a horse in. */
+  @Get("history")
+  history(
+    @CurrentUser() user: AuthUser,
+    @Query() query: unknown,
+  ): Promise<{ items: TournamentDto[]; nextBefore: string | null }> {
+    return this.tournaments.history(user.id, parse(TournamentHistoryQuery, query));
   }
 
   @Get(":id")

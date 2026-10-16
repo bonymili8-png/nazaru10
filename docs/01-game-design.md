@@ -298,6 +298,23 @@ Lifecycle (`REGISTRATION → HEATS → FINAL → COMPLETED`, or `CANCELLED`):
 Heats and finals award season points like any race of their class. Every step is one
 transaction guarded by status + row lock, so the job can run on any number of workers.
 
+**Owners are told at every step** (one Telegram message per owner and step, listing their
+horses, with a button straight to the tournament page): the draw (which heat, roughly when it
+is off, or straight to the final), the heats (placing, through to the final or out, scratched
+or refunded), the result (final placing, prize, champion and honours — the champion's owner
+gets it as "won the …", replacing the old champion-only notice) and a call-off with the reason
+and the refunded fee. The ordinary per-race result messages still arrive as well.
+
+**Results stay readable afterwards.** Tournaments → "My tournaments" (every finished or
+called-off cup the owner entered, with each horse's outcome) and "Past tournaments" (everyone's,
+paged; `GET /tournaments/history?mine=&before=&limit=`). The tournament page shows why a cup
+was called off (`tournaments.cancel_reason`), the **tournament table** — finalists in final
+order, then horses out in the heats grouped by heat placing (equal placings share a rank,
+shown as "=5"), scratched horses unranked, with prizes and the champion's honours — and every
+heat and the final with conditions (track, distance, surface, weather, going), the whole field
+including house horses, gate, tactics, time or lengths behind, prize, who went through, and a
+link to the race replay.
+
 ## Race classes (MVP)
 
 Two numbers describe a horse, and only one gates entry:

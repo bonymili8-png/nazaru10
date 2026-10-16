@@ -7,6 +7,7 @@ import type {
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { NotificationsService, tournamentText } from "../src/modules/notifications/notifications.service.js";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
 import { TournamentsService } from "../src/modules/tournaments/tournaments.service.js";
 import { assertLedgerIntegrity, createTestApp, type TestApp } from "./helpers.js";
@@ -200,6 +201,120 @@ describe("tournaments", () => {
     expect(["IDLE", "INJURED"]).toContain(h.status);
   });
 
+  it("shows every heat and the final with full fields, and a ranked tournament table", async () => {
+    const d = (await t.get<TournamentDetailDto>(`/tournaments/${cup.id}`, users[0]!.token)).body;
+    expect(d.rounds.map((r) => [r.stage, r.no])).toEqual([
+      ["HEAT", 1],
+      ["HEAT", 2],
+      ["FINAL", 0],
+    ]);
+    for (const r of d.rounds) {
+      expect(r).toMatchObject({ status: "COMPLETED", distance: cup.distance, trackName: cup.trackName });
+      expect(r.going).toBeTruthy();
+      // Finishing order, every runner placed with a time.
+      expect(r.runners.map((x) => x.position)).toEqual(r.runners.map((_, i) => i + 1));
+      expect(r.runners.every((x) => x.finishTime !== null && x.gate !== null)).toBe(true);
+    }
+    // Heats are filled up with house horses; the final is the finalists alone.
+    const heatRunners = d.rounds.filter((r) => r.stage === "HEAT").flatMap((r) => r.runners);
+    expect(heatRunners.some((x) => x.house && x.ownerName === null)).toBe(true);
+    expect(heatRunners.filter((x) => !x.house)).toHaveLength(7);
+    const final = d.rounds.find((r) => r.stage === "FINAL")!;
+    expect(final.runners.every((x) => !x.house)).toBe(true);
+    expect(
+      heatRunners
+        .filter((x) => x.qualified)
+        .map((x) => x.horseId)
+        .sort(),
+    ).toEqual(final.runners.map((x) => x.horseId).sort());
+    expect(final.runners[0]!.prize).toBeGreaterThan(0);
+    expect(heatRunners.filter((x) => x.mine)).toHaveLength(1);
+
+    // The table: champion first, finalists in final order, the rest by heat placing (ties share).
+    const table = d.standings;
+    expect(table).toHaveLength(7);
+    expect(table[0]).toMatchObject({ rank: 1, champion: true, horseId: d.winner!.horseId });
+    expect(table[0]!.prize).toBe(final.runners[0]!.prize);
+    const finalists = table.filter((x) => x.finalPosition !== null);
+    expect(finalists.map((x) => x.rank)).toEqual(finalists.map((_, i) => i + 1));
+    const out = table.filter((x) => x.status === "ELIMINATED");
+    for (const x of out) expect(x.rank).toBeGreaterThan(finalists.length);
+    // Two heats: their 3rd places tie.
+    const thirds = out.filter((x) => x.heatPosition === out[0]!.heatPosition);
+    if (thirds.length > 1) expect(thirds.every((x) => x.tied && x.rank === thirds[0]!.rank)).toBe(true);
+    expect(table.every((x) => x.heatNo === 1 || x.heatNo === 2)).toBe(true);
+    expect(d.championHonours.reputation).toBe(local.championReputation);
+  });
+
+  it("tells each owner about the draw, the heats and the final result", async () => {
+    const events = await t.db.query<{ type: string; payload: { userId: string; horses: unknown[] } }>(
+      "SELECT type, payload FROM domain_events WHERE aggregate_id = $1 AND payload ? 'userId' ORDER BY id",
+      [cup.id],
+    );
+    const of = (type: string) => events.filter((e) => e.type === type);
+    for (const type of ["tournament_draw", "tournament_heats_result", "tournament_result"]) {
+      expect(of(type)).toHaveLength(7);
+      expect(new Set(of(type).map((e) => e.payload.userId)).size).toBe(7);
+      expect(of(type).every((e) => e.payload.horses.length === 1)).toBe(true);
+    }
+    const svc = t.service(NotificationsService);
+    const now = new Date(cup.heatsAt).getTime() - 10 * 60_000;
+    const draw = of("tournament_draw")[0]!;
+    expect(tournamentText("tournament_draw", draw.payload, "en", now)).toMatch(
+      /the draw is out — 7 horses in 2 heats; the top 2 of each go to the final\.\n• <b>.+<\/b> — Heat [12], off in about \d+ min/,
+    );
+    expect(tournamentText("tournament_draw", draw.payload, "uk", now)).toContain(
+      "жеребкування — 7 коней у 2 забігах",
+    );
+    const heats = of("tournament_heats_result").map((e) =>
+      svc.render({ id: 0, type: e.type, payload: e.payload })!,
+    );
+    expect(heats.some((m) => /✅ .+ through to the final/.test(m.text))).toBe(true);
+    expect(heats.some((m) => /❌ .+ in Heat \d, out/.test(m.text))).toBe(true);
+    expect(heats[0]!.path).toBe(`/tournament/?id=${cup.id}`);
+    const result = of("tournament_result").map(
+      (e) => svc.render({ id: 0, type: e.type, payload: e.payload })!.text,
+    );
+    expect(result.filter((m) => m.startsWith("🏆 ") && m.includes("— champion"))).toHaveLength(1);
+    expect(result.filter((m) => m.includes("is over. Champion:"))).toHaveLength(6);
+    expect(result.some((m) => /— 2nd of \d in the final, \+[\d,]+ credits/.test(m))).toBe(true);
+    expect(result.some((m) => m.includes("— out in the heats ("))).toBe(true);
+    // The champion's own message replaces the old champion-only notice.
+    expect(svc.render({ id: 0, type: "tournament_champion", payload: { userId: "u" } })).toBeNull();
+  });
+
+  it("lists finished tournaments, and the ones I entered, newest first", async () => {
+    const me = users[0]!;
+    const all = (
+      await t.get<{ items: TournamentDto[]; nextBefore: string | null }>("/tournaments/history", me.token)
+    ).body;
+    expect(all.items.map((x) => x.id)).toContain(cup.id);
+    const mine = (await t.get<{ items: TournamentDto[] }>("/tournaments/history?mine=true", me.token)).body
+      .items;
+    expect(mine.map((x) => x.id)).toEqual([cup.id]);
+    expect(mine[0]!.myEntries).toHaveLength(1);
+    expect(mine[0]!.completedAt).toBeTruthy();
+    const outsider = await t.login(9310, "Watcher");
+    expect(
+      (await t.get<{ items: TournamentDto[] }>("/tournaments/history?mine=true", outsider.token)).body.items,
+    ).toEqual([]);
+    const page = (
+      await t.get<{ items: TournamentDto[]; nextBefore: string | null }>(
+        "/tournaments/history?limit=1",
+        me.token,
+      )
+    ).body;
+    expect(page.items).toHaveLength(1);
+    expect(page.nextBefore).toBe(page.items[0]!.heatsAt);
+    const rest = (
+      await t.get<{ items: TournamentDto[] }>(
+        `/tournaments/history?limit=50&before=${encodeURIComponent(page.nextBefore!)}`,
+        me.token,
+      )
+    ).body.items;
+    expect(rest.map((x) => x.id)).not.toContain(page.items[0]!.id);
+  });
+
   it("cancels an under-subscribed tournament and refunds", async () => {
     const svc = t.service(TournamentsService);
     await svc.scheduleAhead();
@@ -220,7 +335,24 @@ describe("tournaments", () => {
     await svc.advanceDue();
     const d = (await t.get<TournamentDetailDto>(`/tournaments/${next.id}`, u.token)).body;
     expect(d.status).toBe("CANCELLED");
+    expect(d.cancelReason).toBe("Not enough entrants");
+    expect(d.standings).toMatchObject([{ rank: null, status: "SCRATCHED", mine: true }]);
     expect((await credits(u)).CREDITS).toBe(before);
+    // The owner hears it is off and the fee is back; it shows in their history.
+    const off = await t.db.one<{ payload: Record<string, unknown> }>(
+      "SELECT payload FROM domain_events WHERE type = 'tournament_called_off' AND aggregate_id = $1",
+      [next.id],
+    );
+    expect(off!.payload).toMatchObject({ userId: u.userId, refund: local.entryFee, horses: [horse.name] });
+    expect(tournamentText("tournament_called_off", off!.payload, "uk", Date.now())).toContain(
+      "скасовано (замало учасників). Внесок повернено: 200 кредитів",
+    );
+    const mine = (await t.get<{ items: TournamentDto[] }>("/tournaments/history?mine=true", u.token)).body;
+    expect(mine.items[0]).toMatchObject({
+      id: next.id,
+      status: "CANCELLED",
+      cancelReason: "Not enough entrants",
+    });
     const again = (await t.get<HorseSummaryDto[]>("/horses", u.token)).body.find((h) => h.id === horse.id)!;
     expect(again.status).toBe("IDLE");
   });

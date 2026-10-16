@@ -45,7 +45,10 @@ export default function RacePageWrapper() {
 }
 
 function RacePage() {
-  const id = useSearchParams().get("id");
+  const params = useSearchParams();
+  const id = params.get("id");
+  // From the bot's "watch the replay" button: the replay starts by itself.
+  const autoReplay = params.get("replay") === "1";
   const {
     data: race,
     error,
@@ -112,7 +115,7 @@ function RacePage() {
 
       {/* Mounted from the gates (LOCKED) so the live view polls on its own and catches the off. */}
       {(race.status === "LOCKED" || race.status === "RUNNING" || race.status === "COMPLETED") && (
-        <LiveRace race={race} />
+        <LiveRace race={race} autoReplay={autoReplay} />
       )}
       {race.status === "COMPLETED" &&
         race.entryList

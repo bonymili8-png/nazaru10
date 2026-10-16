@@ -63,19 +63,32 @@ function sample(frames: Frame[][], interval: number, t: number): Frame[] | null 
  * `livePath` points the broadcast at another source with the same shape (showdowns use it);
  * by default the race's own `/races/:id/live`.
  */
-export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: string }) {
+export function LiveRace({
+  race,
+  livePath,
+  autoReplay = false,
+}: {
+  race: RaceDetailDto;
+  livePath?: string;
+  /** Opened from a "watch the replay" link: play a finished race from the gates, on camera. */
+  autoReplay?: boolean;
+}) {
   const path = livePath ?? `/races/${race.id}/live`;
   const [live, setLive] = useState<LiveRaceDto | null>(null);
   const [replayStart, setReplayStart] = useState<number | null>(null);
   const [t, setT] = useState(0);
-  // Whole-track overview or a camera that follows the leader (remembered on this device).
+  // A camera that follows the leader (default) or the whole-track overview; the viewer's own
+  // choice is remembered on this device. A replay link always opens on the camera.
   const [view, setView] = useState<"track" | "camera">(() => {
+    if (autoReplay) return "camera";
     try {
-      return localStorage.getItem("tl.raceView") === "camera" ? "camera" : "track";
+      return localStorage.getItem("tl.raceView") === "track" ? "track" : "camera";
     } catch {
-      return "track";
+      return "camera";
     }
   });
+  const boxRef = useRef<HTMLDivElement>(null);
+  const autoPlayedRef = useRef(false);
   const chooseView = (v: "track" | "camera") => {
     setView(v);
     try {
@@ -131,6 +144,14 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
     return () => cancelAnimationFrame(raf);
   }, [replayStart, startMs]);
 
+  // Replay link: once the finished race's frames are here, roll it from the gates and show it.
+  useEffect(() => {
+    if (!autoReplay || autoPlayedRef.current || live?.status !== "COMPLETED" || !live.frames) return;
+    autoPlayedRef.current = true;
+    setReplayStart(Date.now());
+    boxRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [autoReplay, live]);
+
   const names = useMemo(
     () => Object.fromEntries(race.entryList.map((e) => [e.horseId, e])),
     [race.entryList],
@@ -179,7 +200,7 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
   const winnerEffect = live.results?.find((r) => r.position === 1)?.finishEffect ?? null;
 
   return (
-    <>
+    <div ref={boxRef} className="scroll-mt-16">
       <SectionTitle
         action={
           live.status === "COMPLETED" && (
@@ -407,6 +428,6 @@ export function LiveRace({ race, livePath }: { race: RaceDetailDto; livePath?: s
           </Card>
         </>
       )}
-    </>
+    </div>
   );
 }

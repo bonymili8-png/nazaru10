@@ -18,6 +18,18 @@ const INJURY_UK: Record<string, string> = { MINOR: "легку", MODERATE: "по
 const injuryUk = (s: unknown) => INJURY_UK[String(s)] ?? String(s).toLowerCase();
 const place = (n: number) => `${n}-є місце`;
 
+/** A rendered bot message: text, optional button into the Mini App (deep link `path`). */
+interface Rendered {
+  userId: string;
+  text: string;
+  openApp?: boolean;
+  path?: string;
+  /** Button label (default: "Open the stable"). */
+  button?: string;
+  /** Optional kind of message with its own setting; skipped when the player turned it off. */
+  category?: "raceStartAlerts" | "dailyReport";
+}
+
 /** Turns outbox events into Telegram messages (best effort, respecting user preferences and language). */
 @Injectable()
 export class NotificationsService {
@@ -28,10 +40,7 @@ export class NotificationsService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  render(
-    e: EventRow,
-    lang: Lang = "en",
-  ): { userId: string; text: string; openApp?: boolean; path?: string } | null {
+  render(e: EventRow, lang: Lang = "en"): Rendered | null {
     const p = e.payload;
     const uk = lang === "uk";
     const userId = String(p.userId);
@@ -53,8 +62,26 @@ export class NotificationsService {
             "." +
             (bonus > 0 ? `\n🎁 First race of the day bonus: +${credits(bonus, lang)}.` : "") +
             (p.injury ? `\n⚠️ Picked up a ${String(p.injury).toLowerCase()} injury — check the vet.` : "");
-        return { userId, text };
+        // The button opens the race and rolls the replay on the camera straight away.
+        return {
+          userId,
+          text,
+          openApp: true,
+          path: `/race/?id=${String(p.raceId)}&replay=1`,
+          button: uk ? "▶️ Дивитись повтор" : "▶️ Watch the replay",
+        };
       }
+      case "race_off_soon":
+        return {
+          userId,
+          text: offSoonText(p, lang, Date.now()),
+          openApp: true,
+          path: `/race/?id=${String(p.raceId)}`,
+          button: uk ? "📺 Дивитись наживо" : "📺 Watch live",
+          category: "raceStartAlerts",
+        };
+      case "daily_report":
+        return { userId, text: dailyReportText(p, lang), openApp: true, category: "dailyReport" };
       case "training_completed":
         return {
           userId,
@@ -102,7 +129,13 @@ export class NotificationsService {
       case "tournament_result":
       case "tournament_called_off": {
         const text = tournamentText(e.type, p, lang, Date.now());
-        return { userId, text, openApp: true, path: `/tournament/?id=${String(p.tournamentId)}` };
+        return {
+          userId,
+          text,
+          openApp: true,
+          path: `/tournament/?id=${String(p.tournamentId)}`,
+          button: uk ? "Відкрити турнір" : "Open the tournament",
+        };
       }
       case "trainer_left":
         return {
@@ -225,27 +258,21 @@ export class NotificationsService {
         const u = await c.query<{
           telegram_id: number | null;
           language_code: string | null;
-          settings: { notifications?: boolean; locale?: string };
+          settings: { notifications?: boolean; locale?: string } & Record<string, unknown>;
         }>("SELECT telegram_id, language_code, settings FROM users WHERE id = $1 AND status = 'ACTIVE'", [
           userId,
         ]);
         const user = u.rows[0];
         if (!user?.telegram_id || user.settings.notifications === false) continue;
         const m = this.render(e, langOf(user.language_code, user.settings.locale));
-        if (!m) continue;
+        // Optional kinds of message each have their own switch in the profile.
+        if (!m || (m.category && user.settings[m.category] === false)) continue;
         const lang = langOf(user.language_code, user.settings.locale);
         out.push({
           chatId: user.telegram_id,
           text: m.text,
-          button: !m.openApp
-            ? undefined
-            : m.path
-              ? lang === "uk"
-                ? "Відкрити турнір"
-                : "Open the tournament"
-              : lang === "uk"
-                ? "Відкрити стайню"
-                : "Open the stable",
+          button:
+            m.button ?? (m.openApp ? (lang === "uk" ? "Відкрити стайню" : "Open the stable") : undefined),
           path: m.path,
         });
       }
@@ -395,4 +422,60 @@ export function tournamentText(type: string, p: Record<string, unknown>, lang: L
     default:
       return "";
   }
+}
+
+/** "Bold Ruler (gate 3) goes off in about 2 min — Race, 1400m, 8 runners." */
+export function offSoonText(p: Record<string, unknown>, lang: Lang, now: number): string {
+  const uk = lang === "uk";
+  const horses = (p.horses ?? []) as { name: string; gate: number | null }[];
+  const list = horses
+    .map((h) => `<b>${escape(h.name)}</b>${h.gate ? (uk ? ` (бокс ${h.gate})` : ` (gate ${h.gate})`) : ""}`)
+    .join(uk ? " і " : " and ");
+  const mins = Math.max(1, Math.round((new Date(String(p.startsAt)).getTime() - now) / 60_000));
+  const field = Number(p.field);
+  return uk
+    ? `🏁 ${list} ${horses.length > 1 ? "стартують" : "стартує"} приблизно за ${mins} хв — «${escape(p.raceName)}», ${num(p.distance, lang)} м, ${field} ${ukPlural(field, "учасник", "учасники", "учасників")}.`
+    : `🏁 ${list} ${horses.length > 1 ? "go" : "goes"} off in about ${mins} min — ${escape(p.raceName)}, ${num(p.distance, lang)}m, ${field} runners.`;
+}
+
+/** The morning stable report: yesterday's runs, who is ready today, the first-race bonus. */
+export function dailyReportText(p: Record<string, unknown>, lang: Lang): string {
+  const uk = lang === "uk";
+  const runs = Number(p.runs);
+  const wins = Number(p.wins);
+  const places = Number(p.places);
+  const ready = (p.ready ?? []) as string[];
+  const more = Number(p.readyMore ?? 0);
+  const resting = Number(p.resting ?? 0);
+  const lines = [
+    uk ? "☀️ <b>Доброго ранку! Звіт вашої стайні</b>" : "☀️ <b>Good morning! Your stable report</b>",
+  ];
+  if (runs > 0) {
+    const won = Number(p.prize) > 0 ? `, +${credits(p.prize, lang)}` : "";
+    lines.push(
+      uk
+        ? `🏁 Учора: ${runs} ${ukPlural(runs, "старт", "старти", "стартів")} — ${wins} ${ukPlural(wins, "перемога", "перемоги", "перемог")}, ${places} у трійці${won}.`
+        : `🏁 Yesterday: ${runs} run${runs === 1 ? "" : "s"} — ${wins} win${wins === 1 ? "" : "s"}, ${places} in the top 3${won}.`,
+    );
+  } else lines.push(uk ? "🏁 Учора ваші коні не бігали." : "🏁 Your horses did not race yesterday.");
+  if (ready.length) {
+    const names = ready.map((n) => `<b>${escape(n)}</b>`).join(", ");
+    lines.push(
+      uk
+        ? `🐎 Готові до старту: ${names}${more > 0 ? ` і ще ${more}` : ""}.`
+        : `🐎 Ready to race: ${names}${more > 0 ? ` and ${more} more` : ""}.`,
+    );
+  } else if (resting > 0)
+    lines.push(
+      uk
+        ? `🐎 Поки ніхто не готовий до старту: ${resting} ${ukPlural(resting, "кінь відпочиває", "коні відпочивають", "коней відпочивають")} або тренується.`
+        : `🐎 Nobody is ready to race yet: ${resting} horse${resting === 1 ? " is" : "s are"} resting or training.`,
+    );
+  if (Number(p.bonus) > 0)
+    lines.push(
+      uk
+        ? `🎁 Перша гонка сьогодні принесе +${credits(p.bonus, lang)}.`
+        : `🎁 Your first race today pays +${credits(p.bonus, lang)}.`,
+    );
+  return lines.join("\n");
 }

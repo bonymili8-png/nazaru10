@@ -414,6 +414,25 @@ button back into the stable: at most one every 3 days and 3 per absence (the cou
 return), only 07:00–18:00 UTC, and never when notifications are off. Tunables in
 `engagement.service.ts` (`NUDGE`).
 
+## Bringing players back into the races
+
+- **Off soon** — when a race closes (2 minutes before the off, gates drawn) each owner with a
+  runner gets one message: their horses with gate numbers, the race, distance and field, and a
+  **📺 Watch live** button straight to the race. Own switch in the profile ("Race start alerts").
+- **Result with a replay** — every race result message (any placing) has a **▶️ Watch the replay**
+  button: it opens the race with `?replay=1`, which rolls the replay from the gates by itself on
+  the **camera** that follows the leader (the viewer's saved track/camera choice is not changed).
+  The camera is now also the default view for everyone who has not picked one.
+- **Morning stable report** — once a UTC day, 07:00–11:00 UTC (10:00 in Kyiv, 08:00 in London),
+  for players seen in the last two days (players away longer get comeback nudges instead):
+  yesterday's runs, wins, top-three finishes and prize money, up to three horses ready to race
+  today (+ how many more, or how many are resting/training), and the first-race-of-the-day bonus
+  if not yet earned. Own switch in the profile ("Morning stable report"); `users.last_report_on`
+  keeps it to one a day. Tunables in `engagement.service.ts` (`REPORT`).
+
+Both optional kinds sit under the master "Bot notifications" switch, which still silences
+everything; results, tournament messages, sales and offers have no separate switch.
+
 ## Clubs (Phase 3, v1)
 
 Players found a club (5,000 credits, sink `CLUBS`) with a unique name and a 2–4 character tag,

@@ -88,6 +88,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("sponsor-expiry", () => this.sponsors.expireDue());
         await this.step("membership-expiry", () => this.subscriptions.expireDue());
         await this.step("comeback-nudges", () => this.engagement.nudgeDue());
+        await this.step("daily-reports", () => this.engagement.reportDue());
         await this.step("offer-expiry", () => this.offers.expireDue());
         await this.step("stable-lads", () => this.lads.runDue());
         await this.step("tips-score", () => this.tips.scoreDue());

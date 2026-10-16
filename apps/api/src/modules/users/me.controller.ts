@@ -97,6 +97,8 @@ export class MeController {
     const req = parse(UpdateSettingsRequest, body);
     const patch: Record<string, unknown> = {};
     if (req.notifications !== undefined) patch.notifications = req.notifications;
+    if (req.raceStartAlerts !== undefined) patch.raceStartAlerts = req.raceStartAlerts;
+    if (req.dailyReport !== undefined) patch.dailyReport = req.dailyReport;
     if (req.locale !== undefined) patch.locale = req.locale;
     await this.db.query(
       `UPDATE users SET settings = jsonb_strip_nulls(settings || $2::jsonb), updated_at = $3 WHERE id = $1`,

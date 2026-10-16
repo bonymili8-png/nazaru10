@@ -33,18 +33,18 @@ describe("language", () => {
 
   it("stores the language and notification preference", async () => {
     const me = (await t.get<UserDto>("/me", user.token)).body;
-    expect(me.settings).toEqual({ locale: null, notifications: true });
+    expect(me.settings).toMatchObject({ locale: null, notifications: true });
 
     const set = await t.put<UserDto>("/me/settings", { locale: "uk" }, user.token);
     expect(set.status).toBe(200);
-    expect(set.body.settings).toEqual({ locale: "uk", notifications: true });
+    expect(set.body.settings).toMatchObject({ locale: "uk", notifications: true });
 
     const off = await t.put<UserDto>("/me/settings", { notifications: false }, user.token);
-    expect(off.body.settings).toEqual({ locale: "uk", notifications: false });
+    expect(off.body.settings).toMatchObject({ locale: "uk", notifications: false });
 
     // null goes back to following the Telegram language.
     const reset = await t.put<UserDto>("/me/settings", { locale: null, notifications: true }, user.token);
-    expect(reset.body.settings).toEqual({ locale: null, notifications: true });
+    expect(reset.body.settings).toMatchObject({ locale: null, notifications: true });
 
     for (const bad of [{}, { locale: "fr" }, { locale: "uk", theme: "dark" }])
       expect((await t.put("/me/settings", bad, user.token)).status).toBe(400);

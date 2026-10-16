@@ -31,7 +31,7 @@ export interface UserRow {
   referral_code: string;
   created_at: Date;
   language_code: string | null;
-  settings: { locale?: string; notifications?: boolean };
+  settings: { locale?: string; notifications?: boolean; raceStartAlerts?: boolean; dailyReport?: boolean };
 }
 
 const referralCode = () =>

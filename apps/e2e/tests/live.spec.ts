@@ -62,8 +62,8 @@ test("joining a race just after the off shows it from the start", async ({ page 
   // …and playback moves on towards the live picture.
   await expect.poll(async () => Number((await clock.innerText()).replace(/[^\d.]/g, ""))).toBeGreaterThan(4);
 
-  // Camera view: follows the leader, with the stragglers counted out of shot.
-  await page.getByRole("tab", { name: "Camera" }).click();
+  // Camera view (the default): follows the leader, with the stragglers counted out of shot.
+  await expect(page.getByRole("tab", { name: "Camera" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("img", { name: "Camera following the race leader" })).toBeVisible();
   await page.waitForTimeout(3000);
   await page
@@ -74,9 +74,10 @@ test("joining a race just after the off shows it from the start", async ({ page 
   await expect(
     page.getByRole("img", { name: "Camera following the race leader" }).locator("text", { hasText: /^1$/ }),
   ).toHaveCount(1);
-  // The choice is remembered.
+  // The viewer's own choice is remembered.
+  await page.getByRole("tab", { name: "Track" }).click();
   await page.reload();
-  await expect(page.getByRole("tab", { name: "Camera" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Track" })).toHaveAttribute("aria-selected", "true");
 });
 
 test("a finished race lists its runners under the replay, each linked to its horse", async ({ page }) => {
@@ -158,4 +159,54 @@ test("a finished race lists its runners under the replay, each linked to its hor
     "href",
     "/horse/?id=11111111-1111-4111-8111-111111111111",
   );
+});
+
+test("the bot's replay link plays a finished race from the gates, on camera", async ({ page }) => {
+  await newOwner(page);
+  // This viewer picked the track view before: a replay link still opens on the camera.
+  await page.evaluate(() => localStorage.setItem("tl.raceView", "track"));
+  await page.getByRole("link", { name: "Races" }).click();
+  const link = page.locator("a[href^='/race/?id=']").first();
+  await expect(async () => {
+    await page.reload();
+    await expect(link).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 45_000 });
+  const id = new URL((await link.getAttribute("href"))!, page.url()).searchParams.get("id")!;
+  const ids = Array.from({ length: 6 }, (_, i) => `runner-${i}`);
+  await page.route(new RegExp(`/races/${id}$`), async (route) => {
+    const res = await route.fetch();
+    await route.fulfill({ response: res, json: { ...(await res.json()), status: "COMPLETED" } });
+  });
+  await page.route(new RegExp(`/races/${id}/live$`), (route) =>
+    route.fulfill({
+      json: {
+        raceId: id,
+        status: "COMPLETED",
+        elapsed: 999,
+        duration: 80,
+        distance: 1200,
+        // 80 one-second frames: everyone covers 15 m a second, a few metres apart.
+        frames: {
+          interval: 1,
+          ids,
+          data: Array.from({ length: 81 }, (_, s) =>
+            ids.map((_, i) => [Math.min(1200, s * 15 - i * 3), i, 0, 0]),
+          ),
+        },
+        commentary: [],
+        events: [],
+        results: null,
+      },
+    }),
+  );
+  await page.goto(`/race/?id=${id}&replay=1`);
+  await expect(page.getByRole("tab", { name: "Camera" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("img", { name: "Camera following the race leader" })).toBeVisible();
+  const clock = page.getByText(/^\d+\.\ds$/);
+  await expect(clock).toBeVisible();
+  // Rolling from the gates, not parked at the finish.
+  expect(Number((await clock.innerText()).replace(/[^\d.]/g, ""))).toBeLessThan(10);
+  await expect.poll(async () => Number((await clock.innerText()).replace(/[^\d.]/g, ""))).toBeGreaterThan(3);
+  // The viewer's own choice was not overwritten by the link.
+  expect(await page.evaluate(() => localStorage.getItem("tl.raceView"))).toBe("track");
 });

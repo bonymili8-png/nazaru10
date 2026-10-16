@@ -81,7 +81,7 @@ test("a game admin schedules and cancels a special race; finance sees payments",
   await page.goto("/admin/");
   await page.getByRole("tab", { name: "races" }).click();
   const name = `E2E Cup ${devId}`;
-  await page.getByLabel("Name").fill(name);
+  await page.getByLabel("Name", { exact: true }).fill(name);
   const start = new Date(Date.now() + 3 * 3_600_000);
   const local = new Date(start.getTime() - start.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
   await page.getByLabel("Starts (local time)").fill(local);

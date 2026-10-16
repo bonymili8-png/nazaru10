@@ -1618,6 +1618,10 @@ export const en = {
   "tres.more": "Show more",
   "tour.houseFill":
     "Runs even with a single entrant: heats and the final are made up with house horses, and the final's winner takes the cup.",
+  "profile.raceStart": "Race start alerts",
+  "profile.raceStartHint": "A message two minutes before your horse goes off, to watch it live.",
+  "profile.dailyReport": "Morning stable report",
+  "profile.dailyReportHint": "Once a day: yesterday's results and who is ready to race.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

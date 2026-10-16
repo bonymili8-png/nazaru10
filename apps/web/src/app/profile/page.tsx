@@ -19,6 +19,10 @@ export default function ProfilePage() {
   const { locale, setLocale } = useLocale();
   const b = wallet.data?.balances;
   const link = me.data ? (appLink(`ref_${me.data.referralCode}`) ?? me.data.referralCode) : "";
+  const saveSetting = (patch: Record<string, boolean>) =>
+    put("/me/settings", patch)
+      .then(() => invalidate("/me"))
+      .catch((e: unknown) => toast(errorMessage(e), "bad"));
 
   return (
     <div>
@@ -103,27 +107,33 @@ export default function ProfilePage() {
       </div>
 
       {me.data && (
-        <Card className="mt-2 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium" id="notif-label">
-              {t("profile.notifications")}
-            </p>
-            <p className="text-xs text-muted">{t("profile.notificationsHint")}</p>
-          </div>
-          <button
-            role="switch"
-            aria-checked={me.data.settings.notifications}
-            aria-labelledby="notif-label"
-            onClick={async () => {
-              const next = !me.data!.settings.notifications;
-              await put("/me/settings", { notifications: next })
-                .then(() => invalidate("/me"))
-                .catch((e: unknown) => toast(errorMessage(e), "bad"));
-            }}
-            className={`min-h-11 shrink-0 cursor-pointer rounded-full px-4 text-sm font-medium ${me.data.settings.notifications ? "bg-gold text-bg" : "bg-surface-2 text-muted"}`}
-          >
-            {me.data.settings.notifications ? t("profile.on") : t("profile.off")}
-          </button>
+        <Card className="mt-2 divide-y divide-line/40 py-1">
+          <SettingSwitch
+            id="notif"
+            label={t("profile.notifications")}
+            hint={t("profile.notificationsHint")}
+            on={me.data.settings.notifications}
+            onChange={(v) => saveSetting({ notifications: v })}
+          />
+          {/* Optional kinds of message; only meaningful while bot messages are on. */}
+          {me.data.settings.notifications && (
+            <>
+              <SettingSwitch
+                id="race-start"
+                label={t("profile.raceStart")}
+                hint={t("profile.raceStartHint")}
+                on={me.data.settings.raceStartAlerts}
+                onChange={(v) => saveSetting({ raceStartAlerts: v })}
+              />
+              <SettingSwitch
+                id="daily-report"
+                label={t("profile.dailyReport")}
+                hint={t("profile.dailyReportHint")}
+                on={me.data.settings.dailyReport}
+                onChange={(v) => saveSetting({ dailyReport: v })}
+              />
+            </>
+          )}
         </Card>
       )}
       <HomeScreenSetting />
@@ -234,6 +244,41 @@ function Referrals() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** One on/off preference row: label and hint on the left, the switch on the right. */
+function SettingSwitch({
+  id,
+  label,
+  hint,
+  on,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  on: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium" id={`${id}-label`}>
+          {label}
+        </p>
+        <p className="text-xs text-muted">{hint}</p>
+      </div>
+      <button
+        role="switch"
+        aria-checked={on}
+        aria-labelledby={`${id}-label`}
+        onClick={() => onChange(!on)}
+        className={`min-h-11 shrink-0 cursor-pointer rounded-full px-4 text-sm font-medium ${on ? "bg-gold text-bg" : "bg-surface-2 text-muted"}`}
+      >
+        {on ? t("profile.on") : t("profile.off")}
+      </button>
     </div>
   );
 }

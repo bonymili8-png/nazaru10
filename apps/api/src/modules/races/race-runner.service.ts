@@ -316,9 +316,13 @@ export class RaceRunnerService {
         rng.fork("jockeys"),
       );
       let nextHouse = 0;
+      // Each owner hears their horses are going to post (gate drawn), with a "watch live" button.
+      const callUp = new Map<string, { name: string; gate: number }[]>();
       for (let i = 0; i < entries.length; i++) {
         const e = entries[i]!;
         const h = horseRows.get(e.horse_id)!;
+        if (!e.is_house && e.owner_id)
+          callUp.set(e.owner_id, [...(callUp.get(e.owner_id) ?? []), { name: h.name, gate: gates[i]! + 1 }]);
         const jockey = retained.get(e.horse_id) ?? house[nextHouse++ % house.length]!;
         const snapshot: EntrySnapshot = {
           name: h.name,
@@ -351,6 +355,22 @@ export class RaceRunnerService {
         aggregateId: raceId,
         payload: { field: entries.length },
       });
+      for (const [owner, horses] of callUp)
+        await this.events.emit(c, {
+          type: "race_off_soon",
+          aggregateType: "race",
+          aggregateId: raceId,
+          actorId: owner,
+          payload: {
+            userId: owner,
+            raceId,
+            raceName: race.name,
+            distance: race.distance,
+            startsAt: race.starts_at.toISOString(),
+            field: entries.length,
+            horses: horses.sort((a, b) => a.gate - b.gate),
+          },
+        });
       return true;
     });
   }

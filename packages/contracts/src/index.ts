@@ -456,11 +456,21 @@ export interface ApiError {
 export interface UserSettingsDto {
   /** Explicit choice; null means "follow the Telegram language". */
   locale: Locale | null;
+  /** Master switch for bot messages. */
   notifications: boolean;
+  /** "Your horse goes off in 2 min — watch live" (needs `notifications`). */
+  raceStartAlerts: boolean;
+  /** The morning stable report (needs `notifications`). */
+  dailyReport: boolean;
 }
 
 export const UpdateSettingsRequest = z
-  .object({ locale: z.enum(LOCALES).nullable().optional(), notifications: z.boolean().optional() })
+  .object({
+    locale: z.enum(LOCALES).nullable().optional(),
+    notifications: z.boolean().optional(),
+    raceStartAlerts: z.boolean().optional(),
+    dailyReport: z.boolean().optional(),
+  })
   .strict()
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
 export type UpdateSettingsRequest = z.infer<typeof UpdateSettingsRequest>;

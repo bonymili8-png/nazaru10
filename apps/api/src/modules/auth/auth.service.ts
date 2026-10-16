@@ -22,6 +22,8 @@ export const toUserDto = (u: UserRow & { member?: boolean }): UserDto => ({
   settings: {
     locale: u.settings.locale === "en" || u.settings.locale === "uk" ? u.settings.locale : null,
     notifications: u.settings.notifications !== false,
+    raceStartAlerts: u.settings.raceStartAlerts !== false,
+    dailyReport: u.settings.dailyReport !== false,
   },
   member: u.member === true,
 });

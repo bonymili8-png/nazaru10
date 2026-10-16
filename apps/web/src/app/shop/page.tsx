@@ -11,7 +11,8 @@ import type {
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { Check, Crown, Gem, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CreditExchange } from "@/components/CreditExchange";
 import { HorseCard } from "@/components/HorseCard";
 import { ListingCard } from "@/components/ListingCard";
 import { MyOffers } from "@/components/Offers";
@@ -42,6 +43,11 @@ const productText = (p: ProductDto, field: "title" | "description") => {
 
 export default function MarketPage() {
   const [tab, setTab] = useState<Tab>("players");
+  // Deep link: /shop/?tab=gems opens a tab directly.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+    if (q && TABS.includes(q)) setTab(q);
+  }, []);
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{t("shop.title")}</h1>
@@ -269,6 +275,7 @@ function Gems() {
             </Card>
           ))}
       </div>
+      <CreditExchange />
     </>
   );
 }

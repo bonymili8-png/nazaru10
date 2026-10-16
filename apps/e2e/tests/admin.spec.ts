@@ -49,7 +49,7 @@ test("an economy admin reads the dashboard, adjusts a balance and cannot publish
   await expect(page.getByRole("heading", { name: "Signup cohorts" })).toBeVisible();
   await page.getByRole("tab", { name: "economy" }).click();
   await expect(page.getByRole("heading", { name: "Supply" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Credits" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Credits", exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: "users" }).click();
   await page.getByLabel("Search users").fill(String(devId));

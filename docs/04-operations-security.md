@@ -14,6 +14,7 @@ FRAUD_ANALYST.
 | Audit log viewer | SUPPORT, FINANCE, ECONOMY, FRAUD | ✅ console |
 | Economy dashboard (supply, mint/burn by reason, daily) | ECONOMY, FINANCE | ✅ console |
 | Revenue (Stars 7/30 days, payers, products, members, gem sinks) | ECONOMY, FINANCE | ✅ console |
+| Gems → credits exchange: on/off switch with a reason (a config version, audited `GEM_EXCHANGE_SWITCH`, live in ≤ 30 s on every node), bundles, totals for 24 h / 7 days / all time, switch history | switch: ECONOMY; view: ECONOMY, FINANCE | ✅ console (economy tab) |
 | Campaign links for partners (create, archive) and their funnel | ECONOMY, FINANCE, CONTENT | ✅ console |
 | Players (DAU/WAU/MAU, signups, D1/D7 retention by cohort from `user_activity`) | ECONOMY, FINANCE, GAME | ✅ console |
 | Edit game config: versioned override, validated against defaults, audited, live in ≤ 30 s on every node | edit: ECONOMY; view: ECONOMY, GAME | ✅ console |

@@ -43,6 +43,8 @@ import {
 import { CampaignsService } from "./modules/campaigns/campaigns.service.js";
 import { TipsController } from "./modules/tips/tips.controller.js";
 import { TipsService } from "./modules/tips/tips.service.js";
+import { ExchangeAdminController, ExchangeController } from "./modules/exchange/exchange.controller.js";
+import { ExchangeService } from "./modules/exchange/exchange.service.js";
 import { LadsService } from "./modules/horses/lads.service.js";
 import { PublicShowdownsController, ShowdownsController } from "./modules/showdowns/showdowns.controller.js";
 import { ShowdownsService } from "./modules/showdowns/showdowns.service.js";
@@ -121,6 +123,8 @@ export class AppModule {
         MeController,
         EventsController,
         WalletController,
+        ExchangeController,
+        ExchangeAdminController,
         StableController,
         HorsesController,
         YardController,
@@ -171,6 +175,7 @@ export class AppModule {
         ShowdownsService,
         CampaignsService,
         TipsService,
+        ExchangeService,
         StableService,
         TrainingService,
         HouseService,

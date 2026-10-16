@@ -10,6 +10,7 @@ import {
 import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
 import { Campaigns } from "@/components/admin/Campaigns";
+import { GemExchange } from "@/components/admin/GemExchange";
 import { useState } from "react";
 import {
   Badge,
@@ -101,7 +102,7 @@ export default function AdminPage() {
       {active === "campaigns" && <Campaigns />}
       {active === "players" && <Players />}
       {active === "liveops" && <LiveOps />}
-      {active === "economy" && <Economy />}
+      {active === "economy" && <Economy canEdit={role === "SUPER_ADMIN" || role === "ECONOMY_ADMIN"} />}
       {active === "users" && <Users role={role} />}
       {active === "fraud" && <Fraud />}
       {active === "payments" && <Payments />}
@@ -504,7 +505,7 @@ interface EconomyDto {
   daily: { day: string; currency: string; minted: number; burned: number }[];
 }
 
-function Economy() {
+function Economy({ canEdit }: { canEdit: boolean }) {
   const { data, error, reload } = useApi<EconomyDto>("/admin/economy", { refreshMs: 60_000 });
   if (error) return <ErrorState error={error} retry={reload} />;
   if (!data) return <Skeleton className="mt-3 h-64" />;
@@ -516,6 +517,7 @@ function Economy() {
   const dayMax = Math.max(1, ...days.flatMap((d) => [Number(d.minted), Number(d.burned)]));
   return (
     <>
+      <GemExchange canEdit={canEdit} />
       <SectionTitle>Supply</SectionTitle>
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-xs">

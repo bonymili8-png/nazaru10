@@ -42,7 +42,9 @@ export type SystemAccount =
   | "RACING_PASS"
   | "PASS_REWARDS"
   | "STABLE_LADS"
-  | "TIPSTER_REWARDS";
+  | "TIPSTER_REWARDS"
+  /** Gems in, credits out: the gem → credit exchange (both currencies on one account code). */
+  | "GEM_EXCHANGE";
 
 /** Non-negative holding accounts (money in flight, e.g. auction bids). */
 export type EscrowAccount = "MARKET";

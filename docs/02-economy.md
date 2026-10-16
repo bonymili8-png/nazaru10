@@ -6,15 +6,16 @@
 
 | Code | Name | Type | Purchasable | Tradable | Main sources | Main sinks |
 |---|---|---|---|---|---|---|
-| `CREDITS` | Credits | soft | **No** (MVP decision) | via market (P2) | race prizes, missions, starter grant, sponsor (P3) | training, entry fees, vet, facilities, staff, market fees |
-| `GEMS` | Racing Gems | premium | Yes (Telegram Stars) | No | purchases, pass rewards, rare achievements | cosmetics, analytics reports, convenience, pass |
+| `CREDITS` | Credits | soft | **With gems only** (bundles, daily cap, admin switch) | via market (P2) | race prizes, missions, starter grant, gem exchange, sponsor (P3) | training, entry fees, vet, facilities, staff, market fees |
+| `GEMS` | Racing Gems | premium | Yes (Telegram Stars) | No | purchases, pass rewards, rare achievements | cosmetics, analytics reports, convenience, pass, credits |
 | `REPUTATION` | Reputation | progression | No | No | placings, missions, fair trading | none (monotonic, seasonal decay 10 %) |
 | `PRESTIGE` | Prestige | rare progression | No | No | championships, Hall of Fame | none |
 
-**Why credits are not purchasable in MVP:** paid entry + randomized outcome + prize that
-can be converted to value is the legal risk pattern. Keeping Credits earn-only and
-non-withdrawable, and Gems unable to buy Credits, keeps competitive rewards
-purely virtual and keeps the game from being pay-to-win. Revisit only after legal review.
+**Credits for gems (owner decision, reverses the earlier "earn-only" rule):** owners may buy
+credits with gems in fixed bundles, capped per day (see L.1 "Gem exchange"). What keeps it out of
+the gambling pattern is unchanged: nothing ever converts back — credits never become gems,
+Stars, TON or money, and prizes stay purely virtual. The daily cap and the admin's on/off switch
+limit the pay-to-win pressure.
 
 ### K.2 Ledger model (double-entry)
 
@@ -126,7 +127,8 @@ hard-coded outside config.
 
 * No betting, no stake-based predictions, no cash-out, no conversion of Credits/Gems
   to Stars/TON/fiat.
-* Paid Gems cannot buy Credits, race entries or horses with competitive advantage.
+* Paid Gems buy Credits only through the capped exchange (one way: credits never turn back into
+  gems or anything withdrawable); gems never buy race wins, race entries or horses directly.
 * Any future real-money prize, cash-out, or tokenization requires a separate legal
   review per jurisdiction (gambling / prize-competition law).
 
@@ -155,14 +157,27 @@ with competitive horses for real money.
 - **Players pay only in Telegram Stars** (gem packs, Rookie pack, Owners' Circle). Telegram
   requires Stars for digital goods in Mini Apps; the developer withdraws Stars via Fragment (TON)
   or spends them on Telegram Ads.
-- **Gems never buy competitive power.** Anything that changes race results or readiness (feed
-  plans, training, staff, facilities) is priced in earn-only credits. Elite feed stays on credits:
-  selling it for gems would create a pay → power → prize loop (legal and retention risk).
+- **Gems never buy competitive power directly.** Anything that changes race results or readiness (feed
+  plans, training, staff, facilities) is priced in credits, never in gems. Elite feed stays on
+  credits: selling it for gems would create an uncapped pay → power → prize loop. Credits can be
+  bought with gems only through the capped exchange below.
 - **Gem sinks** are cosmetics (silks, crest, cloths), the Racing Pass, information (diagnostics)
   and visibility (featured listings). Further candidates: advanced race analytics, convenience
   (multi-week auto-renew), finish effects.
-- **No gems → credits conversion** (owner decision, re-confirmed): not even a capped, bound-credit
-  variant. Credits stay earn-only.
+- **Gem exchange** (live, owner decision — replaces the earlier "no gems → credits" rule):
+  `POST /wallet/exchange` swaps gems for credits in fixed bundles at 1 gem = 10 credits with a
+  volume bonus — 50 → 500, 100 → 1 100 (+10 %), 250 → 3 000 (+20 %), 550 → 7 000 (+27 %) — and at
+  most **10 000 credits per owner per UTC day** (≈ 1 000 gems ≈ 500⭐). 100 gems (≈ 50⭐) buy about
+  a day and a half of race income. One way only; one balanced posting (gems into, credits out of
+  the `GEM_EXCHANGE` system account) with the tap's request id as the idempotency key, so a retry
+  never charges twice; the owner must confirm the amount they were shown (`BUNDLE_CHANGED`
+  otherwise). Each exchange is also a `gem_exchanges` row (daily cap, admin totals).
+  **Admin switch:** economy tab → "Gems → credits exchange" (`POST /admin/gem-exchange`,
+  ECONOMY_ADMIN): on/off with an optional reason; it publishes a new config version with only
+  `economy.gemExchange.enabled` changed, is audited (`GEM_EXCHANGE_SWITCH`) and applies at once.
+  Off: the shop hides the exchange and the server answers `EXCHANGE_DISABLED`. Bundles and the
+  cap are config (`economy.gemExchange.*`, checked on publish: whole positive amounts, one bundle
+  per gem price). On at launch. Watch `Gem Exchange` among credit sources on the economy tab.
 - **Finish effects** (live): a stable-wide winner celebration drawn over the race picture for every
   viewer — confetti (free), roses 80, fireworks 100, gold rain 120, lightning 150 gems.
 - **Race reports** (live): 10 gems per run (free for Owners' Circle members) — positions at each
@@ -277,8 +292,8 @@ told by bot message; buyers hear when accepted or declined.
   credits: a credit version pushed pass credits to 8.4 % of income and staff/feed adoption past
   their gates.
 * Free-track tiers also pay credits (50 … 300, 1 000 per season), earned only by playing. The
-  premium track, bought with gems, never pays credits (that would be a gems-to-credits exchange,
-  declined by the owner) — the service drops credits from premium rewards even if configured.
+  premium track, bought with gems, never pays credits (gems reach credits only through the capped
+  exchange, so the pass cannot bypass its daily limit) — the service drops credits from premium rewards even if configured.
   Modelled in `sim:economy`: ≈ 4.7 % of recurring income, ≈ 35 % of owners reach tier 20 (gate:
   pass credits < 8 % of income).
 * Tuning in config `pass.*`; admin overrides can change existing tiers' rewards and prices (new

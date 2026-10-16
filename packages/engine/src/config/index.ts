@@ -216,6 +216,16 @@ export interface GameConfig {
     allowance: { threshold: number; amount: number };
     /** Credits for an owner's first race of the UTC day (any result; a reason to race daily). */
     dailyRaceBonus: number;
+    /**
+     * Buying credits with gems (owner decision). One way only, fixed bundles with a volume bonus,
+     * a per-owner daily cap on credits bought; `enabled` is the admin's on/off switch.
+     */
+    gemExchange: {
+      enabled: boolean;
+      /** Credits an owner may buy per UTC day, across all bundles. */
+      dailyCreditLimit: number;
+      bundles: { gems: number; credits: number }[];
+    };
   };
   cosmetics: {
     /** Gem price to unlock each racing-silk pattern (0 = free for everyone, -1 = Racing Pass only). */
@@ -756,6 +766,17 @@ export const defaultConfig: GameConfig = {
     renameStableGems: 80,
     allowance: { threshold: 400, amount: 250 },
     dailyRaceBonus: 100,
+    // 1 gem = 10 credits at the smallest bundle (100 gems ≈ 50⭐ ≈ 1.5 days of race income).
+    gemExchange: {
+      enabled: true,
+      dailyCreditLimit: 10_000,
+      bundles: [
+        { gems: 50, credits: 500 },
+        { gems: 100, credits: 1_100 },
+        { gems: 250, credits: 3_000 },
+        { gems: 550, credits: 7_000 },
+      ],
+    },
   },
   cosmetics: {
     silkPatternPrices: {

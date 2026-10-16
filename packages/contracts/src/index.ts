@@ -683,6 +683,63 @@ export interface WalletDto {
   allowance?: { amount: number; threshold: number; eligible: boolean };
 }
 
+/** Buying credits with gems: the bundles on offer and what is left of today's cap. */
+export interface GemExchangeDto {
+  /** The admin's switch; when off the shop hides the exchange and the server refuses it. */
+  enabled: boolean;
+  /** Credits per gem at the smallest bundle. */
+  baseRate: number;
+  bundles: { gems: number; credits: number; bonusPct: number }[];
+  dailyCreditLimit: number;
+  /** Credits this owner bought today (UTC) and may still buy. */
+  creditsToday: number;
+  creditsLeft: number;
+  /** When today's cap resets (next UTC midnight). */
+  resetsAt: string;
+}
+
+/**
+ * Buy one bundle. `credits` is what the owner was shown (refused if the admin changed the bundle
+ * meanwhile); `requestId` makes a retried tap a no-op.
+ */
+export const GemExchangeRequest = z.object({
+  gems: z.number().int().positive(),
+  credits: z.number().int().positive(),
+  requestId: z.string().regex(/^[A-Za-z0-9-]{8,64}$/),
+});
+export type GemExchangeRequest = z.infer<typeof GemExchangeRequest>;
+
+export interface GemExchangeResultDto {
+  exchange: GemExchangeDto;
+  balances: Record<Currency, number>;
+  /** True when this requestId had already been processed. */
+  replayed: boolean;
+}
+
+/** Admin: switch the exchange on or off (a new audited config version). */
+export const AdminGemExchangeToggle = z.object({
+  enabled: z.boolean(),
+  note: z.string().trim().max(500).optional(),
+});
+export type AdminGemExchangeToggle = z.infer<typeof AdminGemExchangeToggle>;
+
+/** Admin view of the exchange: the switch, the offer and what it moved. */
+export interface AdminGemExchangeDto {
+  enabled: boolean;
+  dailyCreditLimit: number;
+  bundles: { gems: number; credits: number; bonusPct: number }[];
+  /** Totals over the last 24 hours, 7 days and all time. */
+  stats: {
+    period: "DAY" | "WEEK" | "ALL";
+    exchanges: number;
+    owners: number;
+    gems: number;
+    credits: number;
+  }[];
+  /** The last switch changes, newest first. */
+  history: { enabled: boolean; at: string; by: string | null; note: string | null }[];
+}
+
 export interface LedgerLineDto {
   id: number;
   currency: Currency;

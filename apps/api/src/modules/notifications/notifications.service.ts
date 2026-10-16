@@ -351,8 +351,8 @@ export function tournamentText(type: string, p: Record<string, unknown>, lang: L
       ].filter(Boolean);
       const champLine = p.championHorse
         ? uk
-          ? `Чемпіон: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : ""}.`
-          : `Champion: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : ""}.`
+          ? `Чемпіон: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : p.championHouse ? " (кінь заводу)" : ""}.`
+          : `Champion: ${b(p.championHorse)}${p.championOwner ? ` (${escape(p.championOwner)})` : p.championHouse ? " (a house horse)" : ""}.`
         : "";
       const head = mineChamp
         ? uk

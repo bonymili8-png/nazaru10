@@ -295,6 +295,16 @@ Lifecycle (`REGISTRATION → HEATS → FINAL → COMPLETED`, or `CANCELLED`):
    prize split). The best player finisher is champion (tier bonus via `TOURNAMENT_PRIZE`).
    A cancelled final refunds every finalist.
 
+**House fill (admin switch, on by default; races tab → "Tournaments: house horses").** While
+there are few players, cups would keep being called off. With the switch on, a cup runs with a
+single entrant (straight to the final when the field fits one heat) and its final, like every
+heat, is made up to a full field with house horses. The final is then a real race: its winner
+takes the cup, and if that is a house horse no owner is champion (no honours; the table ranks
+finalists by their actual placing in the final). Off: the rules above (two entrants or a
+refund; the final is the finalists alone). The rule is fixed at the draw
+(`tournaments.house_fill`), so flipping the switch never changes a cup already drawn; the cup
+page says when house horses fill it.
+
 Heats and finals award season points like any race of their class. Every step is one
 transaction guarded by status + row lock, so the job can run on any number of workers.
 

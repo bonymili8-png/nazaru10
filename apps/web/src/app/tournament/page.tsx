@@ -66,6 +66,7 @@ function TournamentPage() {
           {trackName(track.archetype)} · {tr("unit.m", { n: t.distance })} ·{" "}
           {qualificationText(t.qualification)}
         </p>
+        {t.houseFill && <p className="mt-1 text-xs text-muted">{tr("tour.houseFill")}</p>}
         <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
           <Info k={tr("common.purse")} v={fmt(t.purse)} />
           <Info k={tr("common.entry")} v={fmt(t.entryFee)} />
@@ -85,7 +86,10 @@ function TournamentPage() {
             <Crown className="size-5 text-gold" aria-hidden />
             <span>
               <span className="font-semibold">{t.winner.horseName}</span>
-              <span className="text-sm text-muted"> · {t.winner.ownerName}</span>
+              <span className="text-sm text-muted">
+                {" "}
+                · {t.winner.house ? tr("common.house") : t.winner.ownerName}
+              </span>
             </span>
           </p>
         )}

@@ -1,4 +1,4 @@
-import { expect, newOwner, test } from "./fixtures.js";
+import { expect, newOwner, sql, test } from "./fixtures.js";
 
 /**
  * A finished tournament's results: the owner's history and the tournament page with its heats,
@@ -32,7 +32,8 @@ const base = {
   maxEntrants: 36,
   heatRaceIds: [HEAT1, HEAT2],
   finalRaceId: FINAL,
-  winner: { horseId: horse(3), horseName: "Night Comet", ownerName: "rival" },
+  winner: { horseId: horse(3), horseName: "Night Comet", ownerName: "rival", house: false },
+  houseFill: false,
   cancelReason: null,
   completedAt: "2026-10-15T18:35:00.000Z",
 };
@@ -213,4 +214,31 @@ test("an owner finds their tournament results: history, heats, final and the tab
   await expect(page.locator(`a[href='/race/?id=${FINAL}']`)).toHaveText("Replay");
   const final = page.getByRole("list", { name: /^Final · / });
   await expect(final.getByRole("listitem").nth(1)).toContainText("+1,750");
+});
+
+test("a tournament admin switches house-filled cups off and on", async ({ page }) => {
+  const devId = await newOwner(page);
+  await sql("UPDATE users SET role = 'TOURNAMENT_ADMIN' WHERE telegram_id = $1", [devId]);
+  await page.goto("/admin/");
+  await page.getByRole("tab", { name: "races" }).click();
+  await expect(page.getByRole("heading", { name: "Tournaments: house horses" })).toBeVisible();
+  const toggle = page.getByRole("switch", { name: "Fill tournaments with house horses" });
+  // The e2e database persists: start from ON.
+  if ((await toggle.getAttribute("aria-checked")) === "false") {
+    page.once("dialog", (d) => void d.accept());
+    await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText(/A cup runs even with one entrant/)).toBeVisible();
+
+  await page.getByLabel("Reason for the change (optional, kept in the audit log)").fill("E2E entrants only");
+  page.once("dialog", (d) => void d.accept());
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(page.getByText(/A cup needs two entrants/)).toBeVisible();
+  await expect(page.getByText("E2E entrants only").first()).toBeVisible();
+
+  page.once("dialog", (d) => void d.accept());
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
 });

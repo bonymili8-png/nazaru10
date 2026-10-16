@@ -473,6 +473,12 @@ export interface GameConfig {
     /** Minutes between consecutive heats (so each heat can be watched live). */
     heatSpacingMinutes: number;
     maxHorsesPerOwner: number;
+    /**
+     * Admin switch: a cup runs with a single entrant, and its final (like every heat) is made up
+     * to a full field with house horses — the final's winner is the champion, house horse or not.
+     * Off: under two entrants cancels, and the final is the finalists alone. Fixed at the draw.
+     */
+    houseFill: { enabled: boolean };
   };
   seasons: {
     /** Season 1 starts here (UTC); seasons are consecutive and last one game year. */
@@ -1095,6 +1101,7 @@ export const defaultConfig: GameConfig = {
     finalAfterMinutes: 30,
     heatSpacingMinutes: 3,
     maxHorsesPerOwner: 2,
+    houseFill: { enabled: true },
   },
   seasons: {
     epoch: "2026-01-05T00:00:00.000Z",

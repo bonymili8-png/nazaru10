@@ -3,6 +3,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { AuthGuard, TokenService } from "./common/auth.js";
 import { Clock } from "./common/clock.js";
 import { Db } from "./common/db.js";
+import { ConfigSwitchService } from "./common/config-switch.js";
 import { AuditService, EventsService } from "./common/events.js";
 import { GameConfigService } from "./common/game-config.js";
 import { LOGGER, type Logger } from "./common/logger.js";
@@ -62,7 +63,7 @@ import { FraudController } from "./modules/fraud/fraud.controller.js";
 import { FraudService } from "./modules/fraud/fraud.service.js";
 import { StaffController } from "./modules/staff/staff.controller.js";
 import { StaffService } from "./modules/staff/staff.service.js";
-import { TournamentsController } from "./modules/tournaments/tournaments.controller.js";
+import { TournamentsAdminController, TournamentsController } from "./modules/tournaments/tournaments.controller.js";
 import { TournamentsService } from "./modules/tournaments/tournaments.service.js";
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";
@@ -141,6 +142,7 @@ export class AppModule {
         BreedingController,
         SeasonsController,
         TournamentsController,
+        TournamentsAdminController,
         StaffController,
         FraudController,
         CosmeticsController,
@@ -161,6 +163,7 @@ export class AppModule {
         TokenService,
         EventsService,
         AuditService,
+        ConfigSwitchService,
         GameConfigService,
         LedgerService,
         QuestsService,

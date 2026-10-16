@@ -1616,6 +1616,8 @@ export const en = {
   "tres.past": "Past tournaments",
   "tres.pastEmpty": "No finished tournaments yet.",
   "tres.more": "Show more",
+  "tour.houseFill":
+    "Runs even with a single entrant: heats and the final are made up with house horses, and the final's winner takes the cup.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

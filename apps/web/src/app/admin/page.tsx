@@ -11,6 +11,7 @@ import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
 import { Campaigns } from "@/components/admin/Campaigns";
 import { GemExchange } from "@/components/admin/GemExchange";
+import { HouseFill } from "@/components/admin/HouseFill";
 import { useState } from "react";
 import {
   Badge,
@@ -1178,6 +1179,7 @@ function Races() {
   });
   return (
     <>
+      <HouseFill />
       <CreateRace onDone={reload} />
       <SectionTitle>Races</SectionTitle>
       <div className="flex gap-2">

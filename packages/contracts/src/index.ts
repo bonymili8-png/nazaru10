@@ -736,6 +736,19 @@ export const AdminGemExchangeToggle = z.object({
 export type AdminGemExchangeToggle = z.infer<typeof AdminGemExchangeToggle>;
 
 /** Admin view of the exchange: the switch, the offer and what it moved. */
+/** Admin: an on/off switch and its recent changes. */
+export interface AdminSwitchDto {
+  enabled: boolean;
+  history: { enabled: boolean; at: string; by: string | null; note: string | null }[];
+}
+
+/** Admin: flip an on/off switch (a new audited config version). */
+export const AdminSwitchToggle = z.object({
+  enabled: z.boolean(),
+  note: z.string().trim().max(500).optional(),
+});
+export type AdminSwitchToggle = z.infer<typeof AdminSwitchToggle>;
+
 export interface AdminGemExchangeDto {
   enabled: boolean;
   dailyCreditLimit: number;
@@ -1684,8 +1697,11 @@ export interface TournamentDto {
   maxEntrants: number;
   heatRaceIds: string[];
   finalRaceId: string | null;
-  winner: { horseId: string; horseName: string; ownerName: string | null } | null;
+  /** `house`: a house horse won a house-filled final (no owner is champion). */
+  winner: { horseId: string; horseName: string; ownerName: string | null; house: boolean } | null;
   myEntries: TournamentEntryDto[];
+  /** Runs with a single entrant; every heat and the final are made up with house horses. */
+  houseFill: boolean;
   /** Why a cancelled tournament did not run (e.g. "Not enough entrants"); null otherwise. */
   cancelReason: string | null;
   completedAt: string | null;

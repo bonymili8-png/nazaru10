@@ -18,10 +18,14 @@ const ownerHref = (id: string) => `/owner/?id=${id}`;
 const linkCls = "underline-offset-2 hover:text-gold hover:underline";
 
 /** How far a horse got: "Champion", "2nd in the final", "3rd in Heat 1", "Scratched". */
-function stageText(s: TournamentStandingDto, finalists: number): string {
+function stageText(s: TournamentStandingDto, finalists: number, house: boolean): string {
   if (s.champion) return t("tres.champion");
+  // A house-filled final counts its whole field; otherwise placings are among the finalists.
   if (s.finalPosition !== null)
-    return t("tres.inFinal", { p: ordinal(s.rank ?? s.finalPosition), n: finalists });
+    return t("tres.inFinal", {
+      p: ordinal(house ? s.finalPosition : (s.rank ?? s.finalPosition)),
+      n: finalists,
+    });
   if (s.status === "FINALIST") return t("tres.finalist");
   if (s.status === "ELIMINATED")
     return s.heatPosition
@@ -33,7 +37,9 @@ function stageText(s: TournamentStandingDto, finalists: number): string {
 
 /** The tournament table: rank, horse, owner, how far it got, prize. */
 export function Standings({ t: tour }: { t: TournamentDetailDto }) {
-  const finalists = tour.standings.filter((s) => s.finalPosition !== null).length;
+  const finalists = tour.houseFill
+    ? (tour.rounds.find((r) => r.stage === "FINAL")?.runners.length ?? 0)
+    : tour.standings.filter((s) => s.finalPosition !== null).length;
   return (
     <>
       <SectionTitle>{t("tres.table")}</SectionTitle>
@@ -70,7 +76,7 @@ export function Standings({ t: tour }: { t: TournamentDetailDto }) {
                     {s.ownerName ?? t("common.owner")}
                   </Link>
                 </td>
-                <td className="px-2 py-2 align-top text-xs">{stageText(s, finalists)}</td>
+                <td className="px-2 py-2 align-top text-xs">{stageText(s, finalists, tour.houseFill)}</td>
                 <td className="num py-2 pl-2 pr-3 text-right align-top text-xs">
                   {s.prize > 0 ? <span className="text-good">+{fmt(s.prize)}</span> : "—"}
                   {s.champion && tour.championHonours.reputation > 0 && (

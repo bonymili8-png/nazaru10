@@ -7,6 +7,7 @@ import type {
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { GameConfigService } from "../src/common/game-config.js";
 import { NotificationsService, tournamentText } from "../src/modules/notifications/notifications.service.js";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
 import { TournamentsService } from "../src/modules/tournaments/tournaments.service.js";
@@ -37,6 +38,11 @@ describe("tournaments", () => {
 
   beforeAll(async () => {
     t = await createTestApp();
+    // These cases cover cups for entrants only (house fill off); house-filled cups have their own file.
+    await t.db.query("INSERT INTO game_config (config, note) VALUES ($1, 'test: entrants only')", [
+      JSON.stringify({ tournaments: { houseFill: { enabled: false } } }),
+    ]);
+    await t.service(GameConfigService).refresh();
     // Move to 12 h before the next LOCAL heats slot, so registration is comfortably open.
     const step = local.everyHours * HOUR;
     const offset = local.offsetHours * HOUR;
@@ -212,7 +218,10 @@ describe("tournaments", () => {
       expect(r).toMatchObject({ status: "COMPLETED", distance: cup.distance, trackName: cup.trackName });
       expect(r.going).toBeTruthy();
       // Finishing order, every runner placed with a time.
-      expect(r.runners.map((x) => x.position)).toEqual(r.runners.map((_, i) => i + 1));
+      // (a dead heat shares a placing: 1, 2, 3, 3, 5 …)
+      const pos = r.runners.map((x) => x.position!);
+      expect(pos[0]).toBe(1);
+      pos.forEach((p, i) => expect(p === i + 1 || p === pos[i - 1]).toBe(true));
       expect(r.runners.every((x) => x.finishTime !== null && x.gate !== null)).toBe(true);
     }
     // Heats are filled up with house horses; the final is the finalists alone.

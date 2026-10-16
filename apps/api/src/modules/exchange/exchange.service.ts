@@ -6,15 +6,17 @@ import type {
   GemExchangeRequest,
   GemExchangeResultDto,
 } from "@thoroughline/contracts";
-import { defaultConfig, gemExchangeBaseRate, gemExchangeOffers } from "@thoroughline/engine";
+import { gemExchangeBaseRate, gemExchangeOffers } from "@thoroughline/engine";
 import { Clock } from "../../common/clock.js";
-import { Db, type Queryable, row, rows } from "../../common/db.js";
+import { Db, type Queryable, row } from "../../common/db.js";
 import { badRequest, conflict } from "../../common/errors.js";
-import { AuditService } from "../../common/events.js";
+import { ConfigSwitchService } from "../../common/config-switch.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { LedgerService } from "../economy/ledger.service.js";
 
 const DAY_MS = 86_400_000;
+const SWITCH_PATH = ["economy", "gemExchange", "enabled"] as const;
+const SWITCH_ACTION = "GEM_EXCHANGE_SWITCH";
 
 /**
  * Buying credits with gems: fixed bundles, one way only (credits never turn back into gems),
@@ -27,7 +29,7 @@ export class ExchangeService {
     private readonly db: Db,
     private readonly ledger: LedgerService,
     private readonly config: GameConfigService,
-    private readonly audit: AuditService,
+    private readonly switches: ConfigSwitchService,
     private readonly clock: Clock,
   ) {}
 
@@ -129,71 +131,27 @@ export class ExchangeService {
         return { period, ...s! };
       }),
     );
-    const history = await this.db.query<{
-      after: { enabled: boolean };
-      created_at: Date;
-      by: string | null;
-      reason: string | null;
-    }>(
-      `SELECT a.after, a.created_at, a.reason, COALESCE(u.username, u.first_name) AS by
-         FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_id
-        WHERE a.action = 'GEM_EXCHANGE_SWITCH' ORDER BY a.id DESC LIMIT 10`,
-    );
     return {
       enabled: cfg.economy.gemExchange.enabled,
       dailyCreditLimit: cfg.economy.gemExchange.dailyCreditLimit,
       bundles: gemExchangeOffers(cfg),
       stats,
-      history: history.map((h) => ({
-        enabled: !!h.after?.enabled,
-        at: h.created_at.toISOString(),
-        by: h.by,
-        note: h.reason,
-      })),
+      history: await this.switches.history(SWITCH_ACTION),
     };
   }
 
-  /** The admin's switch: publishes a config version with only `enabled` changed. */
+  /** The admin's switch: a config version with only `economy.gemExchange.enabled` changed. */
   async setEnabled(
     actorId: string,
     req: AdminGemExchangeToggle,
     ip: string | null,
   ): Promise<AdminGemExchangeDto> {
-    const changed = await this.db.tx(async (c) => {
-      const prev = await row<{ config: Record<string, unknown> | null }>(
-        c,
-        "SELECT config FROM game_config ORDER BY version DESC LIMIT 1 FOR UPDATE",
-      );
-      const override = structuredClone(prev?.config ?? {}) as {
-        economy?: { gemExchange?: Record<string, unknown> } & Record<string, unknown>;
-      } & Record<string, unknown>;
-      const current =
-        (override.economy?.gemExchange?.enabled as boolean | undefined) ??
-        defaultConfig.economy.gemExchange.enabled;
-      if (current === req.enabled) return false;
-      override.economy = {
-        ...override.economy,
-        gemExchange: { ...override.economy?.gemExchange, enabled: req.enabled },
-      };
-      const note = req.note || (req.enabled ? "Gem exchange switched on" : "Gem exchange switched off");
-      const r = await rows<{ version: number }>(
-        c,
-        "INSERT INTO game_config (config, created_by, note) VALUES ($1, $2, $3) RETURNING version",
-        [JSON.stringify(override), actorId, note],
-      );
-      await this.audit.log(c, {
-        actorId,
-        action: "GEM_EXCHANGE_SWITCH",
-        targetType: "game_config",
-        targetId: String(r[0]!.version),
-        before: { enabled: current },
-        after: { enabled: req.enabled },
-        reason: note,
-        ip,
-      });
-      return true;
+    await this.switches.set(SWITCH_PATH, SWITCH_ACTION, {
+      actorId,
+      enabled: req.enabled,
+      note: req.note || (req.enabled ? "Gem exchange switched on" : "Gem exchange switched off"),
+      ip,
     });
-    if (changed) await this.config.refresh();
     return this.adminView();
   }
 }

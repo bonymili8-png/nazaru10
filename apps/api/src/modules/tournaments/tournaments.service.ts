@@ -66,6 +66,7 @@ interface TournamentRow {
   winner_owner_id: string | null;
   completed_at: Date | null;
   cancel_reason: string | null;
+  house_fill: boolean;
 }
 
 interface EntryRow {
@@ -363,9 +364,15 @@ export class TournamentsService {
         WHERE e.tournament_id = $1 AND e.status = 'REGISTERED' ORDER BY h.race_rating DESC, e.horse_id`,
       [t.id],
     );
-    if (entries.length < 2) {
+    // House fill (admin switch, fixed here for the whole cup): one entrant is enough.
+    const fill = cfg.tournaments.houseFill.enabled;
+    if (entries.length < (fill ? 1 : 2)) {
       await this.cancelInTx(c, t, "Not enough entrants", now);
       return true;
+    }
+    if (fill) {
+      await c.query("UPDATE tournaments SET house_fill = true WHERE id = $1", [t.id]);
+      t.house_fill = true;
     }
     if (entries.length <= t.players_per_heat) {
       await this.createFinal(c, t, entries, t.heats_at, now);
@@ -603,7 +610,24 @@ export class TournamentsService {
         [t.id, r.horse_id, r.position],
       );
     }
-    const champ = results[0] ?? null;
+    // A house-filled final is a real race: its winner is champion, house horse or not. Otherwise
+    // the best player finisher is (only a lone finalist ever races house company there).
+    const top = await row<{ horse_id: string; owner_id: string | null; is_house: boolean; name: string }>(
+      c,
+      `SELECT e.horse_id, e.owner_id, e.is_house, COALESCE(e.snapshot->>'name', h.name) AS name
+         FROM race_entries e JOIN horses h ON h.id = e.horse_id
+        WHERE e.race_id = $1 AND e.status = 'RAN' ORDER BY e.position LIMIT 1`,
+      [t.final_race_id],
+    );
+    const field = (
+      await rows<{ n: number }>(
+        c,
+        "SELECT count(*)::int AS n FROM race_entries WHERE race_id = $1 AND status = 'RAN'",
+        [t.final_race_id],
+      )
+    )[0]!.n;
+    const houseWon = t.house_fill && !!top?.is_house;
+    const champ = houseWon ? null : (results[0] ?? null);
     const tier = this.config.get().tournaments.tiers[t.tier];
     if (champ) {
       for (const [currency, amount] of [
@@ -633,7 +657,7 @@ export class TournamentsService {
     await c.query(
       `UPDATE tournaments SET status = 'COMPLETED', completed_at = $2, winner_horse_id = $3, winner_owner_id = $4
         WHERE id = $1`,
-      [t.id, now, champ?.horse_id ?? null, champ?.owner_id ?? null],
+      [t.id, now, houseWon ? top!.horse_id : (champ?.horse_id ?? null), champ?.owner_id ?? null],
     );
     // Every owner who took part hears how the whole tournament went for their horses.
     const all = await rows<EntryRow & { horse_name: string; prize: number | null }>(
@@ -643,7 +667,10 @@ export class TournamentsService {
         WHERE e.tournament_id = $1 AND e.status <> 'WITHDRAWN' ORDER BY e.final_position NULLS LAST`,
       [t.id, t.final_race_id],
     );
-    const finalRank = new Map(results.map((r, i) => [r.horse_id, i + 1] as const));
+    // Placings in the final: the race position when house horses ran in it, else among players.
+    const finalRank = new Map(
+      results.map((r, i) => [r.horse_id, t.house_fill ? r.position : i + 1] as const),
+    );
     const champOwner = champ
       ? await row<{ name: string | null }>(
           c,
@@ -664,9 +691,10 @@ export class TournamentsService {
         champion: e.horse_id === champ?.horse_id,
       })),
       {
-        finalists: results.length,
-        championHorse: champ?.name ?? null,
+        finalists: t.house_fill ? field : results.length,
+        championHorse: houseWon ? top!.name : (champ?.name ?? null),
         championOwner: champOwner?.name ?? null,
+        championHouse: houseWon,
         championReputation: tier.championReputation,
         championPrestige: tier.championPrestige,
       },
@@ -822,6 +850,7 @@ export class TournamentsService {
       ).map((r) => [r.id, r] as const),
     );
     const mine = await this.entryViews(ids, viewerId, true);
+    const houseFillNow = this.config.get().tournaments.houseFill.enabled;
     return list.map((t) => {
       const w = winners.get(t.id);
       return {
@@ -846,8 +875,15 @@ export class TournamentsService {
         finalRaceId: t.final_race_id,
         winner:
           w && t.winner_horse_id
-            ? { horseId: t.winner_horse_id, horseName: w.horse_name, ownerName: w.owner_name }
+            ? {
+                horseId: t.winner_horse_id,
+                horseName: w.horse_name,
+                ownerName: w.owner_name,
+                house: !t.winner_owner_id,
+              }
             : null,
+        // Not drawn yet: what the switch says now; drawn: what the cup was drawn under.
+        houseFill: t.status === "REGISTRATION" ? houseFillNow : t.house_fill,
         myEntries: mine.get(t.id) ?? [],
         cancelReason: t.status === "CANCELLED" ? (t.cancel_reason ?? null) : null,
         completedAt: t.completed_at?.toISOString() ?? null,
@@ -1013,12 +1049,20 @@ export class TournamentsService {
     );
     const done = t.status === "COMPLETED";
     const key = (e: EntryRow) => (stage(e) === 0 ? `F${e.final_position}` : `H${e.heat_position}`);
+    // Finalists rank by their final placing (the race position when house horses ran in it);
+    // horses out in the heats come after the last finalist, equal heat placings sharing a rank.
+    const finalRank = (e: EntryRow, i: number) => (t.house_fill ? e.final_position! : i + 1);
+    const lastFinal = Math.max(0, ...sorted.filter((e) => stage(e) === 0).map(finalRank));
     const out: TournamentStandingDto[] = [];
     sorted.forEach((e, i) => {
       const ranked = done && (stage(e) === 0 || (stage(e) === 2 && e.heat_position !== null));
       const prev = out[i - 1];
       const same = ranked && prev !== undefined && prev.rank !== null && key(sorted[i - 1]!) === key(e);
-      const rank = !ranked ? null : same ? prev!.rank : i + 1;
+      const outRank =
+        lastFinal +
+        1 +
+        sorted.filter((x) => stage(x) === 2 && (x.heat_position ?? 99) < (e.heat_position ?? 99)).length;
+      const rank = !ranked ? null : same ? prev!.rank : stage(e) === 0 ? finalRank(e, i) : outRank;
       if (same) prev!.tied = true;
       out.push({
         rank,

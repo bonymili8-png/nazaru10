@@ -252,9 +252,19 @@ export class RaceRunnerService {
       }
       const rng = new Rng(`lock:${this.raceSeed(raceId)}`);
       // A tournament final is contested by the finalists alone (house horses only keep a lone
-      // finalist company), so the horse that wins the final is always the champion.
+      // finalist company), so the horse that wins the final is always the champion — unless the
+      // cup was drawn with house fill, when the final gets a full field like any race.
+      const houseFill =
+        race.stage === "FINAL" &&
+        !!(
+          await row<{ house_fill: boolean }>(c, "SELECT house_fill FROM tournaments WHERE id = $1", [
+            race.tournament_id,
+          ])
+        )?.house_fill;
       const target =
-        race.stage === "FINAL" && players.length >= 2 ? players.length : cfg.race.schedule.targetField;
+        race.stage === "FINAL" && players.length >= 2 && !houseFill
+          ? players.length
+          : cfg.race.schedule.targetField;
       const fieldSize = Math.min(race.max_field, Math.max(target, players.length));
       const fillers = await this.house.fillers(
         c,

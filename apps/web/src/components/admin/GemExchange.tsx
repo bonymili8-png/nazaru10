@@ -3,6 +3,7 @@ import type { AdminGemExchangeDto } from "@thoroughline/contracts";
 import { useState } from "react";
 import { Badge, Card, ErrorState, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
+import { SwitchHistory, Toggle } from "./Toggle";
 import { errorMessage, fmt } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
 
@@ -58,18 +59,12 @@ export function GemExchange({ canEdit }: { canEdit: boolean }) {
             </p>
           </div>
           {canEdit && (
-            <button
-              role="switch"
-              aria-checked={data.enabled}
-              aria-label="Gems to credits exchange"
-              disabled={busy}
-              onClick={() => void flip()}
-              className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full transition-colors disabled:opacity-60 ${data.enabled ? "bg-good" : "bg-surface-2 ring-1 ring-line"}`}
-            >
-              <span
-                className={`absolute top-1 size-6 rounded-full bg-ink transition-transform ${data.enabled ? "translate-x-7" : "translate-x-1"}`}
-              />
-            </button>
+            <Toggle
+              on={data.enabled}
+              label="Gems to credits exchange"
+              busy={busy}
+              onFlip={() => void flip()}
+            />
           )}
         </div>
         {canEdit && (
@@ -117,16 +112,8 @@ export function GemExchange({ canEdit }: { canEdit: boolean }) {
         </table>
       </Card>
       {data.history.length > 0 && (
-        <Card className="mt-2 space-y-1 text-xs">
-          <p className="uppercase tracking-wider text-muted">Switch history</p>
-          {data.history.map((h) => (
-            <p key={h.at}>
-              <span className={h.enabled ? "text-good" : "text-bad"}>{h.enabled ? "ON" : "OFF"}</span>{" "}
-              <span className="num text-muted">{new Date(h.at).toLocaleString()}</span>
-              {h.by && ` · ${h.by}`}
-              {h.note && ` · ${h.note}`}
-            </p>
-          ))}
+        <Card className="mt-2 pt-1">
+          <SwitchHistory history={data.history} />
         </Card>
       )}
     </>

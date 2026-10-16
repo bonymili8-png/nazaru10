@@ -149,7 +149,9 @@ test("a finished race lists its runners under the replay, each linked to its hor
   );
   await link.click();
   await expect(page.getByRole("heading", { name: "Runners (2)" })).toBeVisible();
-  const runners = page.getByRole("heading", { name: "Runners (2)" }).locator("xpath=../following-sibling::*[1]");
+  const runners = page
+    .getByRole("heading", { name: "Runners (2)" })
+    .locator("xpath=../following-sibling::*[1]");
   // By gate: Velvet Crown (gate 1) first, each name a link to the horse.
   await expect(runners.getByRole("link").first()).toHaveText("Velvet Crown");
   await expect(runners.getByRole("link", { name: "Amber Majesty" })).toHaveAttribute(

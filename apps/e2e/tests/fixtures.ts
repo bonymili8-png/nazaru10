@@ -58,7 +58,7 @@ export async function openSection(page: Page, name: string | RegExp): Promise<vo
 
 /** Credits shown in the header wallet chip. */
 export async function headerCredits(page: Page): Promise<number> {
-  const chip = page.getByRole("link", { name: "Wallet and profile" }).locator("span").first();
+  const chip = page.getByRole("link", { name: "Top up credits" }).locator("span").first();
   await expect(chip).not.toHaveText("—");
   return Number((await chip.innerText()).replace(/[^\d]/g, ""));
 }

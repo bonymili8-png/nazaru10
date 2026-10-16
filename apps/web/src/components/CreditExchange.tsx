@@ -1,7 +1,7 @@
 "use client";
 import type { GemExchangeDto, GemExchangeResultDto, WalletDto } from "@thoroughline/contracts";
 import { Coins, Gem } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge, Card, SectionTitle, useToast } from "@/components/ui";
 import { post } from "@/lib/api";
 import { countdown, errorMessage, fmt } from "@/lib/format";
@@ -19,13 +19,19 @@ const requestId = () =>
  * Credits for gems (shop, gems tab): fixed bundles with a volume bonus and a daily cap.
  * Hidden entirely while the admin has the exchange switched off.
  */
-export function CreditExchange() {
+export function CreditExchange({ focus = false }: { focus?: boolean }) {
   const { data } = useApi<GemExchangeDto>("/wallet/exchange");
+  const ref = useRef<HTMLDivElement>(null);
+  const shown = !!data?.enabled && !!data.bundles.length;
+  // Opened from the header's credit balance: bring the exchange into view once it is there.
+  useEffect(() => {
+    if (focus && shown) ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [focus, shown]);
   const wallet = useApi<WalletDto>("/wallet");
   const toast = useToast();
   const now = useNow(30_000);
   const [busy, setBusy] = useState<number | null>(null);
-  if (!data?.enabled || !data.bundles.length) return null;
+  if (!data || !shown) return null;
   const gems = wallet.data?.balances.GEMS ?? 0;
 
   const buy = async (b: GemExchangeDto["bundles"][number]) => {
@@ -49,7 +55,7 @@ export function CreditExchange() {
   };
 
   return (
-    <>
+    <div ref={ref} className="scroll-mt-20">
       <SectionTitle>{t("exchange.title")}</SectionTitle>
       <Card>
         <p className="text-sm text-muted">{t("exchange.intro", { rate: fmt(data.baseRate) })}</p>
@@ -94,6 +100,6 @@ export function CreditExchange() {
           {data.creditsToday > 0 && ` · ${t("exchange.resets", { t: countdown(data.resetsAt, now) })}`}
         </p>
       </Card>
-    </>
+    </div>
   );
 }

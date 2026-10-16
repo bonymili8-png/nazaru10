@@ -169,17 +169,26 @@ function Chrome({ children }: { children: ReactNode }) {
           }
         />
         <div className="flex items-center gap-2">
-          <Link
-            href="/profile/"
-            className="flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-sm"
-            aria-label={t("shell.walletProfile")}
-          >
-            <span className="num font-semibold text-ink">{b ? fmt(b.CREDITS) : "—"}</span>
-            <span className="text-xs text-muted">{t("common.cr")}</span>
+          {/* Balances look the same as ever; a tap opens the market's gems tab to top up. */}
+          <div className="flex items-center rounded-full bg-surface text-sm">
+            <Link
+              href="/shop/?tab=gems&to=credits"
+              className="flex min-h-9 items-center gap-2 rounded-l-full py-1.5 pl-3 pr-2"
+              aria-label={t("shell.topUpCredits")}
+            >
+              <span className="num font-semibold text-ink">{b ? fmt(b.CREDITS) : "—"}</span>
+              <span className="text-xs text-muted">{t("common.cr")}</span>
+            </Link>
             <span className="h-3 w-px bg-line" aria-hidden />
-            <Gem className="size-3.5 text-gold" aria-hidden />
-            <span className="num font-semibold text-ink">{b ? fmt(b.GEMS) : "—"}</span>
-          </Link>
+            <Link
+              href="/shop/?tab=gems"
+              className="flex min-h-9 items-center gap-2 rounded-r-full py-1.5 pl-2 pr-3"
+              aria-label={t("shell.topUpGems")}
+            >
+              <Gem className="size-3.5 text-gold" aria-hidden />
+              <span className="num font-semibold text-ink">{b ? fmt(b.GEMS) : "—"}</span>
+            </Link>
+          </div>
           <Link
             href="/profile/"
             className="grid size-11 place-items-center rounded-full text-muted hover:text-ink"

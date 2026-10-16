@@ -11,7 +11,9 @@ import type {
 } from "@thoroughline/contracts";
 import { defaultConfig } from "@thoroughline/engine";
 import { Check, Crown, Gem, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { markReplace } from "@/components/BackNav";
 import { CreditExchange } from "@/components/CreditExchange";
 import { HorseCard } from "@/components/HorseCard";
 import { ListingCard } from "@/components/ListingCard";
@@ -42,12 +44,26 @@ const productText = (p: ProductDto, field: "title" | "description") => {
 };
 
 export default function MarketPage() {
-  const [tab, setTab] = useState<Tab>("players");
-  // Deep link: /shop/?tab=gems opens a tab directly.
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("tab") as Tab | null;
-    if (q && TABS.includes(q)) setTab(q);
-  }, []);
+  return (
+    <Suspense fallback={<Skeleton className="mt-3 h-64" />}>
+      <Market />
+    </Suspense>
+  );
+}
+
+/**
+ * The tab lives in the URL (`/shop/?tab=gems`), so the header wallet can open the gems tab even
+ * when the market is already on screen. `to=credits` scrolls to the credit exchange.
+ */
+function Market() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const q = params.get("tab") as Tab | null;
+  const tab: Tab = q && TABS.includes(q) ? q : "players";
+  const open = (k: Tab) => {
+    markReplace();
+    router.replace(k === "players" ? "/shop/" : `/shop/?tab=${k}`, { scroll: false });
+  };
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">{t("shop.title")}</h1>
@@ -57,7 +73,7 @@ export default function MarketPage() {
             key={k}
             role="tab"
             aria-selected={tab === k}
-            onClick={() => setTab(k)}
+            onClick={() => open(k)}
             className={`min-h-10 cursor-pointer rounded-lg px-0.5 text-[13px] font-medium leading-tight transition-colors ${tab === k ? "bg-gold text-bg" : "text-muted hover:text-ink"}`}
           >
             {t(`shop.tab.${k}`)}
@@ -67,7 +83,7 @@ export default function MarketPage() {
       {tab === "players" && <PlayerMarket />}
       {tab === "ring" && <SalesRing />}
       {tab === "mine" && <MyMarket />}
-      {tab === "gems" && <Gems />}
+      {tab === "gems" && <Gems focusCredits={params.get("to") === "credits"} />}
       {tab === "shares" && <Shares />}
     </div>
   );
@@ -208,7 +224,7 @@ function SalesRing() {
   );
 }
 
-function Gems() {
+function Gems({ focusCredits = false }: { focusCredits?: boolean }) {
   const products = useApi<ProductDto[]>("/payments/products");
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
@@ -275,7 +291,7 @@ function Gems() {
             </Card>
           ))}
       </div>
-      <CreditExchange />
+      <CreditExchange focus={focusCredits} />
     </>
   );
 }

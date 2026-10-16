@@ -43,7 +43,6 @@ export const uk: Record<MessageKey, Msg> = {
   "nav.rankings": "Рейтинги",
   "nav.market": "Ринок",
   "nav.main": "Головне меню",
-  "shell.walletProfile": "Гаманець і профіль",
   "shell.profile": "Профіль",
   "gate.tagline": "Ваша скакова імперія починається тут",
   "gate.lede": "Збудуйте стайню, тренуйте чемпіонів і вигравайте перегони.",
@@ -1584,4 +1583,6 @@ export const uk: Record<MessageKey, Msg> = {
   "error.UNKNOWN_BUNDLE": "Такого пакета немає.",
   "error.BUNDLE_CHANGED": "Пакет щойно змінився — перевірте нову кількість.",
   "error.DAILY_LIMIT": "Це перевищить денний ліміт кредитів за самоцвіти.",
+  "shell.topUpCredits": "Поповнити кредити",
+  "shell.topUpGems": "Поповнити самоцвіти",
 };

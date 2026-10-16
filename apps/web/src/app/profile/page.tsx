@@ -1,6 +1,7 @@
 "use client";
 import type { LedgerLineDto, ReferralDto, UserDto, WalletDto } from "@thoroughline/contracts";
 import { Copy, Languages, LifeBuoy, Share2, Shield, ShieldCheck, Shirt } from "lucide-react";
+import Link from "next/link";
 import { HomeScreenSetting } from "@/components/HomeScreen";
 import { MemberBadge } from "@/components/MemberBadge";
 import { Button, Card, LinkButton, Section, SectionTitle, Skeleton, useToast } from "@/components/ui";
@@ -34,17 +35,27 @@ export default function ProfilePage() {
         {b ? (
           (
             [
-              [t("profile.credits"), b.CREDITS],
-              [t("profile.gems"), b.GEMS],
-              [t("profile.reputation"), b.REPUTATION],
-              [t("profile.prestige"), b.PRESTIGE],
+              [t("profile.credits"), b.CREDITS, "/shop/?tab=gems&to=credits"],
+              [t("profile.gems"), b.GEMS, "/shop/?tab=gems"],
+              [t("profile.reputation"), b.REPUTATION, null],
+              [t("profile.prestige"), b.PRESTIGE, null],
             ] as const
-          ).map(([k, v]) => (
-            <Card key={k} className="p-3">
-              <p className="text-xs uppercase tracking-wider text-muted">{k}</p>
-              <p className="num font-display text-2xl font-bold text-gold">{fmt(v)}</p>
-            </Card>
-          ))
+          ).map(([k, v, href]) => {
+            const body = (
+              <Card className="h-full p-3">
+                <p className="text-xs uppercase tracking-wider text-muted">{k}</p>
+                <p className="num font-display text-2xl font-bold text-gold">{fmt(v)}</p>
+              </Card>
+            );
+            // Credits and gems open the market's gems tab to top up; they look the same as the rest.
+            return href ? (
+              <Link key={k} href={href} className="block rounded-[var(--radius-card)]">
+                {body}
+              </Link>
+            ) : (
+              <div key={k}>{body}</div>
+            );
+          })
         ) : (
           <Skeleton className="col-span-2 h-24" />
         )}

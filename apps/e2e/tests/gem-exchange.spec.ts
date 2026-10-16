@@ -65,3 +65,23 @@ test("an owner buys credits with gems; the admin switches the exchange off and o
   await page.goto("/shop/?tab=gems");
   await expect(page.getByRole("heading", { name: "Credits for gems" })).toBeVisible();
 });
+
+test("tapping a balance in the header or on the profile opens the market's gems tab", async ({ page }) => {
+  await newOwner(page);
+  const gemsTab = page.getByRole("tab", { name: "Gems" });
+  // Header gems → market, gems tab.
+  await page.getByRole("link", { name: "Top up gems" }).click();
+  await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
+  await expect(gemsTab).toHaveAttribute("aria-selected", "true");
+  // Already in the market on another tab: the header credits still switch to gems.
+  await page.getByRole("tab", { name: "Players" }).click();
+  await expect(gemsTab).toHaveAttribute("aria-selected", "false");
+  await page.getByRole("link", { name: "Top up credits" }).click();
+  await expect(gemsTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText(/Gems buy diagnostics, cosmetics and credits/)).toBeVisible();
+  // Profile cards: credits and gems open the same place; reputation is not a link.
+  await page.goto("/profile/");
+  await expect(page.getByRole("link", { name: /^Reputation/ })).toHaveCount(0);
+  await page.getByRole("link", { name: /^Gems\s*[\d,]+$/ }).click();
+  await expect(gemsTab).toHaveAttribute("aria-selected", "true");
+});

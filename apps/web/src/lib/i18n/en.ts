@@ -44,7 +44,6 @@ export const en = {
   "nav.rankings": "Rankings",
   "nav.market": "Market",
   "nav.main": "Main",
-  "shell.walletProfile": "Wallet and profile",
   "shell.profile": "Profile",
   "gate.tagline": "Your racing empire starts here",
   "gate.lede": "Build a stable, train champions and race for glory.",
@@ -1578,6 +1577,8 @@ export const en = {
   "error.UNKNOWN_BUNDLE": "There is no such bundle.",
   "error.BUNDLE_CHANGED": "This bundle has just changed — check the new amount.",
   "error.DAILY_LIMIT": "That would pass today's limit on credits bought with gems.",
+  "shell.topUpCredits": "Top up credits",
+  "shell.topUpGems": "Top up gems",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

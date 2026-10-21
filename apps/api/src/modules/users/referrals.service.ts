@@ -10,6 +10,8 @@ const DAILY_CAP = 10;
 const MIN_AGE_MS = 24 * 3_600_000;
 /** Referrers below this trust score do not earn referral rewards (the invitee still does). */
 const MIN_TRUST = 30;
+/** Invites from the referrer's own private network paid without review (family, flatmates). */
+const HOUSEHOLD_ALLOWANCE = 2;
 /** Invitees older than this are no longer checked by the sweep. */
 const SWEEP_WINDOW_MS = 30 * 86_400_000;
 
@@ -21,8 +23,9 @@ const referrerKey = (id: string) => `referral:${id}:referrer`;
 
 /**
  * Invite rewards: both sides get credits once the invitee has run a race and their account is a
- * day old (anti-abuse). An invitee on the referrer's private network (not a public carrier
- * gateway) is held for an analyst's review instead of being paid or refused automatically.
+ * day old (anti-abuse). Invitees on the referrer's private network (not a public carrier
+ * gateway) are paid for the first HOUSEHOLD_ALLOWANCE of them; later ones are held for an
+ * analyst's review instead of being paid or refused automatically.
  * Checked when a race settles and by a background sweep, so a race on day one pays out later.
  */
 @Injectable()
@@ -47,16 +50,27 @@ export class ReferralsService {
     const review = await this.review(c, userId, u.referred_by);
     if (review === "OPEN" || review === "CONFIRMED") return;
     if (review === "NONE" && (await this.fraud.sharesPrivateNetwork(c, userId, u.referred_by))) {
+      // A household is normal: the first few invites from the referrer's own network are paid
+      // (recorded as an auto-approved flag for the record); after that an analyst decides.
+      const before = await row<{ n: number }>(
+        c,
+        "SELECT count(*)::int AS n FROM fraud_flags WHERE dedupe_key = $1",
+        [reviewKey(u.referred_by)],
+      );
+      const allowed = before!.n < HOUSEHOLD_ALLOWANCE;
       await c.query(
-        `INSERT INTO fraud_flags (user_id, kind, severity, dedupe_key, details)
-         VALUES ($1, 'REFERRAL_SHARED_IP', 1, $2, $3) ON CONFLICT (user_id, dedupe_key) DO NOTHING`,
+        `INSERT INTO fraud_flags (user_id, kind, severity, dedupe_key, details, status, reviewed_at, review_note)
+         VALUES ($1, 'REFERRAL_SHARED_IP', 1, $2, $3, $4, $5, $6) ON CONFLICT (user_id, dedupe_key) DO NOTHING`,
         [
           userId,
           reviewKey(u.referred_by),
           JSON.stringify({ referrer: u.referred_by, reward: REFERRAL_REWARD }),
+          allowed ? "DISMISSED" : "OPEN",
+          allowed ? now : null,
+          allowed ? `Auto-approved: household allowance (${HOUSEHOLD_ALLOWANCE} per referrer)` : null,
         ],
       );
-      return;
+      if (!allowed) return;
     }
     const meta = { referrer: u.referred_by, referee: userId };
     await this.ledger.credit(c, {

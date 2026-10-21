@@ -1,4 +1,5 @@
 import type { HorseSummaryDto, RaceSummaryDto, ReferralDto } from "@thoroughline/contracts";
+import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FraudService } from "../src/modules/fraud/fraud.service.js";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
@@ -40,21 +41,25 @@ describe("anti-fraud", () => {
     expect(rows[0]!.ip_hash).not.toContain("10.0");
   });
 
-  it("flags address clusters once, never punishing on its own", async () => {
+  it("flags only larger address clusters, informational: no punishment, no trust lost", async () => {
     for (const u of [a, b, c]) await addIp(u, "shared-hash");
     const svc = t.service(FraudService);
-    expect(await svc.detect()).toBe(3);
+    // Three people behind one address (a family, a carrier gateway) is nothing to look at.
+    expect(await svc.detect()).toBe(0);
+    for (const id of [9905, 9906]) await addIp(await t.login(id, `Mate${id}`), "shared-hash");
+    expect(await svc.detect()).toBe(5);
     expect(await svc.detect()).toBe(0);
     const flags = (
       await t.get<{ user_id: string; kind: string; severity: number }[]>("/admin/fraud/flags", analyst.token)
     ).body;
-    expect(flags.filter((f) => f.kind === "SHARED_IP")).toHaveLength(3);
-    // Flags lower trust but nobody is suspended.
+    expect(flags.filter((f) => f.kind === "SHARED_IP")).toHaveLength(5);
+    expect(flags.every((f) => f.severity === 1)).toBe(true);
+    // A shared address alone costs no trust, and nobody is suspended.
     const st = await t.db.query<{ status: string; trust_score: number }>(
       "SELECT status, trust_score FROM users WHERE id = ANY($1::uuid[])",
       [[a.userId, b.userId, c.userId]],
     );
-    expect(st.every((s) => s.status === "ACTIVE" && s.trust_score === 45)).toBe(true);
+    expect(st.every((s) => s.status === "ACTIVE" && s.trust_score === 50)).toBe(true);
   });
 
   it("detects circular trades between two accounts", async () => {
@@ -112,6 +117,66 @@ describe("anti-fraud", () => {
     expect(dismissed.map((f) => f.id)).toEqual([ip.id]);
   });
 
+  it("dismisses the open flags of one weak network kind in bulk, audited once", async () => {
+    const bulk = (token: string, kind = "SHARED_IP") =>
+      t.post<{ dismissed: number }>(
+        "/admin/fraud/flags/dismiss-bulk",
+        { kind, note: "Mobile carrier gateway" },
+        token,
+      );
+    expect((await bulk(a.token)).status).toBe(403);
+    // Trade and income signals always need a look one by one.
+    expect((await bulk(analyst.token, "CIRCULAR_TRADE")).status).toBe(400);
+    const open = async () =>
+      (await t.get<{ kind: string }[]>("/admin/fraud/flags", analyst.token)).body.filter(
+        (f) => f.kind === "SHARED_IP",
+      ).length;
+    expect(await open()).toBe(4);
+    const r = await bulk(analyst.token);
+    expect(r.status).toBe(201);
+    expect(r.body.dismissed).toBe(4);
+    expect(await open()).toBe(0);
+    const audit = await t.db.query<{ after: { count: number } }>(
+      "SELECT after FROM audit_logs WHERE action = 'FRAUD_FLAGS_BULK_DISMISSED'",
+    );
+    expect(audit).toHaveLength(1);
+    expect(audit[0]!.after.count).toBe(4);
+  });
+
+  it("the one-time approval migration dismisses open network flags only, audited once", async () => {
+    const u = await t.login(9907, "Held");
+    for (const [kind, key] of [
+      ["SHARED_IP", "ip:x"],
+      ["REFERRAL_SHARED_IP", "refnet:x"],
+      ["REFERRAL_CLUSTER", "refs:some"],
+      ["INCOME_SPIKE", "income:x"],
+    ] as const)
+      await t.db.query(
+        "INSERT INTO fraud_flags (user_id, kind, severity, dedupe_key) VALUES ($1, $2, 1, $3)",
+        [u.userId, kind, key],
+      );
+    const sql = readFileSync(
+      new URL("../migrations/0051_approve_network_flags.up.sql", import.meta.url),
+      "utf8",
+    );
+    await t.db.query(sql);
+    const left = await t.db.query<{ kind: string; status: string }>(
+      "SELECT kind, status FROM fraud_flags WHERE user_id = $1 ORDER BY kind",
+      [u.userId],
+    );
+    expect(left).toEqual([
+      { kind: "INCOME_SPIKE", status: "OPEN" },
+      { kind: "REFERRAL_CLUSTER", status: "DISMISSED" },
+      { kind: "REFERRAL_SHARED_IP", status: "DISMISSED" },
+      { kind: "SHARED_IP", status: "DISMISSED" },
+    ]);
+    const audit = await t.db.query<{ after: { count: number } }>(
+      "SELECT after FROM audit_logs WHERE target_id = 'network-flags-2026-10'",
+    );
+    expect(audit).toHaveLength(1);
+    expect(audit[0]!.after.count).toBe(3);
+  });
+
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));
 });
 
@@ -155,11 +220,18 @@ describe("referral rewards", () => {
     const referrer = await t.login(9951, "Host");
     const code = (await t.get<{ referralCode: string }>("/me", referrer.token)).body.referralCode;
     const young = await t.login(9952, "Newbie", `ref_${code}`);
-    const sameIp = await t.login(9953, "Sock", `ref_${code}`);
-    await t.db.query(
-      "INSERT INTO login_ips (user_id, ip_hash) SELECT $1, ip_hash FROM login_ips WHERE user_id = $2",
-      [sameIp.userId, referrer.userId],
-    );
+    // Three invitees on the referrer's own private network: a household is fine, a farm is not.
+    const home = [
+      await t.login(9953, "Sock", `ref_${code}`),
+      await t.login(9955, "Sock2", `ref_${code}`),
+      await t.login(9956, "Sock3", `ref_${code}`),
+    ];
+    for (const u of home)
+      await t.db.query(
+        "INSERT INTO login_ips (user_id, ip_hash) SELECT $1, ip_hash FROM login_ips WHERE user_id = $2",
+        [u.userId, referrer.userId],
+      );
+    const sameIp = home[2]!;
 
     // Too young: no reward yet (the first race happens within the first day).
     const before = await credits(referrer);
@@ -186,11 +258,27 @@ describe("referral rewards", () => {
     ]);
     expect(tx).toHaveLength(1);
 
-    // Same private address as the referrer: held for review, not paid and not refused.
-    await t.db.query("UPDATE users SET created_at = $2 WHERE id = $1", [
-      sameIp.userId,
-      new Date(t.clock.now().getTime() - 3 * DAY),
-    ]);
+    // Same private address as the referrer: the first two (a household) are paid automatically,
+    // with an auto-approved flag on record…
+    for (const u of home)
+      await t.db.query("UPDATE users SET created_at = $2 WHERE id = $1", [
+        u.userId,
+        new Date(t.clock.now().getTime() - 3 * DAY),
+      ]);
+    const homeBefore = await credits(referrer);
+    for (const u of home.slice(0, 2)) await raceOnce(u);
+    await t.service(ReferralsService).sweep();
+    expect(await credits(referrer)).toBe(homeBefore + 1000);
+    const auto = await t.db.query<{ status: string; review_note: string }>(
+      "SELECT status, review_note FROM fraud_flags WHERE kind = 'REFERRAL_SHARED_IP' AND user_id = ANY($1::uuid[])",
+      [home.slice(0, 2).map((u) => u.userId)],
+    );
+    expect(auto).toHaveLength(2);
+    expect(auto.every((f) => f.status === "DISMISSED" && f.review_note.startsWith("Auto-approved"))).toBe(
+      true,
+    );
+
+    // …from the third on, held for review: not paid and not refused.
     const hostBefore = await credits(referrer);
     await raceOnce(sameIp);
     await t.service(ReferralsService).sweep();
@@ -199,7 +287,7 @@ describe("referral rewards", () => {
       Object.fromEntries(
         (await t.get<ReferralDto[]>("/me/referrals", referrer.token)).body.map((r) => [r.name, r.status]),
       );
-    expect(await status()).toEqual({ Sock: "REVIEW", Newbie: "PAID" });
+    expect(await status()).toEqual({ Sock3: "REVIEW", Sock2: "PAID", Sock: "PAID", Newbie: "PAID" });
     const flag = await t.db.one<{ id: number }>(
       "SELECT id FROM fraud_flags WHERE user_id = $1 AND kind = 'REFERRAL_SHARED_IP' AND status = 'OPEN'",
       [sameIp.userId],
@@ -227,7 +315,7 @@ describe("referral rewards", () => {
     expect(ok.status).toBe(201);
     expect(await t.service(ReferralsService).sweep()).toBe(1);
     expect(await credits(referrer)).toBe(hostBefore + 500);
-    expect((await status()).Sock).toBe("PAID");
+    expect((await status()).Sock3).toBe("PAID");
   });
 
   it("ignores addresses shared with unrelated players (mobile carrier gateways)", async () => {
@@ -259,6 +347,19 @@ describe("referral rewards", () => {
         [u.userId, t.clock.now()],
       );
     expect(await t.db.tx((c) => svc.sharesPrivateNetwork(c, farm[0]!.userId, farmer.userId))).toBe(true);
+  });
+
+  it("flags a referrer only for several invitees on their own private address", async () => {
+    const svc = t.service(FraudService);
+    await svc.detect();
+    const cluster = await t.db.query<{ user_id: string; severity: number }>(
+      "SELECT user_id, severity FROM fraud_flags WHERE kind = 'REFERRAL_CLUSTER'",
+    );
+    const farmer = await t.db.one<{ id: string }>("SELECT id FROM users WHERE telegram_id = 9971");
+    const carrier = await t.db.one<{ id: string }>("SELECT id FROM users WHERE telegram_id = 9961");
+    // Four invitees on the farmer's own address; one friend behind a public gateway is nothing.
+    expect(cluster.find((f) => f.user_id === farmer!.id)?.severity).toBe(2);
+    expect(cluster.some((f) => f.user_id === carrier!.id)).toBe(false);
   });
 
   it("keeps the ledger balanced", () => assertLedgerIntegrity(t.db));

@@ -97,6 +97,8 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
       if (now - this.lastFraud > 10 * 60_000) {
         this.lastFraud = now;
         await this.step("fraud", () => this.fraud.detect());
+        // Trust follows reviews and rule changes too, not only newly raised flags.
+        await this.step("trust", async () => (await this.fraud.recomputeTrust(), 0));
       }
       await this.step("lock", () => this.races.lockDue());
       await this.step("run", () => this.races.runDue());

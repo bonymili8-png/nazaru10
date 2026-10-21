@@ -13,7 +13,10 @@ async function main() {
   if (applied.length) logger.info({ applied }, "migrations applied");
   const app = await buildApp({ env, logger, db, bot: new HttpBotApi(env.TELEGRAM_BOT_TOKEN, logger) });
   await app.listen({ port: env.PORT, host: "0.0.0.0" });
-  logger.info({ port: env.PORT, jobs: env.JOB_RUNNER }, "api listening");
+  logger.info(
+    { port: env.PORT, jobs: env.JOB_RUNNER, trustProxyHops: env.TRUST_PROXY_HOPS },
+    "api listening",
+  );
 }
 
 main().catch((err) => {

@@ -20,6 +20,13 @@ export type FraudKind =
  */
 const PUBLIC_GATEWAY_USERS = 3;
 
+/** A shared address is only worth a (low, informational) flag from this many accounts a week. */
+const SHARED_IP_MIN = 5;
+/** Invitees on the referrer's own private address before the referrer is flagged. */
+const REFERRAL_CLUSTER_MIN = 3;
+/** Kinds an analyst may dismiss in bulk: weak network signals, never trade or income ones. */
+export const BULK_DISMISSIBLE = ["SHARED_IP", "REFERRAL_SHARED_IP", "REFERRAL_CLUSTER"] as const;
+
 interface Finding {
   userId: string;
   kind: FraudKind;
@@ -71,19 +78,20 @@ export class FraudService {
     const fortnight = new Date(now.getTime() - 14 * DAY);
     const findings: Finding[] = [];
 
-    // 1. Three or more accounts on one address within a week (NAT/carrier-grade NAT is common,
-    //    so this is low severity on its own).
+    // 1. Many accounts on one address within a week. Mobile carriers (CGNAT), campuses and cafés
+    //    put strangers behind one address, so this is informational: it starts at
+    //    SHARED_IP_MIN accounts and never lowers trust on its own (see recomputeTrust).
     const clusters = await this.db.query<{ ip_hash: string; users: string[] }>(
       `SELECT ip_hash, array_agg(DISTINCT user_id::text) AS users FROM login_ips
-        WHERE last_seen > $1 GROUP BY ip_hash HAVING count(DISTINCT user_id) >= 3`,
-      [week],
+        WHERE last_seen > $1 GROUP BY ip_hash HAVING count(DISTINCT user_id) >= $2`,
+      [week, SHARED_IP_MIN],
     );
     for (const cl of clusters)
       for (const u of cl.users)
         findings.push({
           userId: u,
           kind: "SHARED_IP",
-          severity: cl.users.length >= 6 ? 2 : 1,
+          severity: cl.users.length >= 2 * SHARED_IP_MIN ? 2 : 1,
           key: `ip:${cl.ip_hash}`,
           details: { accounts: cl.users.length, others: cl.users.filter((x) => x !== u).slice(0, 20) },
         });
@@ -135,18 +143,26 @@ export class FraudService {
           details: { counterparty: other, sales: f.n, volume: Number(f.volume) },
         });
 
-    // 4. Referral cluster: a referrer whose invitees sign in from the referrer's own address.
+    // 4. Referral cluster: a referrer with several invitees on the referrer's own private address
+    //    in the last month (a household is fine; a public gateway says nothing — see
+    //    sharesPrivateNetwork).
+    const month = new Date(now.getTime() - 30 * DAY);
     const refs = await this.db.query<{ referrer: string; n: number; invitees: string[] }>(
       `SELECT u.referred_by AS referrer, count(DISTINCT u.id)::int AS n, array_agg(DISTINCT u.id::text) AS invitees
          FROM users u JOIN login_ips a ON a.user_id = u.id JOIN login_ips b ON b.user_id = u.referred_by
-        WHERE b.ip_hash = a.ip_hash GROUP BY u.referred_by HAVING count(DISTINCT u.id) >= 2`,
+        WHERE b.ip_hash = a.ip_hash AND a.last_seen > $1 AND b.last_seen > $1
+          AND (SELECT count(DISTINCT o.user_id) FROM login_ips o JOIN users ou ON ou.id = o.user_id
+                WHERE o.ip_hash = a.ip_hash AND o.last_seen > $1
+                  AND o.user_id <> u.referred_by AND ou.referred_by IS DISTINCT FROM u.referred_by) < $2
+        GROUP BY u.referred_by HAVING count(DISTINCT u.id) >= $3`,
+      [month, PUBLIC_GATEWAY_USERS, REFERRAL_CLUSTER_MIN],
     );
     for (const r of refs)
       findings.push({
         userId: r.referrer,
         kind: "REFERRAL_CLUSTER",
-        severity: r.n >= 5 ? 3 : 2,
-        key: `refs:${r.n >= 5 ? "many" : "some"}`,
+        severity: r.n >= 2 * REFERRAL_CLUSTER_MIN ? 3 : 2,
+        key: `refs:${r.n >= 2 * REFERRAL_CLUSTER_MIN ? "many" : "some"}`,
         details: { invitees: r.invitees.slice(0, 20), count: r.n },
       });
 
@@ -186,13 +202,18 @@ export class FraudService {
     return raised;
   }
 
-  /** Trust = 50 + up to 20 for account age (1 point / 3 days) − penalties for open/confirmed flags. */
+  /**
+   * Trust = 50 + up to 20 for account age (1 point / 3 days) − penalties for open/confirmed flags
+   * (shared-address flags excluded).
+   */
   async recomputeTrust(userIds?: string[]): Promise<void> {
     await this.db.query(
       `UPDATE users u SET trust_score = GREATEST(0, LEAST(100,
           50 + LEAST(20, floor(extract(epoch FROM ($2::timestamptz - u.created_at)) / 259200))::int
           - COALESCE((SELECT sum(CASE f.severity WHEN 1 THEN ${PENALTY[1]} WHEN 2 THEN ${PENALTY[2]} ELSE ${PENALTY[3]} END)
-                        FROM fraud_flags f WHERE f.user_id = u.id AND f.status IN ('OPEN','CONFIRMED')), 0)))
+                        FROM fraud_flags f WHERE f.user_id = u.id AND f.status IN ('OPEN','CONFIRMED')
+                         -- A shared address alone (carrier gateways) is no evidence: it never costs trust.
+                         AND f.kind <> 'SHARED_IP'), 0)))
         WHERE u.role <> 'SYSTEM' AND ($1::uuid[] IS NULL OR u.id = ANY($1::uuid[]))`,
       [userIds ?? null, this.clock.now()],
     );
@@ -243,5 +264,41 @@ export class FraudService {
     });
     await this.recomputeTrust([userId]);
     return { id, status: decision };
+  }
+
+  /**
+   * Dismiss every open flag of one weak kind at once (audited as one action listing the flags).
+   * The analyst's own flags, and invites that would reward them, are left for someone else.
+   */
+  async dismissBulk(
+    actorId: string,
+    kind: (typeof BULK_DISMISSIBLE)[number],
+    note: string,
+    ip: string | null,
+  ): Promise<{ dismissed: number }> {
+    const now = this.clock.now();
+    const users = await this.db.tx(async (c) => {
+      const done = await c.query<{ id: number; user_id: string }>(
+        `UPDATE fraud_flags SET status = 'DISMISSED', reviewed_by = $2, reviewed_at = $3, review_note = $4
+          WHERE status = 'OPEN' AND kind = $1 AND user_id <> $2
+            AND (details->>'referrer') IS DISTINCT FROM $2::text
+          RETURNING id, user_id`,
+        [kind, actorId, now, note],
+      );
+      if (done.rows.length)
+        await this.audit.log(c, {
+          actorId,
+          action: "FRAUD_FLAGS_BULK_DISMISSED",
+          targetType: "fraud_flags",
+          targetId: kind,
+          before: { status: "OPEN" },
+          after: { status: "DISMISSED", count: done.rows.length, flags: done.rows.map((r) => r.id) },
+          reason: note,
+          ip,
+        });
+      return done.rows;
+    });
+    if (users.length) await this.recomputeTrust([...new Set(users.map((r) => r.user_id))]);
+    return { dismissed: users.length };
   }
 }

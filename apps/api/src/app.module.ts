@@ -63,7 +63,10 @@ import { FraudController } from "./modules/fraud/fraud.controller.js";
 import { FraudService } from "./modules/fraud/fraud.service.js";
 import { StaffController } from "./modules/staff/staff.controller.js";
 import { StaffService } from "./modules/staff/staff.service.js";
-import { TournamentsAdminController, TournamentsController } from "./modules/tournaments/tournaments.controller.js";
+import {
+  TournamentsAdminController,
+  TournamentsController,
+} from "./modules/tournaments/tournaments.controller.js";
 import { TournamentsService } from "./modules/tournaments/tournaments.service.js";
 import { MarketController } from "./modules/market/market.controller.js";
 import { MarketService } from "./modules/market/market.service.js";

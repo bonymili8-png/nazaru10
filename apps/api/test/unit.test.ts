@@ -73,6 +73,13 @@ describe("environment validation", () => {
       }).NODE_ENV,
     ).toBe("production");
   });
+  it("trusts Railway's edge proxy by default, unless the hops are set explicitly", () => {
+    expect(loadEnv(base).TRUST_PROXY_HOPS).toBe(0);
+    expect(loadEnv({ ...base, RAILWAY_PROJECT_ID: "p" }).TRUST_PROXY_HOPS).toBe(1);
+    expect(loadEnv({ ...base, RAILWAY_ENVIRONMENT_NAME: "production" }).TRUST_PROXY_HOPS).toBe(1);
+    expect(loadEnv({ ...base, RAILWAY_PROJECT_ID: "p", TRUST_PROXY_HOPS: "0" }).TRUST_PROXY_HOPS).toBe(0);
+    expect(loadEnv({ ...base, RAILWAY_PROJECT_ID: "p", TRUST_PROXY_HOPS: "2" }).TRUST_PROXY_HOPS).toBe(2);
+  });
 });
 
 describe("rate limiter", () => {

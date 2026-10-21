@@ -40,7 +40,9 @@ const EnvSchema = z
     CORS_ORIGINS: z.string().default(""),
     /**
      * Number of trusted reverse-proxy hops in front of the API (0 = none). Only trusted hops'
-     * X-Forwarded-For entries are used for client IPs (rate limiting, audit).
+     * X-Forwarded-For entries are used for client IPs (rate limiting, audit, anti-fraud).
+     * Unset on Railway it defaults to 1 (see `loadEnv`): every request reaches the app through
+     * Railway's edge proxy, so without it all players would appear to share its addresses.
      */
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     /** Multiplies every rate-limit bucket (1 in production; raised for E2E runs from one IP). */
@@ -75,7 +77,13 @@ export type Env = z.infer<typeof EnvSchema>;
 
 /** Parse and validate the environment; the process refuses to start on invalid config. */
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = EnvSchema.safeParse(source);
+  const onRailway = !!(
+    source.RAILWAY_PROJECT_ID ||
+    source.RAILWAY_ENVIRONMENT ||
+    source.RAILWAY_ENVIRONMENT_NAME
+  );
+  const hopsUnset = source.TRUST_PROXY_HOPS === undefined || source.TRUST_PROXY_HOPS === "";
+  const parsed = EnvSchema.safeParse(onRailway && hopsUnset ? { ...source, TRUST_PROXY_HOPS: "1" } : source);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid environment: ${issues}`);

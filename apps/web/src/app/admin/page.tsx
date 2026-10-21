@@ -1411,13 +1411,14 @@ interface FlagRow {
 }
 
 const FLAG_INFO: Record<string, string> = {
-  SHARED_IP: "Several accounts signed in from one address this week",
+  SHARED_IP:
+    "Five or more accounts signed in from one address this week (often a mobile carrier); informational, costs no trust",
   CIRCULAR_TRADE: "A horse was sold to another account and back within two weeks",
   TRADE_FUNNEL: "Three or more sales to the same buyer in a week",
-  REFERRAL_CLUSTER: "Invitees sign in from the referrer's address",
+  REFERRAL_CLUSTER: "Three or more invitees on the referrer's own private address in the last month",
   INCOME_SPIKE: "Yesterday's income above 10× the 90th percentile",
   REFERRAL_SHARED_IP:
-    "Invitee signs in from the referrer's private network; invite reward held. Dismiss = genuine friend (both get paid), confirm = same person (no reward)",
+    "Invitee signs in from the referrer's private network (the first two per referrer are paid automatically); invite reward held. Dismiss = genuine friend (both get paid), confirm = same person (no reward)",
 };
 
 function Fraud() {
@@ -1443,6 +1444,7 @@ function Fraud() {
           </button>
         ))}
       </div>
+      {status === "OPEN" && data && <BulkDismiss flags={data} onDone={reload} />}
       {error && <ErrorState error={error} retry={reload} />}
       {!data && !error && <Skeleton className="mt-3 h-40" />}
       {data?.length === 0 && <p className="mt-3 text-sm text-muted">No {status.toLowerCase()} flags.</p>}
@@ -1476,6 +1478,77 @@ function Fraud() {
         ))}
       </div>
     </>
+  );
+}
+
+const BULK_KINDS = ["SHARED_IP", "REFERRAL_SHARED_IP", "REFERRAL_CLUSTER"] as const;
+
+/** Approve every open flag of one weak network kind at once (trade and income flags stay one by one). */
+function BulkDismiss({ flags, onDone }: { flags: FlagRow[]; onDone: () => void }) {
+  const counts = BULK_KINDS.map((k) => [k, flags.filter((f) => f.kind === k).length] as const).filter(
+    ([, n]) => n > 0,
+  );
+  const [kind, setKind] = useState<(typeof BULK_KINDS)[number] | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  if (!counts.length) return null;
+  const chosen = kind ?? counts[0]![0];
+  const n = counts.find(([k]) => k === chosen)?.[1] ?? 0;
+  return (
+    <Card className="mt-3 space-y-2">
+      <p className="text-sm font-semibold">Dismiss in bulk</p>
+      <p className="text-xs text-muted">
+        Approve every open flag of one network kind at once (held invite rewards are then paid). Your own
+        flags and invites that would reward you are skipped.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {counts.map(([k, c]) => (
+          <button
+            key={k}
+            aria-pressed={chosen === k}
+            onClick={() => setKind(k)}
+            className={`min-h-9 cursor-pointer rounded-full border px-3 text-xs ${chosen === k ? "border-gold bg-gold/15 text-gold" : "border-line/60 text-muted"}`}
+          >
+            {titleCase(k)} · {c}
+          </button>
+        ))}
+      </div>
+      <label className="block text-xs text-muted">
+        Note (required, audited)
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="e.g. Mobile carrier gateway, genuine players"
+          className="mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink"
+        />
+      </label>
+      <Button
+        variant="secondary"
+        className="w-full"
+        disabled={note.trim().length < 5}
+        loading={busy}
+        onClick={async () => {
+          if (!window.confirm(`Dismiss all ${n} open ${titleCase(chosen)} flags?`)) return;
+          setBusy(true);
+          try {
+            const r = await post<{ dismissed: number }>("/admin/fraud/flags/dismiss-bulk", {
+              kind: chosen,
+              note: note.trim(),
+            });
+            toast(`${r.dismissed} flags dismissed`);
+            setNote("");
+            onDone();
+          } catch (e) {
+            toast(errorMessage(e), "bad");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Dismiss all {n} {titleCase(chosen)}
+      </Button>
+    </Card>
   );
 }
 

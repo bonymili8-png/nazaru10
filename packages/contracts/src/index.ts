@@ -240,6 +240,13 @@ export const FraudReviewRequest = z.object({
 });
 export type FraudReviewRequest = z.infer<typeof FraudReviewRequest>;
 
+/** Dismiss every open flag of one weak network kind at once (audited). */
+export const FraudBulkDismissRequest = z.object({
+  kind: z.enum(["SHARED_IP", "REFERRAL_SHARED_IP", "REFERRAL_CLUSTER"]),
+  note: z.string().trim().min(5).max(500),
+});
+export type FraudBulkDismissRequest = z.infer<typeof FraudBulkDismissRequest>;
+
 /** A full override document (replaces the previous one) plus a mandatory change note. */
 export const AdminConfigRequest = z.object({
   override: z.record(z.unknown()),

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req } from "@nestjs/common";
-import { FraudFlagsQuery, FraudReviewRequest } from "@thoroughline/contracts";
+import { FraudBulkDismissRequest, FraudFlagsQuery, FraudReviewRequest } from "@thoroughline/contracts";
 import { type AuthedRequest, type AuthUser, CurrentUser, Roles } from "../../common/auth.js";
 import { parse } from "../../common/http.js";
 import { FraudService } from "./fraud.service.js";
@@ -24,5 +24,11 @@ export class FraudController {
   ) {
     const b = parse(FraudReviewRequest, body);
     return this.fraud.review(actor.id, id, b.decision, b.note, req.ip);
+  }
+
+  @Post("flags/dismiss-bulk")
+  dismissBulk(@CurrentUser() actor: AuthUser, @Body() body: unknown, @Req() req: AuthedRequest) {
+    const b = parse(FraudBulkDismissRequest, body);
+    return this.fraud.dismissBulk(actor.id, b.kind, b.note, req.ip ?? null);
   }
 }

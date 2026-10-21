@@ -50,19 +50,28 @@ grants for the app role in production; trigger blocks mutation).
   each settled race and by a background sweep (every 30 s, invitees up to 30 days old), so a
   race on day one pays out once the invitee is a day old; an invitee sharing a *private*
   address with the referrer (fewer than 3 unrelated accounts on it — carrier CGNAT and other
-  public gateways don't count; the referrer's other invitees are not "unrelated") is held as a
-  `REFERRAL_SHARED_IP` flag: dismissed → paid by the sweep, confirmed → never; the referrer can
+  public gateways don't count; the referrer's other invitees are not "unrelated") is paid for
+  the first two per referrer (a household; recorded as an auto-approved flag) and from the
+  third on held as a `REFERRAL_SHARED_IP` flag: dismissed → paid by the sweep, confirmed → never; the referrer can
   never review their own invite; referrers with trust < 30 get no referrer reward; a
   referrer over the daily cap is paid on a later day. Invites that reach the bot's `/start`
   are kept (7 days) and applied at the first sign-in. Owners see each invite's status
   (`GET /me/referrals`).
 * **Implemented signals (every 10 min, idempotent flags, never auto-punish):** sign-in
-  address clusters (≥ 3 accounts in 7 days; stored as a keyed HMAC of the IP, never the raw
-  address), circular trades (A → B → A within 14 days), trade funnels (≥ 3 sales to one buyer in
-  7 days), referral clusters (invitees on the referrer's address), income spikes (> 10× P90 of
-  daily income). Trust score = 50 + up to 20 for account age − 5/15/30 per open or confirmed
-  flag by severity. Analysts dismiss or confirm in the console (audited); suspension stays a
-  separate, audited action.
+  address clusters (≥ 5 accounts in 7 days, informational only — mobile carriers put strangers
+  behind one address; stored as a keyed HMAC of the IP, never the raw address), circular trades
+  (A → B → A within 14 days), trade funnels (≥ 3 sales to one buyer in 7 days), referral
+  clusters (≥ 3 invitees on the referrer's own *private* address in the last 30 days), income
+  spikes (> 10× P90 of daily income). Trust score = 50 + up to 20 for account age − 5/15/30 per
+  open or confirmed flag by severity, shared-address flags excluded; recomputed every 10 min.
+  Analysts dismiss or confirm in the console (audited), or dismiss all open flags of one
+  network kind at once (`POST /admin/fraud/flags/dismiss-bulk`, one audit row; never trade or
+  income flags, never their own); suspension stays a separate, audited action.
+* **Client addresses behind Railway:** the API sees players through Railway's edge proxy, so
+  `TRUST_PROXY_HOPS` defaults to 1 there when unset (0 elsewhere); without it every player
+  looked like the proxy's address and the network signals fired for strangers. The value in
+  use is logged at start-up (`trustProxyHops`). In October 2026 all open network flags were
+  approved once by the owner (migration 0051, audited).
 * **Marketplace:** price sanity bands, self-trade block, circular trade detection.
 
 ## V. Security Model

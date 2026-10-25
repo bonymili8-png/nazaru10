@@ -60,5 +60,7 @@ pnpm --filter @thoroughline/e2e e2e
    through npx:
    `npx -y pnpm@10.33.0 install --frozen-lockfile && npx -y pnpm@10.33.0 -r --filter "./packages/**" build && npx -y pnpm@10.33.0 --filter @thoroughline/web build`
    (where pnpm is available, `pnpm build:cloudflare` does the same). Deploy command
-   `npx wrangler deploy`; build variables as in step 4 plus `NODE_VERSION=22`. Set the production
-   branch to the branch that carries the game (Settings → Build → Branch control).
+   `npx wrangler deploy`; build variables as in step 4 plus `NODE_VERSION=22.16.0` — an exact release, because a bare
+   `22` makes the build image fetch the newest 22.x, which its mirror may not carry yet (the build
+   then fails at "Installing nodejs"). Set the production branch to the branch that carries the
+   game (Settings → Build → Branch control).

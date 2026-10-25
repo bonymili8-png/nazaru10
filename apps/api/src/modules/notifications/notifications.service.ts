@@ -80,6 +80,16 @@ export class NotificationsService {
           button: uk ? "📺 Дивитись наживо" : "📺 Watch live",
           category: "raceStartAlerts",
         };
+      case "marketing_alert":
+        return {
+          userId,
+          text: uk
+            ? `⚠️ Автопублікацію в ${escape(p.channel)} призупинено після кількох помилок: ${escape(p.reason)}. Виправте причину й натисніть Resume в адмінці → marketing.`
+            : `⚠️ Auto-posting to ${escape(p.channel)} is paused after repeated errors: ${escape(p.reason)}. Fix the cause, then press Resume in the admin console → marketing.`,
+          openApp: true,
+          path: "/admin/",
+          button: uk ? "Відкрити адмінку" : "Open the console",
+        };
       case "daily_report":
         return { userId, text: dailyReportText(p, lang), openApp: true, category: "dailyReport" };
       case "training_completed":

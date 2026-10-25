@@ -24,6 +24,19 @@ export interface BotApi {
   sendMessage(chatId: number, text: string, buttons?: InlineWebAppButton[][]): Promise<void>;
   refundStarPayment(userTelegramId: number, chargeId: string): Promise<void>;
   setMyCommands(commands: { command: string; description: string }[], languageCode?: string): Promise<void>;
+  /** Post a photo (PNG bytes) with an HTML caption to a chat or channel (@handle); the message id. */
+  sendPhoto(
+    chatId: number | string,
+    photo: Buffer,
+    caption: string,
+    buttons?: InlineWebAppButton[][],
+  ): Promise<number>;
+  getMe(): Promise<{ id: number; username: string }>;
+  getChat(chatId: string): Promise<{ id: number; type: string; title?: string; username?: string }>;
+  getChatMember(
+    chatId: number | string,
+    userId: number,
+  ): Promise<{ status: string; can_post_messages?: boolean }>;
 }
 
 export const BOT_API = Symbol("BOT_API");
@@ -98,6 +111,45 @@ export class HttpBotApi implements BotApi {
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
     await this.call("refundStarPayment", { user_id: userTelegramId, telegram_payment_charge_id: chargeId });
   }
+
+  async sendPhoto(
+    chatId: number | string,
+    photo: Buffer,
+    caption: string,
+    buttons?: InlineWebAppButton[][],
+  ): Promise<number> {
+    if (!this.enabled) throw new Error("Telegram bot token not configured");
+    // The image is uploaded (multipart), so posts never depend on a public image URL.
+    const form = new FormData();
+    form.set("chat_id", String(chatId));
+    form.set("caption", caption);
+    form.set("parse_mode", "HTML");
+    if (buttons) form.set("reply_markup", JSON.stringify({ inline_keyboard: buttons }));
+    form.set("photo", new Blob([new Uint8Array(photo)], { type: "image/png" }), "card.png");
+    const res = await fetch(`https://api.telegram.org/bot${this.token}/sendPhoto`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(20_000),
+    });
+    const json = (await res.json()) as { ok: boolean; result?: { message_id: number }; description?: string };
+    if (!json.ok) throw new Error(`Telegram sendPhoto failed: ${json.description ?? res.status}`);
+    return json.result!.message_id;
+  }
+
+  getMe(): Promise<{ id: number; username: string }> {
+    return this.call("getMe", {});
+  }
+
+  getChat(chatId: string): Promise<{ id: number; type: string; title?: string; username?: string }> {
+    return this.call("getChat", { chat_id: chatId });
+  }
+
+  getChatMember(
+    chatId: number | string,
+    userId: number,
+  ): Promise<{ status: string; can_post_messages?: boolean }> {
+    return this.call("getChatMember", { chat_id: chatId, user_id: userId });
+  }
 }
 
 /** Records calls instead of talking to Telegram (tests, local dev). */
@@ -129,5 +181,31 @@ export class FakeBotApi implements BotApi {
   }
   async refundStarPayment(userTelegramId: number, chargeId: string): Promise<void> {
     this.calls.push({ method: "refundStarPayment", args: [userTelegramId, chargeId] });
+  }
+  /** Tests: make channel posts fail with this error (null: succeed). */
+  photoError: string | null = null;
+  /** Tests: the bot's role in channels (e.g. "member" = cannot post). */
+  channelStatus = "administrator";
+  private messageId = 100;
+  async sendPhoto(
+    chatId: number | string,
+    photo: Buffer,
+    caption: string,
+    buttons?: InlineWebAppButton[][],
+  ): Promise<number> {
+    this.calls.push({ method: "sendPhoto", args: [chatId, photo, caption, buttons] });
+    if (this.photoError) throw new Error(`Telegram sendPhoto failed: ${this.photoError}`);
+    return ++this.messageId;
+  }
+  async getMe(): Promise<{ id: number; username: string }> {
+    return { id: 4242, username: "thoroughline_racing_bot" };
+  }
+  async getChat(chatId: string): Promise<{ id: number; type: string; title?: string; username?: string }> {
+    if (chatId === "@missing_channel")
+      throw new Error("Telegram getChat failed: Bad Request: chat not found");
+    return { id: -1001234567890, type: "channel", title: "Thoroughline Racing", username: chatId.slice(1) };
+  }
+  async getChatMember(): Promise<{ status: string; can_post_messages?: boolean }> {
+    return { status: this.channelStatus, can_post_messages: this.channelStatus === "administrator" };
   }
 }

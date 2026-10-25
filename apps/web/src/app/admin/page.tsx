@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import { Campaigns } from "@/components/admin/Campaigns";
 import { GemExchange } from "@/components/admin/GemExchange";
 import { HouseFill } from "@/components/admin/HouseFill";
+import { Marketing } from "@/components/admin/Marketing";
 import { Viral } from "@/components/admin/Viral";
 import { useState } from "react";
 import {
@@ -35,6 +36,7 @@ import { invalidate, useApi } from "@/lib/hooks";
 type Tab =
   | "revenue"
   | "campaigns"
+  | "marketing"
   | "players"
   | "liveops"
   | "economy"
@@ -47,6 +49,7 @@ type Tab =
 const TAB_ROLES: Record<Tab, string[]> = {
   revenue: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
   campaigns: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "CONTENT_ADMIN"],
+  marketing: ["ECONOMY_ADMIN", "CONTENT_ADMIN"],
   players: ["ECONOMY_ADMIN", "FINANCE_ADMIN", "GAME_ADMIN"],
   liveops: ["GAME_ADMIN", "CONTENT_ADMIN"],
   economy: ["ECONOMY_ADMIN", "FINANCE_ADMIN"],
@@ -69,6 +72,7 @@ export default function AdminPage() {
     [
       "revenue",
       "campaigns",
+      "marketing",
       "players",
       "liveops",
       "economy",
@@ -102,6 +106,7 @@ export default function AdminPage() {
       </div>
       {active === "revenue" && <Revenue />}
       {active === "campaigns" && <Campaigns />}
+      {active === "marketing" && <Marketing />}
       {active === "players" && <Players />}
       {active === "liveops" && <LiveOps />}
       {active === "economy" && <Economy canEdit={role === "SUPER_ADMIN" || role === "ECONOMY_ADMIN"} />}

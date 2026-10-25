@@ -759,6 +759,67 @@ export const AdminGemExchangeToggle = z.object({
 export type AdminGemExchangeToggle = z.infer<typeof AdminGemExchangeToggle>;
 
 /** Admin view of the exchange: the switch, the offer and what it moved. */
+/** Kinds of automatic posts to the game's own channels. */
+export type MarketingKind = "RACE_OF_THE_DAY" | "TOURNAMENT_CHAMPION" | "FIRST_WIN" | "WEEKLY_TOP";
+
+export interface MarketingItemDto {
+  id: string;
+  kind: MarketingKind;
+  status: "QUEUED" | "PUBLISHED" | "SKIPPED" | "FAILED";
+  /** The post's text (Telegram HTML). */
+  caption: string;
+  attempts: number;
+  lastError: string | null;
+  /** The channel message id once published. */
+  externalId: string | null;
+  createdAt: string;
+  expiresAt: string;
+  publishedAt: string | null;
+}
+
+/** Admin: automatic posting to the game's own Telegram channel. */
+export interface MarketingAdminDto {
+  enabled: boolean;
+  telegram: {
+    enabled: boolean;
+    channel: string;
+    maxPerDay: number;
+    minGapMinutes: number;
+    /** Posting window in UTC hours [from, to). */
+    window: [number, number];
+    publishedToday: number;
+    lastPublishedAt: string | null;
+    /** Set when repeated failures paused posting (an admin resumes it). */
+    paused: { reason: string; at: string } | null;
+    /** Whether the bot can post to the channel right now. */
+    status: { ok: boolean; title: string | null; error: string | null };
+    /** Whether posts can link the public replay page / the bot's username is configured. */
+    links: { web: boolean; bot: string | null };
+  };
+  kinds: Record<MarketingKind, boolean>;
+  /** Campaign code each kind of post links through (see the campaigns tab). */
+  campaigns: Record<MarketingKind, string>;
+  queue: MarketingItemDto[];
+  recent: MarketingItemDto[];
+  history: { enabled: boolean; at: string; by: string | null; note: string | null }[];
+}
+
+export const MarketingSwitchRequest = z.object({
+  key: z.enum(["ALL", "TELEGRAM", "RACE_OF_THE_DAY", "TOURNAMENT_CHAMPION", "FIRST_WIN", "WEEKLY_TOP"]),
+  enabled: z.boolean(),
+  note: z.string().trim().max(500).optional(),
+});
+export type MarketingSwitchRequest = z.infer<typeof MarketingSwitchRequest>;
+
+export const MarketingChannelRequest = z.object({
+  channel: z
+    .string()
+    .trim()
+    .regex(/^@[A-Za-z][A-Za-z0-9_]{3,31}$/, "A public channel handle like @my_channel"),
+  note: z.string().trim().max(500).optional(),
+});
+export type MarketingChannelRequest = z.infer<typeof MarketingChannelRequest>;
+
 /** Admin: an on/off switch and its recent changes. */
 export interface AdminSwitchDto {
   enabled: boolean;

@@ -16,7 +16,7 @@ public content — horses by name, stables only with the owner's consent.
 | # | Stage | Status |
 |---|---|---|
 | 1 | Viral loops in the game + public share pages with link previews (M3) | ✅ live |
-| 2 | Image cards from game events + the game's own Telegram channel (M1, M2) | planned |
+| 2 | Image cards from game events + the game's own Telegram channel (M1, M2) | ✅ live |
 | 3 | Race videos + YouTube Shorts / Instagram / Facebook / Bluesky / Threads (M1, M2) | planned |
 | 4 | Public SEO site: landing, guides, results, sitemap (M4) | planned |
 | 5 | Retention: first-week path, unclaimed rewards, cup closing, season end (M6) | planned |
@@ -74,3 +74,50 @@ race, active players, and the K-factor = invited players who raced ÷ active pla
 
 **Owner setup for stage 1:** none — it works after the next deploy of the API (Railway) and the
 site (Cloudflare). The Docker image now also copies `apps/api/assets` (the fonts).
+
+## Stage 2 — the game's own Telegram channel
+
+**What gets posted** (English only, real game events only, `apps/api/src/modules/marketing`):
+
+| Kind | When | Card | Campaign |
+|---|---|---|---|
+| Race of the day | once a day from 15:00 UTC: the most watchable finished race of the last 24 h with at least 4 runners and a player's horse — close finish (margin in racing words: nose, head, neck…), upset (winner low in the pre-race ability order: "rated only 6th of 8"), a player's horse winning, a tournament final | race card | `TGCHDAY` |
+| Tournament champion | each cup completed in the last 48 h | its final's race card | `TGCHCHAMP` |
+| First win | one a day: the latest player's horse to win for the first time | race card | `TGCHFIRST` |
+| Top of the week | Mondays from 09:00 UTC: the five highest-rated horses in training | ranked list card | `TGCHWEEK` |
+
+Detectors run every 30 s and queue one `content_items` row per event (unique key, so re-runs
+add nothing); items expire (12–24 h) rather than going out stale. The publisher posts the
+highest-priority queued item (champion > top of the week > race of the day > first win) when
+all of these hold: marketing and the channel switched on, the kind switched on, not paused,
+inside the window (08:00–21:00 UTC), under the daily limit (3) and at least 3 h after the last
+post. Each post is a photo (the card PNG, uploaded) with an HTML caption and URL buttons:
+**▶️ Watch the replay** → `WEBAPP_URL/replay/?id=<race>&c=<code>` (the public page counts the
+visit as a campaign click; its "Play free" opens the race with the campaign: start parameter
+`race_<id>_c<code>`), and **🏇 Play free** → `t.me/<bot>/<app>?startapp=race_<id>_c<code>`
+(`c_<code>` for the weekly list). The four campaigns are created automatically (no human
+author) and appear in the campaigns tab with their funnel.
+
+**Privacy:** horse names only; a stable's name appears only if its owner turned on "Show my
+stable on shared pages"; never Telegram names. House horses are labelled "house yard".
+
+**Safety and operations** (admin console → **marketing**, roles CONTENT_ADMIN / ECONOMY_ADMIN):
+whether the bot can post to the channel (getMe → getChat → getChatMember: admin with posting
+rights), kill switches for everything, the channel and each kind (config versions, audited as
+`MARKETING_SWITCH`), the channel handle (checked with Telegram before it is saved; audited as
+`MARKETING_SETTING`), the queue with card previews and "Don't post", recent posts with links to
+them in the channel, "Find new posts" and "Publish next now" (skips the window and the gap,
+never the switches or the daily limit). A post is tried 3 times; after 3 failures in a row the
+channel pauses itself (`marketing_channels`) and every SUPER/CONTENT/ECONOMY admin gets one bot
+message; "Resume posting" in the console restarts it. Limits and the window are config
+(`marketing.telegram.*`).
+
+**Owner setup for stage 2 (once):**
+
+1. A public Telegram channel for the game, with the bot as an admin allowed to post. The
+   default handle is `@horoughline_racing` (as given); fix it in the console if it differs.
+2. On the API (Railway): `WEBAPP_URL` (the Mini App's address, for the replay button) and
+   ideally `TELEGRAM_BOT_USERNAME` / `TELEGRAM_APP_SHORT_NAME` (otherwise the bot's username is
+   read from Telegram and the app's short name defaults to `play`).
+3. Check the marketing tab: "bot can post". The first post goes out at the next opening of the
+   window once there is an event; "Publish next now" posts at once.

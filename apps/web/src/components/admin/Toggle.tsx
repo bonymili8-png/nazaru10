@@ -19,10 +19,10 @@ export function Toggle({
       aria-label={label}
       disabled={busy}
       onClick={onFlip}
-      className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full transition-colors disabled:opacity-60 ${on ? "bg-good" : "bg-surface-2 ring-1 ring-line"}`}
+      className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full p-0 transition-colors disabled:opacity-60 ${on ? "bg-good" : "bg-surface-2 ring-1 ring-line"}`}
     >
       <span
-        className={`absolute top-1 size-6 rounded-full bg-ink transition-transform ${on ? "translate-x-7" : "translate-x-1"}`}
+        className={`absolute left-0 top-1 size-6 rounded-full bg-ink transition-transform ${on ? "translate-x-7" : "translate-x-1"}`}
       />
     </button>
   );

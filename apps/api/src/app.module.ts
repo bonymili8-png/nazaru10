@@ -6,6 +6,8 @@ import { Db } from "./common/db.js";
 import { ConfigSwitchService } from "./common/config-switch.js";
 import { ShareController, ViralAdminController } from "./modules/share/share.controller.js";
 import { ShareService } from "./modules/share/share.service.js";
+import { MarketingAdminController } from "./modules/marketing/marketing.controller.js";
+import { MarketingService } from "./modules/marketing/marketing.service.js";
 import { AuditService, EventsService } from "./common/events.js";
 import { GameConfigService } from "./common/game-config.js";
 import { LOGGER, type Logger } from "./common/logger.js";
@@ -131,6 +133,7 @@ export class AppModule {
         WalletController,
         ShareController,
         ViralAdminController,
+        MarketingAdminController,
         ExchangeController,
         ExchangeAdminController,
         StableController,
@@ -172,6 +175,7 @@ export class AppModule {
         AuditService,
         ConfigSwitchService,
         ShareService,
+        MarketingService,
         GameConfigService,
         LedgerService,
         QuestsService,

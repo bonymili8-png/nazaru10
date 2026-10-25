@@ -11,10 +11,27 @@ export function shareUrl(kind: "race" | "horse", id: string, referralCode?: stri
   return `${window.location.origin}/${page}/?id=${id}${ref}`;
 }
 
-/** The Mini App link behind a share page's "Play free" button (credits the sharer). */
-export function playLink(kind: "race" | "horse", id: string, ref: string | null): string {
+const CAMPAIGN = /^[A-Za-z0-9]{4,12}$/;
+
+/**
+ * The Mini App link behind a share page's "Play free" button: credits the player who shared it
+ * (`r`), or the campaign of the game's own post that linked here (`c`).
+ */
+export function playLink(
+  kind: "race" | "horse",
+  id: string,
+  ref: string | null,
+  campaign?: string | null,
+): string {
+  if (campaign && CAMPAIGN.test(campaign)) return appLink(`${kind}_${id}_c${campaign}`) ?? "/";
   const code = ref && /^[A-Za-z0-9]{1,16}$/.test(ref) ? ref : null;
   return appLink(`${kind}_${id}${code ? `_r${code}` : ""}`) ?? appLink(code ? `ref_${code}` : "start") ?? "/";
+}
+
+/** A visit from one of the game's own posts counts as a click on its campaign link. */
+export function countCampaignClick(campaign: string | null): void {
+  if (!campaign || !CAMPAIGN.test(campaign)) return;
+  void post(`/public/campaigns/${campaign}/click`).catch(() => undefined);
 }
 
 /** Count one view of a share page (best effort, never blocks the page). */

@@ -8,7 +8,7 @@ import { Card, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { fmt, ordinal, titleCase } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { getLocale, t } from "@/lib/i18n";
-import { countVisit, playLink } from "@/lib/share";
+import { countCampaignClick, countVisit, playLink } from "@/lib/share";
 
 /** A horse's public card, opened from a shared link: record, rating, recent runs. */
 export default function HorseCardWrapper() {
@@ -23,14 +23,16 @@ function HorseCard() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
   const ref = params.get("r");
+  const campaign = params.get("c");
   const { data: h, error, reload } = useApi<PublicHorseDto>(id ? `/public/horses/${id}` : null);
   useEffect(() => {
     if (id) countVisit("horse", id, ref);
-  }, [id, ref]);
+    countCampaignClick(campaign);
+  }, [id, ref, campaign]);
   const r = ref ? `&r=${encodeURIComponent(ref)}` : "";
   return (
     <PublicFrame
-      play={playLink("horse", id, ref)}
+      play={playLink("horse", id, ref, campaign)}
       cta={h ? t("pub.horseCta", { name: h.name }) : t("pub.genericCta")}
     >
       {!id && <ErrorState error={new Error(t("horse.noneSelected"))} />}

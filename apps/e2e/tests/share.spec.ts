@@ -180,3 +180,17 @@ test("after a win the race page offers to share the replay link, and the choice 
   await expect(page.getByRole("button", { name: "Share result" })).toBeVisible();
   await expect(page.getByText("Bold Ruler won!")).toHaveCount(0);
 });
+
+test("a replay opened from the game's own channel post counts as a campaign click", async ({ page }) => {
+  const clicks: string[] = [];
+  await page.route(new RegExp(`/public/races/${RACE}$`), (r) => r.fulfill({ json: race() }));
+  await page.route(new RegExp(`/public/races/${RACE}/live$`), (r) => r.fulfill({ json: live }));
+  await page.route(/\/public\/share-visits$/, (r) => r.fulfill({ status: 204, body: "" }));
+  await page.route(/\/public\/campaigns\/[A-Z0-9]+\/click$/, (r) => {
+    clicks.push(new URL(r.request().url()).pathname);
+    return r.fulfill({ json: { startParam: "c_TGCHDAY" } });
+  });
+  await page.goto(`/replay/?id=${RACE}&c=TGCHDAY`);
+  await expect(page.getByRole("heading", { name: "Royal Meadow Downs Class 5" })).toBeVisible();
+  await expect.poll(() => clicks).toEqual(["/public/campaigns/TGCHDAY/click"]);
+});

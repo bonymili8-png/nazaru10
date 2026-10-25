@@ -117,6 +117,30 @@ export function horseCardSvg(h: HorseCard): string {
   return frame(body, "Can your horse beat this one? Play free");
 }
 
+export interface TableCard {
+  title: string;
+  subtitle: string;
+  rows: { name: string; detail: string }[];
+}
+
+/** A ranked list (top of the week): up to five rows. */
+export function tableCardSvg(t: TableCard): string {
+  const rows = t.rows
+    .slice(0, 5)
+    .map(
+      (r, i) => `
+  <text x="64" y="${262 + i * 52}" font-family="Playfair Display" font-weight="700" font-size="34" fill="${i === 0 ? C.gold : C.muted}">${i + 1}</text>
+  <text x="112" y="${262 + i * 52}" font-family="Inter" font-weight="700" font-size="32" fill="${C.ink}">${esc(clip(r.name, 22))}</text>
+  <text x="560" y="${262 + i * 52}" text-anchor="end" font-family="Inter" font-size="24" fill="${C.muted}">${esc(clip(r.detail, 26))}</text>`,
+    )
+    .join("");
+  const body = `
+  <text x="64" y="162" font-family="Playfair Display" font-weight="700" font-size="56" fill="${C.ink}">${esc(clip(t.title, 26))}</text>
+  <text x="64" y="200" font-family="Inter" font-size="26" fill="${C.muted}">${esc(clip(t.subtitle, 56))}</text>
+  ${rows}`;
+  return frame(body, "Train your own · Play free");
+}
+
 /** Rasterise a card with the bundled fonts only (identical output on every machine). */
 export function renderPng(svg: string): Buffer {
   const r = new Resvg(svg, {

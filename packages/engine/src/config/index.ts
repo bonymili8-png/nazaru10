@@ -358,6 +358,31 @@ export interface GameConfig {
    * Tipster league: free predictions of the first three in upcoming races, scored by how hard
    * the pick was; a weekly table with small rewards. No stakes of any kind. See tipster/index.ts.
    */
+  /**
+   * Automatic posts about real game events to the game's own channels (never anyone else's).
+   * Every switch is an admin kill switch; `enabled` stops everything.
+   */
+  marketing: {
+    enabled: boolean;
+    telegram: {
+      enabled: boolean;
+      /** The game's public channel (@handle); the bot must be an admin allowed to post. */
+      channel: string;
+      maxPerDay: number;
+      /** Minimum gap between two posts. */
+      minGapMinutes: number;
+      /** Posting window, UTC hours [from, to). */
+      fromHourUtc: number;
+      toHourUtc: number;
+    };
+    /** Which kinds of post are made. */
+    kinds: {
+      RACE_OF_THE_DAY: boolean;
+      TOURNAMENT_CHAMPION: boolean;
+      FIRST_WIN: boolean;
+      WEEKLY_TOP: boolean;
+    };
+  };
   tipster: {
     /** New tips per player per UTC day (changing an existing tip is free). */
     dailyLimit: number;
@@ -937,6 +962,18 @@ export const defaultConfig: GameConfig = {
     shoeStarts: 6,
     wornShoeInjuryFactor: 1.4,
     lads: { gemsPerLadWeek: 50, horsesPerLad: 5, maxLads: 2, maxWeeksAhead: 4, roundEveryMinutes: 10 },
+  },
+  marketing: {
+    enabled: true,
+    telegram: {
+      enabled: true,
+      channel: "@horoughline_racing",
+      maxPerDay: 3,
+      minGapMinutes: 180,
+      fromHourUtc: 8,
+      toHourUtc: 21,
+    },
+    kinds: { RACE_OF_THE_DAY: true, TOURNAMENT_CHAMPION: true, FIRST_WIN: true, WEEKLY_TOP: true },
   },
   tipster: {
     dailyLimit: 10,

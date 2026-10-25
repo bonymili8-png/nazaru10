@@ -14,6 +14,7 @@ import { MarketService } from "../market/market.service.js";
 import { OffersService } from "../market/offers.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { EngagementService } from "../notifications/engagement.service.js";
+import { MarketingService } from "../marketing/marketing.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
@@ -47,6 +48,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly fraud: FraudService,
     private readonly notifications: NotificationsService,
     private readonly engagement: EngagementService,
+    private readonly marketing: MarketingService,
     private readonly referrals: ReferralsService,
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
@@ -89,6 +91,9 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("membership-expiry", () => this.subscriptions.expireDue());
         await this.step("comeback-nudges", () => this.engagement.nudgeDue());
         await this.step("daily-reports", () => this.engagement.reportDue());
+        // The game's own channel: queue posts about new events, then post one if it is time.
+        await this.step("marketing-detect", () => this.marketing.detect());
+        await this.step("marketing-publish", () => this.marketing.publish());
         await this.step("offer-expiry", () => this.offers.expireDue());
         await this.step("stable-lads", () => this.lads.runDue());
         await this.step("tips-score", () => this.tips.scoreDue());

@@ -37,10 +37,19 @@ export class ConfigSwitchService {
   }
 
   /** Returns whether anything changed (setting the current value publishes nothing). */
-  async set(
+  set(
     path: readonly string[],
     action: string,
     a: { actorId: string; enabled: boolean; note: string; ip: string | null },
+  ): Promise<boolean> {
+    return this.setValue(path, action, { ...a, value: a.enabled });
+  }
+
+  /** The same for a setting's value (e.g. a channel handle); audited as before → after. */
+  async setValue(
+    path: readonly string[],
+    action: string,
+    a: { actorId: string; value: boolean | string | number; note: string; ip: string | null },
   ): Promise<boolean> {
     const changed = await this.db.tx(async (c) => {
       const prev = await row<{ config: Record<string, unknown> | null }>(
@@ -48,14 +57,14 @@ export class ConfigSwitchService {
         "SELECT config FROM game_config ORDER BY version DESC LIMIT 1 FOR UPDATE",
       );
       const override = structuredClone(prev?.config ?? {}) as Record<string, unknown>;
-      const current = (getAt(override, path) ?? getAt(defaultConfig, path)) === true;
-      if (current === a.enabled) return false;
+      const current = getAt(override, path) ?? getAt(defaultConfig, path);
+      if (current === a.value) return false;
       let node = override;
       for (const k of path.slice(0, -1)) {
         const next = node[k];
         node = node[k] = next && typeof next === "object" ? { ...(next as Record<string, unknown>) } : {};
       }
-      node[path[path.length - 1]!] = a.enabled;
+      node[path[path.length - 1]!] = a.value;
       const r = await rows<{ version: number }>(
         c,
         "INSERT INTO game_config (config, created_by, note) VALUES ($1, $2, $3) RETURNING version",
@@ -66,8 +75,8 @@ export class ConfigSwitchService {
         action,
         targetType: "game_config",
         targetId: String(r[0]!.version),
-        before: { enabled: current },
-        after: { enabled: a.enabled },
+        before: typeof a.value === "boolean" ? { enabled: current === true } : { value: current },
+        after: typeof a.value === "boolean" ? { enabled: a.value } : { value: a.value },
         reason: a.note,
         ip: a.ip,
       });

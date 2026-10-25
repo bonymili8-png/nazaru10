@@ -9,7 +9,7 @@ import { Card, ErrorState, SectionTitle, Skeleton } from "@/components/ui";
 import { ordinal, titleCase } from "@/lib/format";
 import { useApi } from "@/lib/hooks";
 import { getLocale, t } from "@/lib/i18n";
-import { countVisit, playLink } from "@/lib/share";
+import { countCampaignClick, countVisit, playLink } from "@/lib/share";
 
 /**
  * Public replay of a finished race, opened from a shared link in any browser: the race plays on
@@ -27,15 +27,17 @@ function ReplayPage() {
   const params = useSearchParams();
   const id = params.get("id") ?? "";
   const ref = params.get("r");
+  const campaign = params.get("c");
   const { data: race, error, reload } = useApi<RaceDetailDto>(id ? `/public/races/${id}` : null);
   useEffect(() => {
     if (id) countVisit("race", id, ref);
-  }, [id, ref]);
+    countCampaignClick(campaign);
+  }, [id, ref, campaign]);
   const horseHref = (h: string) => `/horse-card/?id=${h}${ref ? `&r=${encodeURIComponent(ref)}` : ""}`;
   const winner = race?.entryList.find((e) => e.position === 1);
   return (
     <PublicFrame
-      play={playLink("race", id, ref)}
+      play={playLink("race", id, ref, campaign)}
       cta={winner ? t("pub.raceCta", { name: winner.horseName }) : t("pub.genericCta")}
     >
       {!id && <ErrorState error={new Error(t("race.noneSelected"))} />}

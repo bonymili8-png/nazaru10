@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadEnv } from "../src/config/env.js";
 import { type InitDataError, signInitData, verifyInitData } from "../src/modules/auth/telegram-init-data.js";
-import { inviteCodeOf } from "../src/common/invite.js";
+import { campaignCodeOf, inviteCodeOf } from "../src/common/invite.js";
 import { createLogger } from "../src/common/logger.js";
 import { MemoryRateStore, RedisRateStore } from "../src/common/rate-limit.js";
 
@@ -194,6 +194,15 @@ describe("CORS", () => {
 
 describe("invite codes in start parameters", () => {
   const id = "7f0c4a52-3f7e-4d0a-9d8b-1c2e3f4a5b6c";
+  it("reads campaign codes from tracked links and the game's own race posts", () => {
+    expect(campaignCodeOf("c_tgchday")).toBe("TGCHDAY");
+    expect(campaignCodeOf(`race_${id}_cTGCHDAY`)).toBe("TGCHDAY");
+    // Fits Telegram's 64-character start parameter even with a 12-character code.
+    expect(`race_${id}_cABCDEFGHIJKL`.length).toBeLessThanOrEqual(64);
+    expect(campaignCodeOf(`race_${id}_rAB12CD34`)).toBeNull();
+    expect(inviteCodeOf(`race_${id}_cTGCHDAY`)).toBeNull();
+    expect(campaignCodeOf("c_ab")).toBeNull();
+  });
   it("reads plain invites and shared race / horse links", () => {
     expect(inviteCodeOf("ref_abc123")).toBe("ABC123");
     expect(inviteCodeOf(`race_${id}_rAB12CD34`)).toBe("AB12CD34");

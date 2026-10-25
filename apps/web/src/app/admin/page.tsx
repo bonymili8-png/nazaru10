@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import { Campaigns } from "@/components/admin/Campaigns";
 import { GemExchange } from "@/components/admin/GemExchange";
 import { HouseFill } from "@/components/admin/HouseFill";
+import { Viral } from "@/components/admin/Viral";
 import { useState } from "react";
 import {
   Badge,
@@ -256,6 +257,7 @@ function Players() {
         Retention is weighted over the last three weeks of signup cohorts (UTC days); a cohort counts once its
         day 1 / day 7 has passed.
       </p>
+      <Viral />
       <SectionTitle>Signup cohorts</SectionTitle>
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-xs">

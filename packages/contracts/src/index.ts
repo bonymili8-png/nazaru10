@@ -469,6 +469,10 @@ export interface UserSettingsDto {
   raceStartAlerts: boolean;
   /** The morning stable report (needs `notifications`). */
   dailyReport: boolean;
+  /** Show the stable's name on public share pages (off: horses appear without an owner). */
+  publicStable: boolean;
+  /** After a win or a place, suggest sharing the replay (a few times a week at most). */
+  sharePrompts: boolean;
 }
 
 export const UpdateSettingsRequest = z
@@ -477,6 +481,8 @@ export const UpdateSettingsRequest = z
     notifications: z.boolean().optional(),
     raceStartAlerts: z.boolean().optional(),
     dailyReport: z.boolean().optional(),
+    publicStable: z.boolean().optional(),
+    sharePrompts: z.boolean().optional(),
   })
   .strict()
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
@@ -780,6 +786,60 @@ export interface AdminGemExchangeDto {
   }[];
   /** The last switch changes, newest first. */
   history: { enabled: boolean; at: string; by: string | null; note: string | null }[];
+}
+
+/** A horse as anyone may see it on a public share page (no attributes, owner only by consent). */
+export interface PublicHorseDto {
+  id: string;
+  name: string;
+  sex: string;
+  age: number;
+  coat: string;
+  retired: boolean;
+  raceRating: number;
+  starts: number;
+  wins: number;
+  seconds: number;
+  thirds: number;
+  earnings: number;
+  /** The owner's stable name, only if they allow it (settings.publicStable). */
+  stable: string | null;
+  recent: {
+    raceId: string;
+    raceName: string;
+    distance: number;
+    startsAt: string;
+    position: number | null;
+    field: number;
+  }[];
+}
+
+/** A visit to a public share page (counted per day, target and sharer). */
+export const ShareVisitRequest = z.object({
+  kind: z.enum(["race", "horse"]),
+  id: z.string().uuid(),
+  ref: z
+    .string()
+    .regex(/^[A-Za-z0-9]{1,16}$/)
+    .optional(),
+});
+export type ShareVisitRequest = z.infer<typeof ShareVisitRequest>;
+
+/** Admin: the viral loop over a period. */
+export interface ViralStatsDto {
+  days: number;
+  /** Visits to public share pages, and those that came with a sharer's code. */
+  shareVisits: number;
+  sharedByPlayers: number;
+  /** Distinct players whose shares were visited. */
+  sharers: number;
+  /** New players who joined through a friend's invite, and those who then ran a race. */
+  referredSignups: number;
+  referredFirstRace: number;
+  /** Players active in the period (signed in). */
+  activePlayers: number;
+  /** Invited players who ran a race, per active player. */
+  kFactor: number;
 }
 
 export interface LedgerLineDto {
@@ -1831,6 +1891,8 @@ export interface QuestDto {
 }
 
 export interface HomeDto {
+  /** Set for an invited player who has not run yet: who invited them (stable name, if public). */
+  invite?: { stable: string | null } | null;
   user: UserDto;
   wallet: WalletDto;
   stable: StableDto;

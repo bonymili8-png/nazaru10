@@ -50,6 +50,19 @@ export default function HomePage() {
   return (
     <div>
       <EventBanner />
+      {data.invite && (
+        <Card className="mb-3 border-gold/60 bg-gold/10">
+          <p className="font-display text-lg font-bold">
+            {data.invite.stable
+              ? t("home.inviteTitle", { stable: data.invite.stable })
+              : t("home.inviteTitleAnon")}
+          </p>
+          <p className="mt-1 text-sm text-muted">{t("home.inviteBody")}</p>
+          <LinkButton href="/races/" className="mt-3 w-full">
+            {t("home.inviteCta")}
+          </LinkButton>
+        </Card>
+      )}
       <HomeScreenBanner />
       <Card className="bg-gradient-to-br from-surface to-surface-2">
         <div className="flex items-center gap-3">

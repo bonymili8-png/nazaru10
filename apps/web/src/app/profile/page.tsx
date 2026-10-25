@@ -115,6 +115,20 @@ export default function ProfilePage() {
             on={me.data.settings.notifications}
             onChange={(v) => saveSetting({ notifications: v })}
           />
+          <SettingSwitch
+            id="public-stable"
+            label={t("profile.publicStable")}
+            hint={t("profile.publicStableHint")}
+            on={me.data.settings.publicStable}
+            onChange={(v) => saveSetting({ publicStable: v })}
+          />
+          <SettingSwitch
+            id="share-prompts"
+            label={t("profile.sharePrompts")}
+            hint={t("profile.sharePromptsHint")}
+            on={me.data.settings.sharePrompts}
+            onChange={(v) => saveSetting({ sharePrompts: v })}
+          />
           {/* Optional kinds of message; only meaningful while bot messages are on. */}
           {me.data.settings.notifications && (
             <>

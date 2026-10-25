@@ -325,10 +325,12 @@ export class TipsService {
         WHERE t.user_id = $1 ORDER BY r.starts_at DESC LIMIT 20`,
       [userId],
     );
+    // The most recent closed week (not only the one just before: a week nobody tipped in has no
+    // table, and the previous winners stay on show until a new week closes).
     const last = await row<{ winners: TipsterRowDto[] }>(
       this.db.pool,
-      "SELECT winners FROM tipster_weeks WHERE week = $1",
-      [new Date(week.getTime() - WEEK_MS)],
+      "SELECT winners FROM tipster_weeks WHERE week < $1 ORDER BY week DESC LIMIT 1",
+      [week],
     );
     return {
       weekStart: week.toISOString(),

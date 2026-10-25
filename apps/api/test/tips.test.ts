@@ -5,7 +5,7 @@ import type {
   RaceTipsDto,
   TipsDto,
 } from "@thoroughline/contracts";
-import { defaultConfig, scoreTip, tipValues } from "@thoroughline/engine";
+import { defaultConfig, scoreTip, tipValues, tipsterWeek } from "@thoroughline/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RaceRunnerService } from "../src/modules/races/race-runner.service.js";
 import { TipsService } from "../src/modules/tips/tips.service.js";
@@ -102,8 +102,9 @@ describe("tipster league", () => {
     );
     for (const r of others)
       await t.db.query(
-        "INSERT INTO tips (user_id, race_id, picks, week, created_at, updated_at) VALUES ($1, $2, $3, current_date, $4, $4) ON CONFLICT DO NOTHING",
-        [tipster.userId, r.id, [horse], t.clock.now()],
+        "INSERT INTO tips (user_id, race_id, picks, week, created_at, updated_at) VALUES ($1, $2, $3, $5, $4, $4) ON CONFLICT DO NOTHING",
+        // The league week is the race's Monday (UTC), not the database's calendar date.
+        [tipster.userId, r.id, [horse], t.clock.now(), tipsterWeek(new Date(r.startsAt))],
       );
     expect((await t.get<TipsDto>("/tips", tipster.token)).body.dailyLeft).toBe(0);
   });

@@ -30,7 +30,8 @@ function routeForStartParam(p: string | undefined): string | null {
   if (show) return `/show/?code=${show[1]}`;
   const [kind, id] = p.split("_", 2);
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return null;
-  if (kind === "race") return `/race/?id=${id}`;
+  // A shared race opens on its replay (it plays by itself once the race is over).
+  if (kind === "race") return `/race/?id=${id}&replay=1`;
   if (kind === "horse") return `/horse/?id=${id}`;
   return null;
 }
@@ -42,7 +43,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { locale, setLocale } = useLocale();
   // The public showdown broadcast works without signing in (streamers open it in any browser).
   const path = usePathname();
-  const isPublic = path.startsWith("/watch") || path.startsWith("/go");
+  // Shared replays and horse cards too: they are opened from links by people without an account.
+  const isPublic =
+    path.startsWith("/watch") ||
+    path.startsWith("/go") ||
+    path.startsWith("/replay") ||
+    path.startsWith("/horse-card");
 
   const boot = useCallback(async () => {
     initTelegram();

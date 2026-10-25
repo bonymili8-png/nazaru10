@@ -24,6 +24,9 @@ export const toUserDto = (u: UserRow & { member?: boolean }): UserDto => ({
     notifications: u.settings.notifications !== false,
     raceStartAlerts: u.settings.raceStartAlerts !== false,
     dailyReport: u.settings.dailyReport !== false,
+    // Public pages show the stable only with consent; share prompts are on unless turned off.
+    publicStable: u.settings.publicStable === true,
+    sharePrompts: u.settings.sharePrompts !== false,
   },
   member: u.member === true,
 });

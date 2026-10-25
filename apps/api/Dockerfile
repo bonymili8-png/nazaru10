@@ -7,7 +7,7 @@ RUN pnpm install --frozen-lockfile \
  && pnpm build:packages \
  && pnpm --filter @thoroughline/api build \
  && pnpm --filter @thoroughline/api deploy --prod --legacy /out \
- && cp -r apps/api/dist apps/api/migrations /out/
+ && cp -r apps/api/dist apps/api/migrations apps/api/assets /out/
 
 FROM node:22-slim
 ENV NODE_ENV=production

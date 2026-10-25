@@ -17,6 +17,7 @@
     "@nestjs/common": "^11.2.6",
     "@nestjs/core": "^11.2.6",
     "@nestjs/platform-fastify": "^11.2.6",
+    "@resvg/resvg-js": "^2.6.2",
     "@thoroughline/contracts": "workspace:*",
     "@thoroughline/engine": "workspace:*",
     "fastify": "5.11.3",

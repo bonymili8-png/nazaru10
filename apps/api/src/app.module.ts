@@ -4,6 +4,8 @@ import { AuthGuard, TokenService } from "./common/auth.js";
 import { Clock } from "./common/clock.js";
 import { Db } from "./common/db.js";
 import { ConfigSwitchService } from "./common/config-switch.js";
+import { ShareController, ViralAdminController } from "./modules/share/share.controller.js";
+import { ShareService } from "./modules/share/share.service.js";
 import { AuditService, EventsService } from "./common/events.js";
 import { GameConfigService } from "./common/game-config.js";
 import { LOGGER, type Logger } from "./common/logger.js";
@@ -127,6 +129,8 @@ export class AppModule {
         MeController,
         EventsController,
         WalletController,
+        ShareController,
+        ViralAdminController,
         ExchangeController,
         ExchangeAdminController,
         StableController,
@@ -167,6 +171,7 @@ export class AppModule {
         EventsService,
         AuditService,
         ConfigSwitchService,
+        ShareService,
         GameConfigService,
         LedgerService,
         QuestsService,

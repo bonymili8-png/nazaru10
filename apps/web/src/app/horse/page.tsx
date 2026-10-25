@@ -80,7 +80,8 @@ import {
 import { invalidate, useApi, useNow } from "@/lib/hooks";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { memberLocked } from "@/lib/member";
-import { haptic, sharedLink, shareToTelegram } from "@/lib/telegram";
+import { shareUrl } from "@/lib/share";
+import { haptic, shareToTelegram } from "@/lib/telegram";
 
 export default function HorsePageWrapper() {
   return (
@@ -137,8 +138,8 @@ function HorsePage() {
                 <button
                   onClick={() =>
                     shareToTelegram(
-                      t(mine ? "horse.shareText" : "horse.shareOther", { name: h.name }),
-                      sharedLink("horse", h.id, me.data?.referralCode),
+                      t(mine ? "horse.challengeText" : "horse.shareOther", { name: h.name }),
+                      shareUrl("horse", h.id, me.data?.referralCode),
                     )
                   }
                   aria-label={t("horse.share")}

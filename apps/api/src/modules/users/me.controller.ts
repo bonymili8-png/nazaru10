@@ -99,6 +99,8 @@ export class MeController {
     if (req.notifications !== undefined) patch.notifications = req.notifications;
     if (req.raceStartAlerts !== undefined) patch.raceStartAlerts = req.raceStartAlerts;
     if (req.dailyReport !== undefined) patch.dailyReport = req.dailyReport;
+    if (req.publicStable !== undefined) patch.publicStable = req.publicStable;
+    if (req.sharePrompts !== undefined) patch.sharePrompts = req.sharePrompts;
     if (req.locale !== undefined) patch.locale = req.locale;
     await this.db.query(
       `UPDATE users SET settings = jsonb_strip_nulls(settings || $2::jsonb), updated_at = $3 WHERE id = $1`,
@@ -124,7 +126,15 @@ export class MeController {
       this.races.myUpcoming(user.id),
       this.quests.list(user.id),
     ]);
+    // A friend's invite stays on the home screen until the first race: both get the reward then.
+    const invite = await this.db.one<{ stable: string | null }>(
+      `SELECT s.name AS stable FROM users u LEFT JOIN stables s ON s.owner_id = u.referred_by
+        WHERE u.id = $1 AND u.referred_by IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM race_entries e WHERE e.owner_id = u.id AND e.status = 'RAN' AND NOT e.is_house)`,
+      [user.id],
+    );
     return {
+      invite: invite ? { stable: invite.stable } : null,
       user: u,
       wallet: { balances },
       stable,

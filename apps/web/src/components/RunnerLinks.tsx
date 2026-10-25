@@ -1,17 +1,25 @@
 "use client";
 import type { RaceEntryDto } from "@thoroughline/contracts";
 import Link from "next/link";
+import { createContext, useContext } from "react";
 import { t } from "@/lib/i18n";
+
+/**
+ * Where a horse's name links to: its page in the app, or its public card on the share pages
+ * (anyone may open those without signing in).
+ */
+export const HorseHref = createContext((id: string) => `/horse/?id=${id}`);
 
 /** Real horses have uuid ids; showdown runners don't and have no page to open. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The runner's name, linking to its horse page. */
 export function HorseLink({ e, className = "" }: { e: RaceEntryDto; className?: string }) {
+  const href = useContext(HorseHref);
   if (!UUID.test(e.horseId)) return <span className={className}>{e.horseName}</span>;
   return (
     <Link
-      href={`/horse/?id=${e.horseId}`}
+      href={href(e.horseId)}
       className={`${className} underline-offset-2 hover:text-gold hover:underline`}
     >
       {e.horseName}

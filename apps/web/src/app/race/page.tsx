@@ -9,11 +9,12 @@ import {
   type Strategy,
 } from "@thoroughline/contracts";
 import { canRaceAtAge, defaultConfig, trackByCode } from "@thoroughline/engine";
-import { CheckCircle2, ChevronDown, Share2, ShieldCheck, Trophy } from "lucide-react";
+import { CheckCircle2, ChevronDown, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { LiveRace } from "@/components/LiveRace";
+import { ShareResult } from "@/components/ShareResult";
 import { RaceReport } from "@/components/RaceReport";
 import { HorseLink, OwnerLink } from "@/components/RunnerLinks";
 import { TipCard } from "@/components/TipCard";
@@ -34,7 +35,7 @@ import {
 } from "@/lib/format";
 import { getLocale, type MessageKey, t } from "@/lib/i18n";
 import { invalidate, useApi, useNow } from "@/lib/hooks";
-import { haptic, sharedLink, shareToTelegram } from "@/lib/telegram";
+import { haptic } from "@/lib/telegram";
 
 export default function RacePageWrapper() {
   return (
@@ -170,27 +171,7 @@ function RacePage() {
 
       {race.status === "OPEN" && !race.tournamentId && <EntryForm race={race} />}
 
-      {race.status === "COMPLETED" && mine.length > 0 && (
-        <Button
-          variant="secondary"
-          className="mt-4 w-full"
-          onClick={() => {
-            const best = mine.reduce((a, b) => ((a.position ?? 99) <= (b.position ?? 99) ? a : b));
-            const link = sharedLink("race", race.id, me.data?.referralCode);
-            shareToTelegram(
-              t(best.position === 1 ? "race.shareFirst" : "race.sharePlace", {
-                horse: best.horseName,
-                n: best.position ?? "",
-                race: race.name,
-              }),
-              link,
-            );
-          }}
-        >
-          <Share2 className="size-4" aria-hidden />
-          {t("race.share")}
-        </Button>
-      )}
+      {race.status === "COMPLETED" && mine.length > 0 && <ShareResult race={race} mine={mine} me={me.data} />}
 
       <Card className="mt-4 text-xs text-muted">
         <p className="flex items-center gap-1.5 font-medium text-ink">

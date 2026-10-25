@@ -34,7 +34,7 @@ export default tseslint.config(
   },
   {
     // Plain Node scripts (no TypeScript types to provide the globals).
-    files: ["apps/e2e/**/*.mjs"],
+    files: ["apps/e2e/**/*.mjs", "apps/web/scripts/**/*.mjs"],
     languageOptions: { globals: { process: "readonly", URL: "readonly", console: "readonly" } },
     rules: { "no-console": "off" },
   },

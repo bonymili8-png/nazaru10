@@ -1,13 +1,17 @@
-// Cloudflare Workers (static assets only): serves the exported Mini App from apps/web/out.
+// Cloudflare Workers: serves the exported Mini App from apps/web/out (static assets).
 // Build first: pnpm build:packages && pnpm --filter @thoroughline/web build
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "nazaru10",
   "compatibility_date": "2026-09-01",
+  // Runs only for the public share pages (link-preview tags); everything else is plain assets.
+  "main": "apps/web/worker/index.ts",
   "assets": {
     "directory": "./apps/web/out",
+    "binding": "ASSETS",
     // Next exports /races/index.html etc. (trailingSlash: true).
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
+    "run_worker_first": ["/replay/*", "/horse-card/*"],
   },
 }

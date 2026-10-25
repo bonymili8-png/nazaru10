@@ -39,7 +39,8 @@ export async function buildApp(deps: AppDeps): Promise<NestFastifyApplication> {
     reply.header("x-content-type-options", "nosniff");
     reply.header("referrer-policy", "no-referrer");
     reply.header("x-frame-options", "DENY");
-    reply.header("cache-control", "no-store");
+    // API answers are private by default; public cards (share images) set their own caching.
+    if (!reply.hasHeader("cache-control")) reply.header("cache-control", "no-store");
     return payload;
   });
   app.useGlobalFilters(new AllExceptionsFilter(deps.logger));

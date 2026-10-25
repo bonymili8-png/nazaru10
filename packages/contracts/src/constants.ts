@@ -114,6 +114,12 @@ export const CAMPAIGN_PLATFORMS = [
   "INSTAGRAM",
   "TIKTOK",
   "YOUTUBE",
+  "THREADS",
+  "BLUESKY",
   "OTHER",
 ] as const;
 export type CampaignPlatform = (typeof CAMPAIGN_PLATFORMS)[number];
+
+/** Networks the game's own accounts post to automatically (besides its Telegram channel). */
+export const SOCIAL_PLATFORMS = ["YOUTUBE", "INSTAGRAM", "FACEBOOK", "THREADS", "BLUESKY"] as const;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];

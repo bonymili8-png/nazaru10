@@ -8,6 +8,9 @@ import { ShareController, ViralAdminController } from "./modules/share/share.con
 import { ShareService } from "./modules/share/share.service.js";
 import { MarketingAdminController } from "./modules/marketing/marketing.controller.js";
 import { MarketingService } from "./modules/marketing/marketing.service.js";
+import { SocialAdminController, SocialPublicController } from "./modules/marketing/social.controller.js";
+import { SocialService } from "./modules/marketing/social.service.js";
+import { HttpSocialApi, SOCIAL_API, type SocialApi } from "./modules/marketing/social-api.js";
 import { AuditService, EventsService } from "./common/events.js";
 import { GameConfigService } from "./common/game-config.js";
 import { LOGGER, type Logger } from "./common/logger.js";
@@ -104,6 +107,8 @@ export interface AppDeps {
   logger: Logger;
   db: Db;
   bot: BotApi;
+  /** The networks' APIs (faked in tests). */
+  social?: SocialApi;
   clock?: Clock;
 }
 
@@ -119,6 +124,7 @@ export class AppModule {
       { provide: LOGGER, useValue: deps.logger },
       { provide: Db, useValue: deps.db },
       { provide: BOT_API, useValue: deps.bot },
+      { provide: SOCIAL_API, useValue: deps.social ?? new HttpSocialApi() },
       { provide: Clock, useValue: deps.clock ?? new Clock() },
       { provide: APP_GUARD, useClass: AuthGuard },
       { provide: APP_GUARD, useClass: RateLimitGuard },
@@ -134,6 +140,8 @@ export class AppModule {
         ShareController,
         ViralAdminController,
         MarketingAdminController,
+        SocialAdminController,
+        SocialPublicController,
         ExchangeController,
         ExchangeAdminController,
         StableController,
@@ -176,6 +184,7 @@ export class AppModule {
         ConfigSwitchService,
         ShareService,
         MarketingService,
+        SocialService,
         GameConfigService,
         LedgerService,
         QuestsService,

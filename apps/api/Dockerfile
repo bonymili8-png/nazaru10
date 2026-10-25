@@ -10,6 +10,10 @@ RUN pnpm install --frozen-lockfile \
  && cp -r apps/api/dist apps/api/migrations apps/api/assets /out/
 
 FROM node:22-slim
+# ffmpeg renders the race videos posted to YouTube, Instagram, Facebook and Threads.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out /app

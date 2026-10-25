@@ -80,6 +80,19 @@ describe("environment validation", () => {
     expect(loadEnv({ ...base, RAILWAY_PROJECT_ID: "p", TRUST_PROXY_HOPS: "0" }).TRUST_PROXY_HOPS).toBe(0);
     expect(loadEnv({ ...base, RAILWAY_PROJECT_ID: "p", TRUST_PROXY_HOPS: "2" }).TRUST_PROXY_HOPS).toBe(2);
   });
+  it("takes the API's public address from Railway's domain unless it is set", () => {
+    expect(loadEnv(base).API_PUBLIC_URL).toBeUndefined();
+    expect(loadEnv({ ...base, RAILWAY_PUBLIC_DOMAIN: "api.up.railway.app" }).API_PUBLIC_URL).toBe(
+      "https://api.up.railway.app",
+    );
+    expect(
+      loadEnv({
+        ...base,
+        RAILWAY_PUBLIC_DOMAIN: "x.up.railway.app",
+        API_PUBLIC_URL: "https://api.example.com",
+      }).API_PUBLIC_URL,
+    ).toBe("https://api.example.com");
+  });
 });
 
 describe("rate limiter", () => {

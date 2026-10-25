@@ -53,14 +53,19 @@ pnpm --filter @thoroughline/e2e e2e
    (`/start`, `/paysupport`, `/terms`, `/help`) on startup.
 3. `setWebhook` to `https://<api>/telegram/webhook` with `secret_token = TELEGRAM_WEBHOOK_SECRET`
    and `allowed_updates = ["message","pre_checkout_query"]`.
-4. Web build env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BOT_USERNAME`, `NEXT_PUBLIC_APP_SHORT_NAME`,
+4. Optional, for the game's own accounts on other networks (docs/09, stage 3):
+   `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (YouTube), `META_APP_ID` / `META_APP_SECRET`
+   (+ `FACEBOOK_PAGE_ID`; Facebook and Instagram), `THREADS_APP_ID` / `THREADS_APP_SECRET`,
+   `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD`, and `API_PUBLIC_URL` where Railway's public domain
+   is not available. The API image installs ffmpeg for the race videos.
+5. Web build env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_BOT_USERNAME`, `NEXT_PUBLIC_APP_SHORT_NAME`,
    and **no** `NEXT_PUBLIC_DEV_AUTH`.
-5. Hosting the Mini App on Cloudflare Workers (static assets): `wrangler.jsonc` at the repo root
+6. Hosting the Mini App on Cloudflare Workers (static assets): `wrangler.jsonc` at the repo root
    serves `apps/web/out`. The Cloudflare build image has no pnpm preset, so the build command pins it
    through npx:
    `npx -y pnpm@10.33.0 install --frozen-lockfile && npx -y pnpm@10.33.0 -r --filter "./packages/**" build && npx -y pnpm@10.33.0 --filter @thoroughline/web build`
    (where pnpm is available, `pnpm build:cloudflare` does the same). Deploy command
-   `npx wrangler deploy`; build variables as in step 4 plus `NODE_VERSION=22.16.0` — an exact release, because a bare
+   `npx wrangler deploy`; build variables as in step 5 plus `NODE_VERSION=22.16.0` — an exact release, because a bare
    `22` makes the build image fetch the newest 22.x, which its mirror may not carry yet (the build
    then fails at "Installing nodejs"). Set the production branch to the branch that carries the
    game (Settings → Build → Branch control).

@@ -375,6 +375,22 @@ export interface GameConfig {
       fromHourUtc: number;
       toHourUtc: number;
     };
+    /** The game's own accounts on YouTube, Instagram, Facebook, Threads and Bluesky. */
+    social: {
+      enabled: boolean;
+      /** Per network. */
+      maxPerDay: number;
+      minGapMinutes: number;
+      fromHourUtc: number;
+      toHourUtc: number;
+      platforms: {
+        YOUTUBE: boolean;
+        INSTAGRAM: boolean;
+        FACEBOOK: boolean;
+        THREADS: boolean;
+        BLUESKY: boolean;
+      };
+    };
     /** Which kinds of post are made. */
     kinds: {
       RACE_OF_THE_DAY: boolean;
@@ -972,6 +988,14 @@ export const defaultConfig: GameConfig = {
       minGapMinutes: 180,
       fromHourUtc: 8,
       toHourUtc: 21,
+    },
+    social: {
+      enabled: true,
+      maxPerDay: 2,
+      minGapMinutes: 240,
+      fromHourUtc: 10,
+      toHourUtc: 21,
+      platforms: { YOUTUBE: true, INSTAGRAM: true, FACEBOOK: true, THREADS: true, BLUESKY: true },
     },
     kinds: { RACE_OF_THE_DAY: true, TOURNAMENT_CHAMPION: true, FIRST_WIN: true, WEEKLY_TOP: true },
   },

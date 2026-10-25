@@ -16,6 +16,7 @@ interface TelegramWebApp {
   setBackgroundColor?(color: string): void;
   openInvoice?(url: string, cb?: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
   openTelegramLink?(url: string): void;
+  openLink?(url: string): void;
   isVersionAtLeast?(version: string): boolean;
   addToHomeScreen?(): void;
   checkHomeScreenStatus?(cb: (status: HomeScreenStatus) => void): void;
@@ -77,6 +78,13 @@ export function sharedLink(kind: "race" | "horse", id: string, referralCode?: st
 export function openTelegramLink(url: string): void {
   const app = tg();
   if (app?.openTelegramLink) app.openTelegramLink(url);
+  else window.open(url, "_blank", "noopener");
+}
+
+/** Open a web page in the browser (outside the Mini App), e.g. a network's sign-in. */
+export function openLink(url: string): void {
+  const app = tg();
+  if (app?.openLink) app.openLink(url);
   else window.open(url, "_blank", "noopener");
 }
 

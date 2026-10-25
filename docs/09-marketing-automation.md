@@ -17,7 +17,7 @@ public content — horses by name, stables only with the owner's consent.
 |---|---|---|
 | 1 | Viral loops in the game + public share pages with link previews (M3) | ✅ live |
 | 2 | Image cards from game events + the game's own Telegram channel (M1, M2) | ✅ live |
-| 3 | Race videos + YouTube Shorts / Instagram / Facebook / Bluesky / Threads (M1, M2) | planned |
+| 3 | Race videos + YouTube Shorts / Instagram / Facebook / Bluesky / Threads (M1, M2) | ✅ built — each network posts once its account is connected |
 | 4 | Public SEO site: landing, guides, results, sitemap (M4) | planned |
 | 5 | Retention: first-week path, unclaimed rewards, cup closing, season end (M6) | planned |
 | 6 | Attribution + bandit optimiser + weekly report to the owner (M7) | planned |
@@ -121,3 +121,81 @@ message; "Resume posting" in the console restarts it. Limits and the window are 
    read from Telegram and the app's short name defaults to `play`).
 3. Check the marketing tab: "bot can post". The first post goes out at the next opening of the
    window once there is an event; "Publish next now" posts at once.
+
+## Stage 3 — race videos and the game's own accounts on other networks
+
+**The video.** For every queued post about a race (race of the day, tournament champion, first
+win) the API draws a vertical 720×1280 MP4 of about 30 s from the race's recorded frames
+(`apps/api/src/modules/marketing/video.ts`): the side-on camera that follows the leader, as in
+the game, with the field's silks and saddle-cloth numbers; the running order with the gaps in
+lengths; the distance to go; the early part fast-forwarded (shown as "7× SPEED") so the run-up
+takes about 15 s, the last furlong in real time ("LIVE SPEED"); then the result card (winner,
+the margin in racing words, 2nd and 3rd, "PLAY FREE IN TELEGRAM", the bot's @username, "no
+betting"). Every frame is an SVG rasterised with the bundled fonts on libuv's thread pool and
+piped into ffmpeg (H.264 + a silent AAC track, faststart); about 10 s of CPU per video. Videos
+and JPEG cards are kept in `content_media` for a week and served publicly at
+`/public/media/<id>.mp4|jpg` (Instagram, Facebook and Threads fetch media from a URL; byte ranges
+supported). The team can watch any post's video from the queue ("Video"). The API's Docker image
+installs ffmpeg.
+
+**Where it goes** (`social.service.ts`, `social-api.ts`, official APIs only, the owner's own
+accounts):
+
+| Network | What | How it signs in | Campaign |
+|---|---|---|---|
+| YouTube Shorts | the race video, title "… #Shorts", description with the tracked link | Google OAuth (refresh token) | `YTSHORTS` |
+| Instagram (Reels) | the race video; the weekly top as a JPEG card; "link in bio" (links in captions are not clickable) | with Facebook: the Professional account linked to the game's Page | `IGREELS` |
+| Facebook Page | the race video; the weekly top as a photo | Facebook Login for Business (Page token, does not expire) | `FBPAGE` |
+| Threads | the race video; the weekly top as an image (≤ 500 characters, one hashtag) | Threads OAuth (60-day token, renewed by the API) | `THREADSPOST` |
+| Bluesky | the card with clickable link and hashtags (≤ 300 characters) | handle + app password on the server | `BSKYPOST` |
+
+The text is the channel post's, as plain English, with "Free horse racing sim in Telegram · no
+betting." and a link `t.me/<bot>/<app>?startapp=race_<id>_c<CODE>` (opens the race's replay and
+credits the campaign). Each network: at most 2 posts a day, at least 4 h apart, 10:00–21:00 UTC
+(`marketing.social.*`), one post per network per event, posted from a background loop (once a
+minute, one post per round) so rendering never holds up the race jobs. Privacy rules are the
+channel's: horse names only, stables only with consent, never Telegram names.
+
+**Safety and operations** (admin console → marketing → **Other networks**): per network what is
+connected (account name, token expiry), which server settings are missing, the campaign and the
+tracked link for the profile's bio, recent posts with links, "Connect" / "Reconnect" (opens the
+network's own sign-in in the browser), "Check", "Post next now" (skips the window and gap, never
+the switches or the daily limit) and "Disconnect". Switches: all networks, and each one (audited
+with the other marketing switches). Three failures in a row pause that network and message the
+SUPER/CONTENT/ECONOMY admins once; "Resume posting" restarts it; reconnecting clears the pause.
+Tokens are encrypted in `social_accounts` (AES-256-GCM, key derived from `JWT_SECRET`; if that
+secret changes, the console asks to connect again). Sign-ins carry a signed, 30-minute `state`
+naming the admin; connecting and disconnecting are audited.
+
+**Owner setup for stage 3 (once per network; all free).** Everything goes into Railway → the API
+service → Variables; nothing is pasted into chats. The console's "Redirect addresses to
+register" shows the exact return addresses (`https://<api>/marketing/oauth/{google|meta|threads}/callback`).
+The API's own address is taken from Railway's public domain (`API_PUBLIC_URL` overrides it).
+
+1. **YouTube.** Create a YouTube channel for the game. In Google Cloud console: a project →
+   enable *YouTube Data API v3* → OAuth consent screen (External; add the scopes
+   `youtube.upload`, `youtube.readonly`; then **Publish app** — in "Testing" Google drops the
+   sign-in after 7 days) → Credentials → OAuth client ID (Web application) with the Google
+   redirect address. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, then **Connect** in the
+   console with the Google account that owns the channel. Note: YouTube keeps uploads from a
+   new, unaudited API project **private** until the project passes YouTube's free API compliance
+   audit (Google Cloud → YouTube API Services → audit and quota extension form); until then the
+   videos are on the channel but not public.
+2. **Facebook + Instagram.** A Facebook Page for the game; the Instagram account switched to
+   Professional (Business or Creator) and linked to that Page. In Meta for Developers: an app of
+   type Business → add *Facebook Login for Business* (valid OAuth redirect URI: the Meta address)
+   and *Instagram* (API setup with Facebook Login) → fill in the privacy policy URL → switch the
+   app to **Live** (posts by an app in development mode are visible only to the app's admins).
+   Set `META_APP_ID`, `META_APP_SECRET` (and `FACEBOOK_PAGE_ID` if the account manages several
+   Pages), then **Connect** and allow the Page and its Instagram account. Put the Instagram bio
+   link from the console in the profile.
+3. **Threads.** In the same or another Meta app add the *Threads API* use case with the
+   permissions `threads_basic`, `threads_content_publish` and the Threads redirect address as
+   its callback; add the Threads account as a tester and accept the invite (Threads → Settings →
+   Account → Website permissions). Set `THREADS_APP_ID`, `THREADS_APP_SECRET` (the Threads app's
+   own id and secret), then **Connect**.
+4. **Bluesky.** Create the account, then Settings → Privacy and security → App passwords → add
+   one. Set `BLUESKY_HANDLE` (e.g. `thoroughline.bsky.social`) and `BLUESKY_APP_PASSWORD`.
+
+After the next deploy each network shows "connected" and starts posting at the next window with
+something new to post; "Post next now" tries one at once.

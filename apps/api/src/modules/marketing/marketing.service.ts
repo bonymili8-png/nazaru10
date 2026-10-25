@@ -92,7 +92,9 @@ export class MarketingService {
 
   /** Queue posts for new events (idempotent: one item per event key). */
   async detect(): Promise<number> {
-    if (!this.on()) return 0;
+    const m = this.cfg();
+    // The queue feeds the channel and the other networks alike.
+    if (!m.enabled || (!m.telegram.enabled && !m.social.enabled)) return 0;
     const now = this.clock.now();
     const kinds = this.cfg().kinds;
     let n = 0;
@@ -372,24 +374,30 @@ export class MarketingService {
           WHERE id = $1`,
         [item.id, msg, MAX_ATTEMPTS],
       );
-      await this.failed(msg, now);
+      await this.failed(CHANNEL, this.cfg().telegram.channel, msg, now);
       return 0;
     }
   }
 
-  /** Count a channel failure; after a few in a row pause posting and tell the team once. */
-  private async failed(reason: string, now: Date): Promise<void> {
+  /**
+   * Count a failure on a channel (Telegram or a network); after a few in a row pause posting
+   * there and tell the team once. `label` names it in the alert.
+   */
+  async failed(channel: string, label: string, reason: string, now: Date): Promise<void> {
+    await this.db.query("INSERT INTO marketing_channels (channel) VALUES ($1) ON CONFLICT DO NOTHING", [
+      channel,
+    ]);
     const s = await row<{ consecutive_failures: number }>(
       this.db.pool,
       "UPDATE marketing_channels SET consecutive_failures = consecutive_failures + 1 WHERE channel = $1 RETURNING consecutive_failures",
-      [CHANNEL],
+      [channel],
     );
     if ((s?.consecutive_failures ?? 0) < PAUSE_AFTER) return;
     await this.db.tx(async (c) => {
       const paused = await c.query(
         `UPDATE marketing_channels SET paused_reason = $2, paused_at = $3, alerted_at = $3
           WHERE channel = $1 AND paused_reason IS NULL RETURNING channel`,
-        [CHANNEL, reason, now],
+        [channel, reason, now],
       );
       if (!paused.rows.length) return;
       const admins = await rows<{ id: string }>(
@@ -400,27 +408,38 @@ export class MarketingService {
         await this.events.emit(c, {
           type: "marketing_alert",
           aggregateType: "marketing",
-          aggregateId: CHANNEL,
-          payload: { userId: a.id, channel: this.cfg().telegram.channel, reason },
+          aggregateId: channel,
+          payload: { userId: a.id, channel: label, reason },
         });
     });
   }
 
-  private async links(kind: PostKind, raceId: string | null): Promise<InlineWebAppButton[][]> {
-    const code = POST_CAMPAIGNS[kind].code;
+  /** The campaign the system's own posts link through (created on first use, no human author). */
+  async ensureCampaign(code: string, name: string, platform: string, partner = "Own channel"): Promise<void> {
     await this.db.query(
       `INSERT INTO campaigns (code, name, partner, platform, note, created_by, created_at)
-       VALUES ($1, $2, 'Own channel', 'TELEGRAM', 'Created automatically for the game''s own channel posts', NULL, $3)
+       VALUES ($1, $2, $3, $4, 'Created automatically for the game''s own posts', NULL, $5)
        ON CONFLICT (code) DO NOTHING`,
-      [code, POST_CAMPAIGNS[kind].name, this.clock.now()],
+      [code, name, partner, platform, this.clock.now()],
     );
-    const bot = this.env.TELEGRAM_BOT_USERNAME || (this.botUsername ??= (await this.bot.getMe()).username);
+  }
+
+  /** The bot's @username (configured, or asked from Telegram once). */
+  async botName(): Promise<string> {
+    return this.env.TELEGRAM_BOT_USERNAME || (this.botUsername ??= (await this.bot.getMe()).username);
+  }
+
+  /** A Mini App link carrying a campaign (and opening the race's replay when given). */
+  async playLink(code: string, raceId: string | null): Promise<string> {
     const app = this.env.TELEGRAM_APP_SHORT_NAME || "play";
     const start = raceId ? `race_${raceId}_c${code}` : `c_${code}`;
-    const play: InlineWebAppButton = {
-      text: "🏇 Play free",
-      url: `https://t.me/${bot}/${app}?startapp=${start}`,
-    };
+    return `https://t.me/${await this.botName()}/${app}?startapp=${start}`;
+  }
+
+  private async links(kind: PostKind, raceId: string | null): Promise<InlineWebAppButton[][]> {
+    const code = POST_CAMPAIGNS[kind].code;
+    await this.ensureCampaign(code, POST_CAMPAIGNS[kind].name, "TELEGRAM");
+    const play: InlineWebAppButton = { text: "🏇 Play free", url: await this.playLink(code, raceId) };
     const web = this.env.WEBAPP_URL?.replace(/\/$/, "");
     if (!raceId || !web) return [[play]];
     return [[{ text: "▶️ Watch the replay", url: `${web}/replay/?id=${raceId}&c=${code}` }, play]];

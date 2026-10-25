@@ -7,12 +7,14 @@ import { loadEnv } from "../src/config/env.js";
 import { signInitData } from "../src/modules/auth/telegram-init-data.js";
 import { HorseFactory } from "../src/modules/horses/horse.factory.js";
 import { FakeBotApi } from "../src/modules/telegram/bot-api.js";
+import { FakeSocialApi } from "../src/modules/marketing/social-api.js";
 import { resetDatabase } from "./db.js";
 
 export interface TestApp {
   app: NestFastifyApplication;
   db: Db;
   bot: FakeBotApi;
+  social: FakeSocialApi;
   clock: Clock;
   env: ReturnType<typeof loadEnv>;
   get<T = unknown>(url: string, token?: string): Promise<{ status: number; body: T }>;
@@ -45,8 +47,9 @@ export async function createTestApp(): Promise<TestApp> {
   const env = loadEnv();
   const db = new Db(env.DATABASE_URL, 30);
   const bot = new FakeBotApi();
+  const social = new FakeSocialApi();
   const clock = new Clock();
-  const app = await buildApp({ env, logger: createLogger("silent"), db, bot, clock });
+  const app = await buildApp({ env, logger: createLogger("silent"), db, bot, social, clock });
   const request = async <T>(
     method: "GET" | "POST" | "PUT" | "DELETE",
     url: string,
@@ -71,6 +74,7 @@ export async function createTestApp(): Promise<TestApp> {
     app,
     db,
     bot,
+    social,
     clock,
     env,
     get: (url, token) => request("GET", url, undefined, token),

@@ -90,6 +90,7 @@ grants for the app role in production; trigger blocks mutation).
 | Payment fraud | Webhook secret token, payload ↔ payment row match, amount/currency check, charge id unique |
 | Privilege escalation | Roles only settable by SUPER_ADMIN via audited action |
 | Secrets | Env vars / secret manager; config schema refuses weak/missing secrets in production; dev-auth hard-disabled in production |
+| Social account tokens | The game's own YouTube / Meta / Threads tokens are encrypted at rest (AES-256-GCM, key derived from `JWT_SECRET` with HKDF); OAuth sign-ins carry a signed `state` (HMAC, 30 min, bound to the network and the admin who started it); app secrets and the Bluesky app password live only in env vars; tokens are never returned to the console |
 | SSRF | No user-controlled outbound URLs |
 | Data protection | GDPR: export & delete workflow (P2), minimal PII (Telegram id, names) |
 

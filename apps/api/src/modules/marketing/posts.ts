@@ -4,6 +4,8 @@
  * not repeat itself, while tests stay reproducible.
  */
 
+import type { SocialPlatform } from "@thoroughline/contracts";
+
 export const POST_KINDS = ["RACE_OF_THE_DAY", "TOURNAMENT_CHAMPION", "FIRST_WIN", "WEEKLY_TOP"] as const;
 export type PostKind = (typeof POST_KINDS)[number];
 
@@ -158,6 +160,135 @@ export function caption(kind: PostKind, payload: unknown, variant: number): stri
         ),
         FOOTER,
       ].join("\n");
+    }
+  }
+}
+
+/* ───────────────────────────── other networks ───────────────────────────── */
+
+/** One campaign per network (the campaigns tab shows what each brings). */
+export const SOCIAL_CAMPAIGNS: Record<SocialPlatform, { code: string; name: string; platform: string }> = {
+  YOUTUBE: { code: "YTSHORTS", name: "Own account · YouTube Shorts", platform: "YOUTUBE" },
+  INSTAGRAM: { code: "IGREELS", name: "Own account · Instagram", platform: "INSTAGRAM" },
+  FACEBOOK: { code: "FBPAGE", name: "Own account · Facebook Page", platform: "FACEBOOK" },
+  THREADS: { code: "THREADSPOST", name: "Own account · Threads", platform: "THREADS" },
+  BLUESKY: { code: "BSKYPOST", name: "Own account · Bluesky", platform: "BLUESKY" },
+};
+
+/** Kinds that come with a race (and so a video). */
+export const RACE_KINDS: readonly PostKind[] = ["RACE_OF_THE_DAY", "TOURNAMENT_CHAMPION", "FIRST_WIN"];
+
+export function raceIdOf(kind: PostKind, payload: unknown): string | null {
+  switch (kind) {
+    case "RACE_OF_THE_DAY":
+      return (payload as RaceOfDayPayload).raceId;
+    case "FIRST_WIN":
+      return (payload as FirstWinPayload).raceId;
+    case "TOURNAMENT_CHAMPION":
+      return (payload as ChampionPayload).finalRaceId;
+    case "WEEKLY_TOP":
+      return null;
+  }
+}
+
+/** The Telegram caption as plain text, without the footer. */
+function plainLines(kind: PostKind, payload: unknown, variant: number): string[] {
+  return caption(kind, payload, variant)
+    .replace(/<\/?b>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .split("\n")
+    .filter((l) => l !== FOOTER);
+}
+
+const clipText = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
+
+/** What the video says above the race, and under the winner's name at the end. */
+export function videoLines(kind: PostKind, payload: unknown): { headline: string; winnerLine: string } {
+  switch (kind) {
+    case "RACE_OF_THE_DAY": {
+      const p = payload as RaceOfDayPayload;
+      const upset = p.expectedRank >= 3 && p.field >= 4;
+      const close = p.margin !== null && p.margin < 0.35;
+      return {
+        headline: upset ? "UPSET OF THE DAY" : close ? "PHOTO FINISH OF THE DAY" : "RACE OF THE DAY",
+        winnerLine: `WINS ${marginText(p.margin)}`.trim().toUpperCase(),
+      };
+    }
+    case "TOURNAMENT_CHAMPION":
+      return { headline: "CUP FINAL", winnerLine: "IS CHAMPION" };
+    case "FIRST_WIN":
+      return { headline: "FIRST WIN", winnerLine: "BREAKS ITS MAIDEN" };
+    case "WEEKLY_TOP":
+      return { headline: "TOP OF THE WEEK", winnerLine: "" };
+  }
+}
+
+/** YouTube's title (≤ 100 characters). */
+export function socialTitle(kind: PostKind, payload: unknown): string {
+  let t: string;
+  switch (kind) {
+    case "RACE_OF_THE_DAY": {
+      const p = payload as RaceOfDayPayload;
+      const { headline } = videoLines(kind, payload);
+      t = `${p.winner} wins ${marginText(p.margin)} | ${headline.charAt(0)}${headline.slice(1).toLowerCase()}`;
+      break;
+    }
+    case "TOURNAMENT_CHAMPION": {
+      const p = payload as ChampionPayload;
+      t = `${p.winner} wins the ${p.name} 🏆`;
+      break;
+    }
+    case "FIRST_WIN":
+      t = `${(payload as FirstWinPayload).horse} wins for the first time ⭐`;
+      break;
+    case "WEEKLY_TOP":
+      t = "Top of the week: the highest-rated racehorses";
+      break;
+  }
+  t = clipText(t.replace(/\s+/g, " "), 88);
+  return `${t} #Shorts`;
+}
+
+export const SOCIAL_TAGS = [
+  "horse racing",
+  "horseracing",
+  "racing game",
+  "thoroughbred",
+  "telegram game",
+  "simulation",
+];
+
+/**
+ * A post's text for a network (plain text, English): the same real event as the channel post,
+ * the no-betting line, where to play (a tracked link where links work; Instagram points at the
+ * bio link and the bot's name) and a few hashtags within each network's limits.
+ */
+export function socialCaption(
+  kind: PostKind,
+  payload: unknown,
+  variant: number,
+  platform: SocialPlatform,
+  play: { link: string; bot: string },
+): string {
+  const lines = plainLines(kind, payload, variant);
+  const body = lines.join("\n").trim();
+  switch (platform) {
+    case "YOUTUBE":
+      return `${body}\n\n▶ Play free in Telegram: ${play.link}\n${FOOTER}\n\n#horseracing #racinggame #Shorts`;
+    case "INSTAGRAM":
+      return `${body}\n\n▶ Play free in Telegram: link in bio, or search @${play.bot} in Telegram.\n${FOOTER}\n\n#horseracing #thoroughbred #racehorse #horseracinglife #racinggame #mobilegame #telegram`;
+    case "FACEBOOK":
+      return `${body}\n\n▶ Play free in Telegram: ${play.link}\n${FOOTER}\n\n#horseracing #racinggame`;
+    case "THREADS": {
+      const tail = `\n\n▶ Play free in Telegram: ${play.link}\n${FOOTER} #horseracing`;
+      return `${clipText(body, 500 - tail.length)}${tail}`;
+    }
+    case "BLUESKY": {
+      // 300 characters in all, the link line ("▶ Play free in Telegram") added after this.
+      const tail = `\n${FOOTER}\n#horseracing #gaming`;
+      return `${clipText(lines.slice(0, 2).join("\n"), 300 - 26 - tail.length)}${tail}`;
     }
   }
 }

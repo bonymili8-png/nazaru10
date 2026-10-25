@@ -32,6 +32,8 @@ import {
   SILK_PATTERNS,
   SILK_COLORS,
   CAMPAIGN_PLATFORMS,
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
   type CampaignPlatform,
   MEMBER_COLORS,
   CREST_SHAPES,
@@ -819,6 +821,66 @@ export const MarketingChannelRequest = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type MarketingChannelRequest = z.infer<typeof MarketingChannelRequest>;
+
+/** Admin console → marketing → other networks: one of the game's own accounts. */
+export interface SocialPlatformDto {
+  platform: SocialPlatform;
+  /** The admin switch for this network. */
+  enabled: boolean;
+  /** How it is connected: signing in from the console, or credentials on the server (Bluesky). */
+  connect: "OAUTH" | "SERVER";
+  /** Server settings still missing (names of environment variables). */
+  missing: string[];
+  account: {
+    id: string;
+    name: string;
+    connectedAt: string | null;
+    expiresAt: string | null;
+    /** Result of the last check, when it failed. */
+    error: string | null;
+  } | null;
+  /** Videos (and Instagram's JPEG images) are made with ffmpeg. */
+  needsFfmpeg: boolean;
+  /** Which kinds of post this network gets (YouTube: only those with a race video). */
+  kinds: MarketingKind[];
+  publishedToday: number;
+  lastPublishedAt: string | null;
+  paused: { reason: string; at: string } | null;
+  campaign: string;
+  /** The tracked link for the profile's bio / link field. */
+  bioLink: string | null;
+  recent: {
+    itemId: string;
+    kind: MarketingKind;
+    status: "PENDING" | "PUBLISHED" | "FAILED";
+    url: string | null;
+    error: string | null;
+    attempts: number;
+    at: string;
+  }[];
+}
+
+export interface SocialAdminDto {
+  enabled: boolean;
+  maxPerDay: number;
+  minGapMinutes: number;
+  window: [number, number];
+  ffmpeg: boolean;
+  /** The API's public address (null: set API_PUBLIC_URL). */
+  apiUrl: string | null;
+  /** Return addresses to register with Google, Meta and Threads. */
+  redirectUris: { GOOGLE: string | null; META: string | null; THREADS: string | null };
+  platforms: SocialPlatformDto[];
+}
+
+export const SocialSwitchRequest = z.object({
+  key: z.enum(["ALL", ...SOCIAL_PLATFORMS]),
+  enabled: z.boolean(),
+  note: z.string().trim().max(500).optional(),
+});
+export type SocialSwitchRequest = z.infer<typeof SocialSwitchRequest>;
+
+export const SocialPlatformParam = z.enum(SOCIAL_PLATFORMS);
 
 /** Admin: an on/off switch and its recent changes. */
 export interface AdminSwitchDto {

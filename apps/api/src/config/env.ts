@@ -30,6 +30,24 @@ const EnvSchema = z
     PRIVACY_URL: z.string().url().optional(),
     /** Public URL of the Mini App (used for the bot's "Open" button). */
     WEBAPP_URL: z.string().url().optional(),
+    /**
+     * The API's own public address (OAuth return addresses, media the networks fetch). Unset on
+     * Railway it defaults to https://$RAILWAY_PUBLIC_DOMAIN (see `loadEnv`).
+     */
+    API_PUBLIC_URL: z.string().url().optional(),
+    /** The game's own social accounts (marketing → social networks). Not secrets: the app ids. */
+    GOOGLE_CLIENT_ID: z.string().default(""),
+    GOOGLE_CLIENT_SECRET: z.string().default(""),
+    META_APP_ID: z.string().default(""),
+    META_APP_SECRET: z.string().default(""),
+    /** Which Facebook Page to post to when the signed-in account manages several. */
+    FACEBOOK_PAGE_ID: z.string().default(""),
+    THREADS_APP_ID: z.string().default(""),
+    THREADS_APP_SECRET: z.string().default(""),
+    /** Bluesky signs in with the handle and an app password (Settings → App passwords). */
+    BLUESKY_HANDLE: z.string().default(""),
+    BLUESKY_APP_PASSWORD: z.string().default(""),
+    BLUESKY_SERVICE: z.string().url().default("https://bsky.social"),
     TELEGRAM_AUTH_MAX_AGE_SEC: z.coerce
       .number()
       .int()
@@ -83,7 +101,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     source.RAILWAY_ENVIRONMENT_NAME
   );
   const hopsUnset = source.TRUST_PROXY_HOPS === undefined || source.TRUST_PROXY_HOPS === "";
-  const parsed = EnvSchema.safeParse(onRailway && hopsUnset ? { ...source, TRUST_PROXY_HOPS: "1" } : source);
+  const defaults: Record<string, string> = {};
+  if (onRailway && hopsUnset) defaults.TRUST_PROXY_HOPS = "1";
+  if (!source.API_PUBLIC_URL && source.RAILWAY_PUBLIC_DOMAIN)
+    defaults.API_PUBLIC_URL = `https://${source.RAILWAY_PUBLIC_DOMAIN}`;
+  const parsed = EnvSchema.safeParse({ ...source, ...defaults });
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid environment: ${issues}`);

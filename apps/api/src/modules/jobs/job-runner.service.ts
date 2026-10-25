@@ -15,6 +15,7 @@ import { OffersService } from "../market/offers.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { EngagementService } from "../notifications/engagement.service.js";
 import { MarketingService } from "../marketing/marketing.service.js";
+import { SocialService } from "../marketing/social.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
@@ -49,6 +50,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly notifications: NotificationsService,
     private readonly engagement: EngagementService,
     private readonly marketing: MarketingService,
+    private readonly social: SocialService,
     private readonly referrals: ReferralsService,
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
@@ -94,6 +96,8 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         // The game's own channel: queue posts about new events, then post one if it is time.
         await this.step("marketing-detect", () => this.marketing.detect());
         await this.step("marketing-publish", () => this.marketing.publish());
+        // Other networks: in the background (a race video takes a while to render).
+        await this.step("marketing-social", async () => this.social.kick());
         await this.step("offer-expiry", () => this.offers.expireDue());
         await this.step("stable-lads", () => this.lads.runDue());
         await this.step("tips-score", () => this.tips.scoreDue());

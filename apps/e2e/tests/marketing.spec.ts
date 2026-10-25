@@ -34,3 +34,24 @@ test("the content team controls the game's own channel from the console", async 
   await expect(page.getByText(/bot token is not configured/).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Telegram channel" })).toBeVisible();
 });
+
+test("the console shows what each network needs and switches it off and on", async ({ page }) => {
+  const devId = await newOwner(page);
+  await sql("UPDATE users SET role = 'CONTENT_ADMIN' WHERE telegram_id = $1", [devId]);
+  await page.goto("/admin/");
+  await page.getByRole("tab", { name: "marketing" }).click();
+  await expect(page.getByRole("heading", { name: "Other networks" })).toBeVisible();
+  // Nothing is set up in this environment: each network says which server settings it needs.
+  await expect(page.getByText("GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET")).toBeVisible();
+  await expect(page.getByText("BLUESKY_HANDLE, BLUESKY_APP_PASSWORD")).toBeVisible();
+  await expect(page.getByText("YTSHORTS")).toBeVisible();
+
+  const yt = page.getByRole("switch", { name: "YouTube Shorts" });
+  const before = await yt.getAttribute("aria-checked");
+  page.once("dialog", (d) => void d.accept());
+  await yt.click();
+  await expect(yt).toHaveAttribute("aria-checked", before === "true" ? "false" : "true");
+  page.once("dialog", (d) => void d.accept());
+  await yt.click();
+  await expect(yt).toHaveAttribute("aria-checked", before ?? "true");
+});

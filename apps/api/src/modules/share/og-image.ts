@@ -32,7 +32,7 @@ function fontDir(): string {
 }
 
 let fonts: string[] | null = null;
-const fontFiles = () =>
+export const fontFiles = () =>
   (fonts ??= ["Inter_400Regular.ttf", "Inter_700Bold.ttf", "PlayfairDisplay_700Bold.ttf"].map((f) =>
     join(fontDir(), f),
   ));

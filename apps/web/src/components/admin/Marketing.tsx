@@ -5,6 +5,7 @@ import { Badge, Button, Card, ErrorState, SectionTitle, Skeleton, useToast } fro
 import { getToken, post } from "@/lib/api";
 import { errorMessage } from "@/lib/format";
 import { invalidate, useApi } from "@/lib/hooks";
+import { SocialNetworks } from "./SocialNetworks";
 import { SwitchHistory, Toggle } from "./Toggle";
 
 const KIND_LABEL: Record<MarketingKind, string> = {
@@ -186,6 +187,8 @@ export function Marketing() {
         <SwitchHistory history={data.history} />
       </Card>
 
+      <SocialNetworks />
+
       <SectionTitle>Queue ({data.queue.length})</SectionTitle>
       <div className="space-y-2">
         {data.queue.length === 0 && (
@@ -227,6 +230,9 @@ function Item({
 }) {
   const [img, setImg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [video, setVideo] = useState<string | null>(null);
+  const [rendering, setRendering] = useState(false);
+  const toast = useToast();
   const tone = { QUEUED: "neutral", PUBLISHED: "good", SKIPPED: "neutral", FAILED: "bad" } as const;
   const show = async () => {
     setLoading(true);
@@ -248,6 +254,15 @@ function Item({
       </div>
       <p className="mt-1 whitespace-pre-line text-xs text-muted">{plain(item.caption)}</p>
       {img && <img src={img} alt="Post card" className="mt-2 w-full rounded-lg" />}
+      {video && (
+        <video
+          src={video}
+          controls
+          playsInline
+          className="mx-auto mt-2 max-h-[70vh] rounded-lg"
+          aria-label="Race video"
+        />
+      )}
       <p className="num mt-2 text-[11px] text-muted">
         {item.status === "PUBLISHED" ? `posted ${time(item.publishedAt)}` : `queued ${time(item.createdAt)}`}
         {item.status === "QUEUED" && ` · expires ${time(item.expiresAt)}`}
@@ -262,6 +277,25 @@ function Item({
             onClick={() => void show()}
           >
             Preview card
+          </Button>
+        )}
+        {!video && item.kind !== "WEEKLY_TOP" && (
+          <Button
+            variant="ghost"
+            className="min-h-9 px-2 text-xs"
+            loading={rendering}
+            onClick={async () => {
+              setRendering(true);
+              try {
+                setVideo((await post<{ url: string }>(`/admin/marketing/items/${item.id}/video`, {})).url);
+              } catch (e) {
+                toast(errorMessage(e), "bad");
+              } finally {
+                setRendering(false);
+              }
+            }}
+          >
+            {rendering ? "Making the video…" : "Video"}
           </Button>
         )}
         {item.status === "PUBLISHED" && channel && item.externalId && (

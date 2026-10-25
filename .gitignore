@@ -9,3 +9,6 @@ coverage
 !.env.example
 apps/e2e/test-results/
 apps/e2e/playwright-report/
+
+# Local Cloudflare Worker state (wrangler dev)
+.wrangler/

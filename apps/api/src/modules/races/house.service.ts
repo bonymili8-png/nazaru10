@@ -1,5 +1,11 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
-import { houseRatingCap, projectCondition, type RaceClass, type Rng } from "@thoroughline/engine";
+import {
+  birthDateForAge,
+  houseRatingCap,
+  projectCondition,
+  type RaceClass,
+  type Rng,
+} from "@thoroughline/engine";
 import { Db, type Queryable, rows } from "../../common/db.js";
 import { GameConfigService } from "../../common/game-config.js";
 import { HorseFactory } from "../horses/horse.factory.js";
@@ -112,9 +118,8 @@ export class HouseService implements OnModuleInit {
     // House horses stay within the class's age band (e.g. maidens are young horses).
     const [ageLo, ageHi] = cfg.race.classes[cls].houseAge;
     const cap = houseRatingCap(cls, cfg);
-    const year = cfg.lifecycle.realDaysPerGameYear * 86_400_000;
-    const maxBirth = new Date(now.getTime() - Math.max(ageLo, cfg.lifecycle.minRacingAge) * year);
-    const minBirth = new Date(now.getTime() - ageHi * year);
+    const maxBirth = birthDateForAge(Math.max(ageLo, cfg.lifecycle.minRacingAge), now, cfg);
+    const minBirth = birthDateForAge(ageHi, now, cfg);
     const candidates = await rows<HorseRow>(
       c,
       `SELECT * FROM horses

@@ -41,7 +41,13 @@ Illegal transitions are rejected in `HorseStateMachine` and by DB checks.
 
 ### F.3 Lifecycle (age)
 
-1 game year = `lifecycle.realDaysPerGameYear` (default 28 real days = one season).
+Growing up is quick, a racing career is long: up to `lifecycle.slowAgingFromAge` (2, the
+racing age) a game year is `lifecycle.realDaysPerGameYear` (28 real days, also one season), so a
+foal reaches the track in 8 weeks; from then on a game year is
+`lifecycle.adultRealDaysPerGameYear` (98 real days, 3.5× slower), so a horse races from 2 to
+voluntary retirement at 6 over about 13 months and to forced retirement at 10 over about
+26 months. (Until October 2026 every game year was 28 days; migration 0055 moved the birth dates
+of horses older than 2 so each kept its age at the switch.)
 
 | Stage | Age | Training response | Race eligibility |
 |---|---|---|---|

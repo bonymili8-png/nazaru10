@@ -229,7 +229,7 @@ told by bot message; buyers hear when accepted or declined.
 
 ## Seasons (Phase 2)
 
-* A season lasts one game year (`lifecycle.realDaysPerGameYear`, 28 days) starting from
+* A season lasts 28 days (`lifecycle.realDaysPerGameYear`: a game year of growing up) starting from
   `seasons.epoch`. **Set the epoch to the launch date** (admin `game_config` override) so the
   first public season is Season 1.
 * Points: top-6 finishes `[10, 6, 4, 3, 2, 1]` × class weight (Maiden 1 … Class 1 ×6),

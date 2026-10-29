@@ -5,14 +5,37 @@ const MS_PER_DAY = 86_400_000;
 
 export type LifeStage = "FOAL" | "YEARLING" | "JUVENILE" | "PRIME" | "VETERAN" | "RETIRED";
 
+/**
+ * Real milliseconds per game year: growing up (to `slowAgingFromAge`) goes at
+ * `realDaysPerGameYear`, a racing career at `adultRealDaysPerGameYear`, so foals still reach
+ * the track in a few weeks while careers last months.
+ */
+function yearMs(cfg: GameConfig) {
+  const l = cfg.lifecycle;
+  return {
+    young: l.realDaysPerGameYear * MS_PER_DAY,
+    adult: l.adultRealDaysPerGameYear * MS_PER_DAY,
+    at: l.slowAgingFromAge,
+  };
+}
+
 /** Age in (fractional) game years. */
 export function ageInYears(birthAt: Date, now: Date, cfg: GameConfig): number {
-  return Math.max(0, (now.getTime() - birthAt.getTime()) / (cfg.lifecycle.realDaysPerGameYear * MS_PER_DAY));
+  const { young, adult, at } = yearMs(cfg);
+  const ms = Math.max(0, now.getTime() - birthAt.getTime());
+  return ms <= at * young ? ms / young : at + (ms - at * young) / adult;
+}
+
+/** Real milliseconds a horse takes to grow from birth to `years` old. */
+export function realMsForAge(years: number, cfg: GameConfig): number {
+  const { young, adult, at } = yearMs(cfg);
+  const y = Math.max(0, years);
+  return y <= at ? y * young : at * young + (y - at) * adult;
 }
 
 /** Birth timestamp that makes a horse exactly `years` old at `now`. */
 export function birthDateForAge(years: number, now: Date, cfg: GameConfig): Date {
-  return new Date(now.getTime() - years * cfg.lifecycle.realDaysPerGameYear * MS_PER_DAY);
+  return new Date(now.getTime() - realMsForAge(years, cfg));
 }
 
 export function lifeStage(age: number, cfg: GameConfig): LifeStage {

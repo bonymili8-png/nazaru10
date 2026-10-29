@@ -22,6 +22,7 @@ import {
   canRaceAtAge,
   defaultConfig,
   eligibleClasses,
+  realMsForAge,
   trainingCost,
   trainingDurationMinutes,
 } from "@thoroughline/engine";
@@ -950,11 +951,12 @@ function RaceClasses({ horse }: { horse: HorseDetailDto }) {
   const classes = canRaceAtAge(horse.age, defaultConfig)
     ? eligibleClasses(horse.raceRating, horse.record.wins, defaultConfig)
     : [];
-  const { minRacingAge, realDaysPerGameYear } = defaultConfig.lifecycle;
+  const { minRacingAge } = defaultConfig.lifecycle;
   // Too young: say when it can race instead of a bare "no class available".
   const tooYoung = horse.age < minRacingAge;
-  const daysLeft = Math.max(1, Math.ceil((minRacingAge - horse.age) * realDaysPerGameYear));
-  const from = new Date(Date.now() + (minRacingAge - horse.age) * realDaysPerGameYear * 86_400_000);
+  const msLeft = realMsForAge(minRacingAge, defaultConfig) - realMsForAge(horse.age, defaultConfig);
+  const daysLeft = Math.max(1, Math.ceil(msLeft / 86_400_000));
+  const from = new Date(Date.now() + msLeft);
   return (
     <div className="mt-3">
       <p className="text-sm">

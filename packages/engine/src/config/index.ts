@@ -116,7 +116,11 @@ export interface RaceClassConfig {
 
 export interface GameConfig {
   lifecycle: {
+    /** Real days per game year while a horse grows up (and the length of a season). */
     realDaysPerGameYear: number;
+    /** Real days per game year from `slowAgingFromAge` on: racing careers age more slowly. */
+    adultRealDaysPerGameYear: number;
+    slowAgingFromAge: number;
     minRacingAge: number;
     voluntaryRetireAge: number;
     forcedRetireAge: number;
@@ -601,6 +605,8 @@ export interface GameConfig {
 export const defaultConfig: GameConfig = {
   lifecycle: {
     realDaysPerGameYear: 28,
+    adultRealDaysPerGameYear: 98,
+    slowAgingFromAge: 2,
     minRacingAge: 2,
     voluntaryRetireAge: 6,
     forcedRetireAge: 10,

@@ -3,7 +3,7 @@ import { defaultConfig as cfg } from "../config/index.js";
 import { Rng } from "../rng.js";
 import { feedCost, feedEffect, projectCondition, fatigueModifier, hoursUntilFatigue } from "./condition.js";
 import { generateGenome, initialAttributes } from "./generate.js";
-import { ageInYears, ageTrainingMultiplier, birthDateForAge, lifeStage } from "./lifecycle.js";
+import { ageInYears, ageTrainingMultiplier, birthDateForAge, lifeStage, realMsForAge } from "./lifecycle.js";
 import { abilityRating } from "./rating.js";
 import { assertTransition, canTransition, IllegalTransitionError } from "./state-machine.js";
 import { TRAINABLE_ATTRIBUTES } from "./types.js";
@@ -50,6 +50,19 @@ describe("horse generation", () => {
 });
 
 describe("lifecycle", () => {
+  it("grows up at the season's pace, then a racing career ages 3.5× more slowly", () => {
+    const now = new Date("2026-01-01T00:00:00Z");
+    const day = 86_400_000;
+    const ageAfter = (days: number) => ageInYears(new Date(now.getTime() - days * day), now, cfg);
+    expect(ageAfter(28)).toBeCloseTo(1, 9);
+    expect(ageAfter(56)).toBeCloseTo(2, 9);
+    expect(ageAfter(56 + 98)).toBeCloseTo(3, 9);
+    // From racing age to forced retirement: eight game years over 784 real days.
+    expect((realMsForAge(10, cfg) - realMsForAge(2, cfg)) / day).toBe(784);
+    for (const a of [0, 0.4, 1.9, 2, 2.01, 5.5, 12])
+      expect(ageInYears(birthDateForAge(a, now, cfg), now, cfg)).toBeCloseTo(a, 9);
+  });
+
   it("round-trips ages and maps stages", () => {
     const now = new Date("2026-01-01T00:00:00Z");
     expect(ageInYears(birthDateForAge(3.5, now, cfg), now, cfg)).toBeCloseTo(3.5, 6);

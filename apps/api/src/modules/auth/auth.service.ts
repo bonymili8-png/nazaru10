@@ -27,6 +27,7 @@ export const toUserDto = (u: UserRow & { member?: boolean }): UserDto => ({
     // Public pages show the stable only with consent; share prompts are on unless turned off.
     publicStable: u.settings.publicStable === true,
     sharePrompts: u.settings.sharePrompts !== false,
+    announcements: u.settings.announcements !== false,
   },
   member: u.member === true,
 });

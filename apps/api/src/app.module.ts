@@ -80,6 +80,7 @@ import { MarketService } from "./modules/market/market.service.js";
 import { OffersService } from "./modules/market/offers.service.js";
 import { NotificationsService } from "./modules/notifications/notifications.service.js";
 import { EngagementService } from "./modules/notifications/engagement.service.js";
+import { AnnouncementsService } from "./modules/notifications/announcements.service.js";
 import { EventsController } from "./modules/events/events.controller.js";
 import { LiveEventsService } from "./modules/events/live-events.service.js";
 import { StripeProvider, TelegramStarsProvider } from "./modules/payments/payment-provider.js";
@@ -229,6 +230,7 @@ export class AppModule {
         PaymentsService,
         NotificationsService,
         EngagementService,
+        AnnouncementsService,
         LiveEventsService,
         JobRunnerService,
       ],

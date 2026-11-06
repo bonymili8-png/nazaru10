@@ -101,6 +101,7 @@ export class MeController {
     if (req.dailyReport !== undefined) patch.dailyReport = req.dailyReport;
     if (req.publicStable !== undefined) patch.publicStable = req.publicStable;
     if (req.sharePrompts !== undefined) patch.sharePrompts = req.sharePrompts;
+    if (req.announcements !== undefined) patch.announcements = req.announcements;
     if (req.locale !== undefined) patch.locale = req.locale;
     await this.db.query(
       `UPDATE users SET settings = jsonb_strip_nulls(settings || $2::jsonb), updated_at = $3 WHERE id = $1`,

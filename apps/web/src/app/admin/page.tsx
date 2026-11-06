@@ -9,6 +9,7 @@ import {
 } from "@thoroughline/contracts";
 import { TRACKS } from "@thoroughline/engine";
 import { Search } from "lucide-react";
+import { Announcements, NotifyAll } from "@/components/admin/Announcements";
 import { Campaigns } from "@/components/admin/Campaigns";
 import { GemExchange } from "@/components/admin/GemExchange";
 import { HouseFill } from "@/components/admin/HouseFill";
@@ -303,13 +304,14 @@ function LiveOps() {
   const [hours, setHours] = useState("48");
   const [classes, setClasses] = useState<RaceClass[]>([]);
   const [horse, setHorse] = useState({ rarity: "EPIC", quality: "0.8", price: "15000", hours: "24" });
+  const [notifyHorse, setNotifyHorse] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(key);
     try {
       await fn();
       toast(ok);
-      invalidate("/admin/events", "/events", "/shop/horses", "/races");
+      invalidate("/admin/events", "/events", "/shop/horses", "/races", "/admin/announcements");
     } catch (e) {
       toast(errorMessage(e), "bad");
     } finally {
@@ -481,6 +483,7 @@ function LiveOps() {
             />
           </label>
         </div>
+        <NotifyAll on={notifyHorse} onChange={setNotifyHorse} />
         <Button
           className="w-full"
           loading={busy === "horse"}
@@ -493,14 +496,18 @@ function LiveOps() {
                   quality: Number(horse.quality),
                   price: Number(horse.price),
                   hours: Number(horse.hours),
+                  notify: notifyHorse,
                 }),
-              "Limited horse listed in the shop",
+              notifyHorse
+                ? "Limited horse listed; players will be told in a minute"
+                : "Limited horse listed in the shop",
             )
           }
         >
           List limited horse
         </Button>
       </Card>
+      <Announcements />
     </>
   );
 }
@@ -1188,6 +1195,7 @@ function Races() {
     <>
       <HouseFill />
       <CreateRace onDone={reload} />
+      <Announcements />
       <SectionTitle>Races</SectionTitle>
       <div className="flex gap-2">
         {(["upcoming", "live", "recent"] as const).map((s) => (
@@ -1288,6 +1296,7 @@ function CreateRace({ onDone }: { onDone: () => void }) {
   const [startsAt, setStartsAt] = useState("");
   const [purse, setPurse] = useState("");
   const [entryFee, setEntryFee] = useState("");
+  const [notify, setNotify] = useState(true);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
   const input = "mt-1 min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
@@ -1367,6 +1376,7 @@ function CreateRace({ onDone }: { onDone: () => void }) {
             />
           </label>
         </div>
+        <NotifyAll on={notify} onChange={setNotify} />
         <Button
           className="w-full"
           disabled={!valid}
@@ -1382,8 +1392,14 @@ function CreateRace({ onDone }: { onDone: () => void }) {
                 startsAt: new Date(startsAt).toISOString(),
                 ...(purse ? { purse: Number(purse) } : {}),
                 ...(entryFee ? { entryFee: Number(entryFee) } : {}),
+                notify,
               });
-              toast("Special race scheduled");
+              toast(
+                notify
+                  ? "Special race scheduled; players will be told in a minute"
+                  : "Special race scheduled",
+              );
+              invalidate("/admin/announcements");
               setName("");
               onDone();
             } catch (e) {

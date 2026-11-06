@@ -288,6 +288,8 @@ export const CreateLimitedHorseRequest = z
     quality: z.number().min(0.2).max(0.95),
     price: z.number().int().min(500).max(1_000_000),
     hours: z.number().int().min(1).max(168),
+    /** Tell every player in the bot (default: yes). */
+    notify: z.boolean().optional(),
   })
   .strict();
 export type CreateLimitedHorseRequest = z.infer<typeof CreateLimitedHorseRequest>;
@@ -300,6 +302,8 @@ export const AdminCreateRaceRequest = z.object({
   startsAt: z.string().datetime(),
   purse: z.number().int().min(0).max(10_000_000).optional(),
   entryFee: z.number().int().min(0).max(1_000_000).optional(),
+  /** Tell every player in the bot (default: yes). */
+  notify: z.boolean().optional(),
 });
 export type AdminCreateRaceRequest = z.infer<typeof AdminCreateRaceRequest>;
 
@@ -475,6 +479,8 @@ export interface UserSettingsDto {
   publicStable: boolean;
   /** After a win or a place, suggest sharing the replay (a few times a week at most). */
   sharePrompts: boolean;
+  /** News and offers: horses the team lists in the shop, special races (needs `notifications`). */
+  announcements: boolean;
 }
 
 export const UpdateSettingsRequest = z
@@ -485,6 +491,7 @@ export const UpdateSettingsRequest = z
     dailyReport: z.boolean().optional(),
     publicStable: z.boolean().optional(),
     sharePrompts: z.boolean().optional(),
+    announcements: z.boolean().optional(),
   })
   .strict()
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
@@ -881,6 +888,25 @@ export const SocialSwitchRequest = z.object({
 export type SocialSwitchRequest = z.infer<typeof SocialSwitchRequest>;
 
 export const SocialPlatformParam = z.enum(SOCIAL_PLATFORMS);
+
+/** Admin: a message to every player about horses listed in the shop or special races. */
+export interface AnnouncementDto {
+  id: string;
+  kind: "SHOP_HORSES" | "SPECIAL_RACES";
+  /** Horse or race names. */
+  items: string[];
+  status: "WAITING" | "SENDING" | "SENT" | "STOPPED";
+  createdAt: string;
+  sendAfter: string;
+  doneAt: string | null;
+  sent: number;
+  /** Players who turned these messages off. */
+  skipped: number;
+  /** Not delivered (e.g. the player blocked the bot). */
+  failed: number;
+  /** Players in the bot now. */
+  players: number;
+}
 
 /** Admin: an on/off switch and its recent changes. */
 export interface AdminSwitchDto {

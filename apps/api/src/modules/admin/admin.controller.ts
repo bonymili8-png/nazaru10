@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, Req } from "@nestjs/common";
 import {
   CreateLimitedHorseRequest,
   CreateLiveEventRequest,
@@ -29,6 +29,7 @@ import { PaymentsService } from "../payments/payments.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { LiveEventsService } from "../events/live-events.service.js";
 import { ShopService } from "../shop/shop.service.js";
+import { AnnouncementsService } from "../notifications/announcements.service.js";
 
 /** Internal operations. Every mutation is RBAC-protected and written to the append-only audit log. */
 @Controller("admin")
@@ -42,6 +43,7 @@ export class AdminController {
     private readonly config: GameConfigService,
     private readonly liveEvents: LiveEventsService,
     private readonly shop: ShopService,
+    private readonly announcements: AnnouncementsService,
   ) {}
 
   @Get("users")
@@ -280,6 +282,7 @@ export class AdminController {
       startsAt: new Date(b.startsAt),
       purse: b.purse,
       entryFee: b.entryFee,
+      notify: b.notify,
     });
     return { id };
   }
@@ -505,5 +508,21 @@ export class AdminController {
       }),
     );
     return h;
+  }
+
+  /** Messages to every player about shop drops and special races, with their progress. */
+  @Get("announcements")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN", "TOURNAMENT_ADMIN")
+  announcementList() {
+    return this.announcements.list();
+  }
+
+  /** Stop an announcement that has not finished going out. */
+  @Post("announcements/:id/cancel")
+  @Roles("GAME_ADMIN", "CONTENT_ADMIN", "TOURNAMENT_ADMIN")
+  @HttpCode(200)
+  cancelAnnouncement(@CurrentUser() actor: AuthUser, @Param("id") id: string) {
+    if (!/^\d{1,18}$/.test(id)) throw badRequest("BAD_ID", "Not an announcement id");
+    return this.announcements.cancel(actor.id, id);
   }
 }

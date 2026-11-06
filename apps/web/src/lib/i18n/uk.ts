@@ -1663,4 +1663,6 @@ export const uk: Record<MessageKey, Msg> = {
   "profile.sharePrompts": "Пропонувати поділитися перемогами",
   "profile.sharePromptsHint": "Після перемоги чи призового місця, не частіше кількох разів на тиждень.",
   "pub.result": "Результат",
+  "profile.announcements": "Новини та пропозиції",
+  "profile.announcementsHint": "Обмежені коні в магазині та спеціальні забіги, щойно вони з'являються.",
 };

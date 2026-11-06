@@ -436,7 +436,20 @@ return), only 07:00–18:00 UTC, and never when notifications are off. Tunables 
   if not yet earned. Own switch in the profile ("Morning stable report"); `users.last_report_on`
   keeps it to one a day. Tunables in `engagement.service.ts` (`REPORT`).
 
-Both optional kinds sit under the master "Bot notifications" switch, which still silences
+- **News and offers** — when the team lists a horse in the shop (admin console → live ops →
+  limited horse drop, any rarity) or creates a special race (races tab), every player in the bot
+  gets one short message in their language: the horses with rarity, price and time left, and a
+  **🛒 Open the shop** button; or the race with class, track, distance, purse, entry fee and time
+  to the off, and a **🏇 Enter a horse** button. Each item waits a minute so several created
+  together go out as one message (`announcements`, merge window 10 minutes); the message is
+  sent in the background at about 20 a second, resumes after a restart, and leaves out horses
+  sold or off sale and races closed meanwhile (with nothing left it is dropped). The forms have
+  a "Notify all players in the bot" box (on by default); the console lists each announcement
+  with how many players got it and a **Stop** button while it is going out. Own switch in the
+  profile ("News and offers"). Limited horses already on sale when this shipped were announced
+  once by migration 0056.
+
+The optional kinds sit under the master "Bot notifications" switch, which still silences
 everything; results, tournament messages, sales and offers have no separate switch.
 
 ## Clubs (Phase 3, v1)

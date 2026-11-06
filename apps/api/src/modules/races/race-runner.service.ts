@@ -38,6 +38,7 @@ import { SponsorsService } from "../sponsors/sponsors.service.js";
 import { SyndicatesService } from "../syndicates/syndicates.service.js";
 import { ReferralsService } from "../users/referrals.service.js";
 import { HouseService } from "./house.service.js";
+import { AnnouncementsService } from "../notifications/announcements.service.js";
 import { LiveEventsService } from "../events/live-events.service.js";
 import { StableService } from "../stable/stable.service.js";
 import { dailyRaceBonusKey } from "../economy/daily-bonus.js";
@@ -75,6 +76,7 @@ export class RaceRunnerService {
     @Inject(ENV) private readonly env: Env,
     private readonly liveEvents: LiveEventsService,
     private readonly stables: StableService,
+    private readonly announcements: AnnouncementsService,
   ) {}
 
   raceSeed(raceId: string): string {
@@ -117,6 +119,8 @@ export class RaceRunnerService {
       startsAt: Date;
       purse?: number;
       entryFee?: number;
+      /** Tell every player in the bot (default: yes). */
+      notify?: boolean;
     },
   ): Promise<string> {
     const cfg = this.config.get();
@@ -149,6 +153,13 @@ export class RaceRunnerService {
       targetId: id,
       after: { ...input, startsAt: input.startsAt.toISOString() },
     });
+    if (input.notify !== false)
+      await this.announcements.queue(
+        this.db.pool,
+        "SPECIAL_RACES",
+        { raceId: id!, name: input.name },
+        actorId,
+      );
     return id!;
   }
 

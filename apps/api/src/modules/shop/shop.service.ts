@@ -11,6 +11,7 @@ import { LedgerService } from "../economy/ledger.service.js";
 import { HorseFactory } from "../horses/horse.factory.js";
 import { type HorseRow, transferHorse } from "../horses/horse.repo.js";
 import { HorsesService } from "../horses/horses.service.js";
+import { AnnouncementsService } from "../notifications/announcements.service.js";
 import { OFF_POOL } from "../races/house.service.js";
 import { QuestsService } from "../quests/quests.service.js";
 import { StableService } from "../stable/stable.service.js";
@@ -30,6 +31,7 @@ export class ShopService {
     private readonly ledger: LedgerService,
     private readonly quests: QuestsService,
     private readonly events: EventsService,
+    private readonly announcements: AnnouncementsService,
     private readonly clock: Clock,
   ) {}
 
@@ -92,7 +94,7 @@ export class ShopService {
   /** A limited horse drop (live ops): a generated horse of the chosen rarity, for sale until `hours`. */
   async createLimited(
     actorId: string,
-    input: { rarity: Rarity; quality: number; price: number; hours: number },
+    input: { rarity: Rarity; quality: number; price: number; hours: number; notify?: boolean },
   ): Promise<ShopHorseDto> {
     const now = this.clock.now();
     return this.db.tx(async (c) => {
@@ -114,6 +116,13 @@ export class ShopService {
         actorId,
         payload: { rarity: input.rarity, price: input.price, endsAt: endsAt.toISOString() },
       });
+      if (input.notify !== false)
+        await this.announcements.queue(
+          c,
+          "SHOP_HORSES",
+          { horseId: h.id, name: h.name, rarity: h.rarity, price: input.price, endsAt: endsAt.toISOString() },
+          actorId,
+        );
       return { ...this.horses.marketCard(h, now, input.price), limitedUntil: endsAt.toISOString() };
     });
   }

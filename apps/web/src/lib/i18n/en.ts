@@ -1657,6 +1657,8 @@ export const en = {
   "profile.sharePrompts": "Suggest sharing my wins",
   "profile.sharePromptsHint": "After a win or a place, a few times a week at most.",
   "pub.result": "Result",
+  "profile.announcements": "News and offers",
+  "profile.announcementsHint": "Limited horses in the shop and special races, as soon as they appear.",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

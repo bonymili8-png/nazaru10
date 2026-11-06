@@ -146,6 +146,13 @@ export default function ProfilePage() {
                 on={me.data.settings.dailyReport}
                 onChange={(v) => saveSetting({ dailyReport: v })}
               />
+              <SettingSwitch
+                id="announcements"
+                label={t("profile.announcements")}
+                hint={t("profile.announcementsHint")}
+                on={me.data.settings.announcements}
+                onChange={(v) => saveSetting({ announcements: v })}
+              />
             </>
           )}
         </Card>

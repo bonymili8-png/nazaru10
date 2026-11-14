@@ -130,6 +130,9 @@ export class HouseService implements OnModuleInit {
           AND fatigue - $7 * extract(epoch FROM ($6 - condition_updated_at)) / 3600 <= $8
           -- Never a rival stronger than the class's own house horses (see houseRatingCap).
           AND ability_rating <= $9
+          -- The class's own entry rules, as for players: its rating band, no winners in maidens.
+          AND ($10::int IS NULL OR race_rating >= $10) AND ($11::int IS NULL OR race_rating <= $11)
+          AND (NOT $12 OR wins = 0)
         ORDER BY abs((genome->'aptitudes'->>'optimalDistance')::int - $5), condition_updated_at, id
         LIMIT $4 FOR UPDATE SKIP LOCKED`,
       [
@@ -142,6 +145,9 @@ export class HouseService implements OnModuleInit {
         cfg.condition.fatigueRecoveryPerHour * 1.1,
         HOUSE_MAX_FATIGUE,
         cap,
+        cfg.race.classes[cls].minRating,
+        cfg.race.classes[cls].maxRating,
+        cfg.race.classes[cls].maidenOnly,
       ],
     );
     // Only rested house horses run: a tired filler would trail the field by dozens of lengths

@@ -8,7 +8,9 @@ import {
   bondNow,
   careInjuryFactor,
   traitsWithBond,
+  fitsHousePool,
   type RaceClass,
+  ratedClassFor,
   type RaceEntrant,
   Rng,
   rollWeather,
@@ -629,6 +631,23 @@ export class RaceRunnerService {
             now,
           ],
         );
+        // A house horse that outgrew its class (rating out of the band, or a maiden that won)
+        // moves to the class its rating fits, like a player's horse would have to.
+        if (
+          e.is_house &&
+          h.house_class &&
+          h.house_class in cfg.race.classes &&
+          !fitsHousePool(
+            h.house_class as RaceClass,
+            e.rating_after ?? h.race_rating,
+            h.wins + (pos === 1 ? 1 : 0),
+            cfg,
+          )
+        )
+          await c.query("UPDATE horses SET house_class = $2 WHERE id = $1", [
+            h.id,
+            ratedClassFor(e.rating_after ?? h.race_rating, cfg),
+          ]);
         if (after.injury) {
           await c.query(
             `INSERT INTO injuries (horse_id, source, source_id, severity, heals_at, factors) VALUES ($1, 'RACE', $2, $3, $4, $5)

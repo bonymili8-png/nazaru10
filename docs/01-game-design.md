@@ -373,6 +373,16 @@ and age bands (Class 5 ≈ 52). Unsold sale-ring and limited-drop horses (qualit
 to rotate into the Class 5 pool and lined up as over-strong rivals; they now leave racing
 (`house_class = 'OFF'`), and the cap also screens anything already in the pool.
 
+House horses keep the same entry rules as players: a filler's race rating must sit in the class's
+band (Class 5 ≤ 1 099, Class 4 1 100–1 199, …) and maiden fillers must never have won. A freshly
+drawn house horse starts rated inside its class's band (`houseStartingRating`: Maiden and Class 5
+1 000, Class 4 1 150, …, Class 1 1 450); one whose rating leaves the band after a race (or a
+maiden pool horse that wins) moves to the class its rating fits (`ratedClassFor`), like a
+player's horse. Until November 2026 house ratings were not checked, so a Class 5 house horse
+that kept winning could be rated like a Class 4 runner and still line up in Class 5; migration
+0057 lifted higher-class house horses to their band's floor and moved the ones that had
+outgrown their class.
+
 ## Tracks & weather
 
 10 track archetypes (Urban, Desert, European Turf, American Dirt, Mountain, Coastal

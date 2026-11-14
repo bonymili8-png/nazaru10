@@ -4,7 +4,9 @@ import {
   birthDateForAge,
   generateGenome,
   generateHorseName,
+  houseStartingRating,
   initialAttributes,
+  type RaceClass,
   Rng,
   type Rarity,
   type Sex,
@@ -53,7 +55,11 @@ export class HorseFactory {
       genome,
       attributes,
       abilityRating: abilityRating(attributes, genome.traits),
-      raceRating: cfg.race.initialRating,
+      // House horses for a race class start rated like that class's runners.
+      raceRating:
+        input.isHouse && input.houseClass && input.houseClass in cfg.race.classes
+          ? houseStartingRating(input.houseClass as RaceClass, cfg)
+          : cfg.race.initialRating,
       now: input.now,
     });
   }

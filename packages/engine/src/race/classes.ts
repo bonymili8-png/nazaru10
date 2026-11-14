@@ -103,3 +103,30 @@ export function houseRatingCap(cls: RaceClass, cfg: GameConfig): number {
   capCache.set(key, cap);
   return cap;
 }
+
+/** The rated class whose band holds `rating` (bands tile the rating line). */
+export function ratedClassFor(rating: number, cfg: GameConfig): Exclude<RaceClass, "MAIDEN"> {
+  return RATED_CLASSES.find((c) => inRatingBand(rating, cfg.race.classes[c])) ?? RATED_CLASSES[0]!;
+}
+
+/**
+ * The race rating a freshly drawn house horse starts on: inside its class's band, so its record
+ * reads like its rivals' (a Class 4 house horse is rated like a Class 4 runner). The starting
+ * rating where the band allows it, else the band's middle (top class: its floor + 50).
+ */
+export function houseStartingRating(cls: RaceClass, cfg: GameConfig): number {
+  const { minRating: lo, maxRating: hi } = cfg.race.classes[cls];
+  const start = cfg.race.initialRating;
+  if (inRatingBand(start, { minRating: lo, maxRating: hi })) return start;
+  if (lo !== null && hi !== null) return Math.round((lo + hi) / 2);
+  return lo !== null ? lo + 50 : hi! - 50;
+}
+
+/**
+ * Whether a house horse still belongs in its class's pool: inside the band, and without a win
+ * for maiden races. One that has outgrown it moves to `ratedClassFor` its rating.
+ */
+export function fitsHousePool(cls: RaceClass, rating: number, wins: number, cfg: GameConfig): boolean {
+  const cc = cfg.race.classes[cls];
+  return !(cc.maidenOnly && wins > 0) && inRatingBand(rating, cc);
+}

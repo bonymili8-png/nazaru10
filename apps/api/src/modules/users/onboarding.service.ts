@@ -39,6 +39,7 @@ export interface UserRow {
     publicStable?: boolean;
     sharePrompts?: boolean;
     announcements?: boolean;
+    timezone?: string;
   };
 }
 

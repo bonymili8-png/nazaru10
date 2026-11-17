@@ -138,6 +138,35 @@ export interface GameConfig {
     maxFatigueToTrain: number;
     minHealthToTrain: number;
   };
+  /**
+   * The auto-trainer (gems, by the month): trains every free horse of the stable twice a day in
+   * the owner's local time, paying the usual credits per session, and stops at a credit floor.
+   */
+  autoTrainer: {
+    gems: number;
+    days: number;
+    /** How far ahead it can be paid (days). */
+    maxDaysAhead: number;
+    /** Sessions start only while the wallet stays at or above this after paying. */
+    minCredits: number;
+    /** Local hours: morning run from, afternoon run from, nothing after. */
+    morningHour: number;
+    afternoonHour: number;
+    lastHour: number;
+    /** Morning: only a fully rested horse (fatigue at or below this). */
+    morningMaxFatigue: number;
+    /** Afternoon: fatigue now, and expected after the session, at or below these. */
+    afternoonMaxFatigue: number;
+    afternoonMaxFatigueAfter: number;
+    /** Afternoon: health at least this much above the training minimum. */
+    afternoonHealthMargin: number;
+    /** Hard sessions need at least this health. */
+    hardMinHealth: number;
+    /** How many of the most relevant attributes it rotates between. */
+    rotation: number;
+    /** How many days of its own sessions it looks back over to balance. */
+    lookbackDays: number;
+  };
   training: {
     types: Record<TrainingType, TrainingTypeConfig>;
     intensity: Record<TrainingIntensity, { gain: number; fatigue: number; cost: number; injury: number }>;
@@ -632,6 +661,22 @@ export const defaultConfig: GameConfig = {
     maxFatigueToRace: 50,
     maxFatigueToTrain: 85,
     minHealthToTrain: 60,
+  },
+  autoTrainer: {
+    gems: 1000,
+    days: 30,
+    maxDaysAhead: 60,
+    minCredits: 10_000,
+    morningHour: 9,
+    afternoonHour: 16,
+    lastHour: 22,
+    morningMaxFatigue: 0.5,
+    afternoonMaxFatigue: 30,
+    afternoonMaxFatigueAfter: 45,
+    afternoonHealthMargin: 15,
+    hardMinHealth: 90,
+    rotation: 4,
+    lookbackDays: 3,
   },
   training: {
     types: {

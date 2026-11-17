@@ -100,6 +100,8 @@ import { StableService } from "./modules/stable/stable.service.js";
 import { BOT_API, type BotApi } from "./modules/telegram/bot-api.js";
 import { TelegramWebhookController } from "./modules/telegram/webhook.controller.js";
 import { TrainingService } from "./modules/training/training.service.js";
+import { AutoTrainerController } from "./modules/training/auto-trainer.controller.js";
+import { AutoTrainerService } from "./modules/training/auto-trainer.service.js";
 import { MeController } from "./modules/users/me.controller.js";
 import { OnboardingService } from "./modules/users/onboarding.service.js";
 
@@ -149,6 +151,7 @@ export class AppModule {
         HorsesController,
         YardController,
         LadsController,
+        AutoTrainerController,
         OwnersController,
         CampaignsAdminController,
         CampaignsPublicController,
@@ -203,6 +206,7 @@ export class AppModule {
         ExchangeService,
         StableService,
         TrainingService,
+        AutoTrainerService,
         HouseService,
         RaceRunnerService,
         ReferralsService,

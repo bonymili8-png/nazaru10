@@ -28,6 +28,7 @@ export const toUserDto = (u: UserRow & { member?: boolean }): UserDto => ({
     publicStable: u.settings.publicStable === true,
     sharePrompts: u.settings.sharePrompts !== false,
     announcements: u.settings.announcements !== false,
+    timezone: typeof u.settings.timezone === "string" ? u.settings.timezone : null,
   },
   member: u.member === true,
 });

@@ -1659,6 +1659,31 @@ export const en = {
   "pub.result": "Result",
   "profile.announcements": "News and offers",
   "profile.announcementsHint": "Limited horses in the shop and special races, as soon as they appear.",
+  "auto.title": "Auto-trainer",
+  "auto.on": "working",
+  "auto.paused": "paused",
+  "auto.pitch":
+    "Trains every free horse in your stable for you, twice a day by your phone's clock ({am} and {pm}). Sessions cost the usual credits; it never takes your wallet below {min} credits.",
+  "auto.rule.morning":
+    "From {am}: a fully rested horse (no fatigue) gets a session on what matters most for its distance — hard when it can take it — then the trainer rotates through its other key attributes.",
+  "auto.rule.afternoon":
+    "From {pm}: a second, normal session on another attribute — only if fatigue stays safe.",
+  "auto.rule.free":
+    "Only free horses: not entered in a race or cup, not in foal or at stud, not for sale, not injured.",
+  "auto.rule.floor":
+    "Stops for the day when a session would take you below {min} credits (you get a message).",
+  "auto.hire": "Hire for {days} days · {n}",
+  "auto.extend": "+{days} days · {n}",
+  "auto.confirm": "Hire the auto-trainer for {days} days for {n} gems?",
+  "auto.hired": "The auto-trainer is on the job",
+  "auto.until": "Working until {date}.",
+  "auto.zone": "Time zone: {zone} (from your phone).",
+  "auto.pause": "Pause",
+  "auto.resume": "Resume",
+  "auto.pausedToast": "Auto-trainer paused",
+  "auto.resumed": "Auto-trainer back at work",
+  "auto.recent": "Recent sessions",
+  "error.NOT_HIRED": "The auto-trainer is not hired",
 } satisfies Record<string, Msg>;
 
 export type MessageKey = keyof typeof en;

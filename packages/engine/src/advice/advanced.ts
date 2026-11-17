@@ -193,3 +193,18 @@ export function sessionFor(attribute: TrainableAttribute, cfg: GameConfig): Trai
   }
   return best;
 }
+
+/**
+ * The attributes most worth training for this horse's trip, best first: the need for its
+ * distance profile times the room left to 100 (owner-visible data only, like the advice).
+ */
+export function trainingPriorities(
+  attributes: Attributes,
+  aptitudes: Aptitudes,
+): { attribute: TrainableAttribute; gap: number }[] {
+  const needs = NEEDS[distanceProfile(aptitudes.optimalDistance)];
+  return (Object.keys(needs) as TrainableAttribute[])
+    .map((k) => ({ attribute: k, gap: needs[k] * Math.max(0, 100 - attributes[k]) }))
+    .filter((x) => x.gap > 0)
+    .sort((x, y) => y.gap - x.gap);
+}

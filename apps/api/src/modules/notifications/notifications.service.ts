@@ -92,7 +92,28 @@ export class NotificationsService {
         };
       case "daily_report":
         return { userId, text: dailyReportText(p, lang), openApp: true, category: "dailyReport" };
+      case "auto_trainer_low_credits":
+        return {
+          userId,
+          text: uk
+            ? `🏇 Автотренер призупинив тренування на сьогодні: на рахунку ${credits(p.credits, lang)}, а він не опускає баланс нижче ${credits(p.minCredits, lang)}. Завтра продовжить, якщо кредитів стане більше.`
+            : `🏇 The auto-trainer has stopped for today: you have ${credits(p.credits, lang)} and it never takes the wallet below ${credits(p.minCredits, lang)}. It carries on tomorrow once there is more.`,
+          openApp: true,
+          path: "/staff/",
+        };
+      case "auto_trainer_expired":
+        return {
+          userId,
+          text: uk
+            ? "🏇 Місяць автотренера закінчився: коні більше не тренуються самі. Продовжити можна в розділі «Персонал»."
+            : "🏇 Your auto-trainer's month is over: the horses no longer train by themselves. Renew it under Staff.",
+          openApp: true,
+          path: "/staff/",
+          button: uk ? "Продовжити" : "Renew",
+        };
       case "training_completed":
+        // The auto-trainer's routine sessions go unannounced (two a day per horse); injuries don't.
+        if (p.auto && !p.injury) return null;
         return {
           userId,
           text: uk

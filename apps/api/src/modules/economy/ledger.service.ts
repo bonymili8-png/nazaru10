@@ -42,6 +42,7 @@ export type SystemAccount =
   | "RACING_PASS"
   | "PASS_REWARDS"
   | "STABLE_LADS"
+  | "AUTO_TRAINER"
   | "TIPSTER_REWARDS"
   /** Gems in, credits out: the gem → credit exchange (both currencies on one account code). */
   | "GEM_EXCHANGE";

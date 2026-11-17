@@ -17,6 +17,7 @@ import { EngagementService } from "../notifications/engagement.service.js";
 import { MarketingService } from "../marketing/marketing.service.js";
 import { SocialService } from "../marketing/social.service.js";
 import { AnnouncementsService } from "../notifications/announcements.service.js";
+import { AutoTrainerService } from "../training/auto-trainer.service.js";
 import { RaceRunnerService } from "../races/race-runner.service.js";
 import { ShopService } from "../shop/shop.service.js";
 import { TrainingService } from "../training/training.service.js";
@@ -53,6 +54,7 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
     private readonly marketing: MarketingService,
     private readonly social: SocialService,
     private readonly announcements: AnnouncementsService,
+    private readonly autoTrainer: AutoTrainerService,
     private readonly referrals: ReferralsService,
     private readonly feed: FeedService,
     private readonly sponsors: SponsorsService,
@@ -104,6 +106,8 @@ export class JobRunnerService implements OnApplicationBootstrap, OnApplicationSh
         await this.step("marketing-social", async () => this.social.kick());
         await this.step("offer-expiry", () => this.offers.expireDue());
         await this.step("stable-lads", () => this.lads.runDue());
+        // Twice a day in each owner's time zone; in the background.
+        await this.step("auto-trainer", async () => this.autoTrainer.kick());
         await this.step("tips-score", () => this.tips.scoreDue());
         await this.step("tipster-weeks", () => this.tips.closeWeeks());
       }

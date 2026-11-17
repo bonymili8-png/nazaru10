@@ -481,6 +481,8 @@ export interface UserSettingsDto {
   sharePrompts: boolean;
   /** News and offers: horses the team lists in the shop, special races (needs `notifications`). */
   announcements: boolean;
+  /** The phone's time zone (IANA, e.g. "Europe/Kyiv"), for things that happen in local time. */
+  timezone: string | null;
 }
 
 export const UpdateSettingsRequest = z
@@ -492,6 +494,11 @@ export const UpdateSettingsRequest = z
     publicStable: z.boolean().optional(),
     sharePrompts: z.boolean().optional(),
     announcements: z.boolean().optional(),
+    timezone: z
+      .string()
+      .max(64)
+      .regex(/^[A-Za-z][A-Za-z0-9_+\-/]*$/)
+      .optional(),
   })
   .strict()
   .refine((s) => Object.keys(s).length > 0, "Nothing to update");
@@ -888,6 +895,45 @@ export const SocialSwitchRequest = z.object({
 export type SocialSwitchRequest = z.infer<typeof SocialSwitchRequest>;
 
 export const SocialPlatformParam = z.enum(SOCIAL_PLATFORMS);
+
+/** The auto-trainer: trains every free horse twice a day in the owner's local time. */
+export interface AutoTrainerDto {
+  active: boolean;
+  paidUntil: string | null;
+  paused: boolean;
+  priceGems: number;
+  days: number;
+  /** Can be paid this far ahead (days). */
+  maxDaysAhead: number;
+  /** Sessions start only while the wallet keeps at least this many credits. */
+  minCredits: number;
+  /** Local hours of the morning and afternoon runs. */
+  hours: [number, number];
+  timezone: string | null;
+  /** Today in the owner's time zone: its morning and afternoon sessions, per horse. */
+  recent: {
+    horseId: string;
+    horseName: string;
+    slot: "MORNING" | "AFTERNOON";
+    type: TrainingType;
+    intensity: TrainingIntensity;
+    localDate: string;
+    startedAt: string;
+  }[];
+}
+
+export const BuyAutoTrainerRequest = z
+  .object({
+    timezone: z
+      .string()
+      .max(64)
+      .regex(/^[A-Za-z][A-Za-z0-9_+\-/]*$/)
+      .optional(),
+  })
+  .strict();
+export type BuyAutoTrainerRequest = z.infer<typeof BuyAutoTrainerRequest>;
+
+export const AutoTrainerPauseRequest = z.object({ paused: z.boolean() }).strict();
 
 /** Admin: a message to every player about horses listed in the shop or special races. */
 export interface AnnouncementDto {

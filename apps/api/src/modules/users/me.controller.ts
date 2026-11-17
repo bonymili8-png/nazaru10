@@ -9,9 +9,10 @@ import {
 import { type AuthUser, CurrentUser } from "../../common/auth.js";
 import { Clock } from "../../common/clock.js";
 import { Db } from "../../common/db.js";
-import { notFound } from "../../common/errors.js";
+import { badRequest, notFound } from "../../common/errors.js";
 import { parse } from "../../common/http.js";
 import { memberSql } from "../../common/membership.js";
+import { validTimezone } from "../../common/timezone.js";
 import { toUserDto } from "../auth/auth.service.js";
 import { LedgerService } from "../economy/ledger.service.js";
 import { type HorseRow, horsesByOwner } from "../horses/horse.repo.js";
@@ -102,6 +103,10 @@ export class MeController {
     if (req.publicStable !== undefined) patch.publicStable = req.publicStable;
     if (req.sharePrompts !== undefined) patch.sharePrompts = req.sharePrompts;
     if (req.announcements !== undefined) patch.announcements = req.announcements;
+    if (req.timezone !== undefined) {
+      if (!validTimezone(req.timezone)) throw badRequest("BAD_TIMEZONE", "Unknown time zone");
+      patch.timezone = req.timezone;
+    }
     if (req.locale !== undefined) patch.locale = req.locale;
     await this.db.query(
       `UPDATE users SET settings = jsonb_strip_nulls(settings || $2::jsonb), updated_at = $3 WHERE id = $1`,

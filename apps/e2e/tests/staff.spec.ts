@@ -39,3 +39,16 @@ test("an owner retains a jockey", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Your jockeys \(1\/1\)/ })).toBeVisible();
   await expect.poll(() => headerCredits(page)).toBeLessThan(before);
 });
+
+test("an owner sees the auto-trainer and what it does", async ({ page }) => {
+  await newOwner(page);
+  await page.getByRole("link", { name: "Horses" }).click();
+  await page.getByRole("link", { name: "Staff" }).click();
+  await expect(page.getByText("Auto-trainer", { exact: true })).toBeVisible();
+  await expect(page.getByText(/twice a day by your phone's clock \(9:00 and 16:00\)/)).toBeVisible();
+  await expect(page.getByText(/never takes your wallet below 10,000 credits/)).toBeVisible();
+  // A new owner has no gems for it yet.
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: /Hire for 30 days/ }).click();
+  await expect(page.getByText("Not enough gems.")).toBeVisible();
+});

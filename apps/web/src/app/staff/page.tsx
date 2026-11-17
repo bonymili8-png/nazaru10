@@ -2,6 +2,7 @@
 import type { JockeyDto, StaffDto, TrainerDto } from "@thoroughline/contracts";
 import { Medal, ShieldPlus, Sparkles, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { AutoTrainer } from "@/components/AutoTrainer";
 import { LadsPanel } from "@/components/Care";
 import {
   Badge,
@@ -57,6 +58,7 @@ function Trainers() {
 
   return (
     <div>
+      <AutoTrainer />
       <Card className="mt-3 text-sm text-muted">{tr("staff.trainersIntro")}</Card>
 
       <SectionTitle>

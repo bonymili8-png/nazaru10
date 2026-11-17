@@ -10,6 +10,7 @@ export * from "./horse/lifecycle.js";
 export * from "./horse/condition.js";
 export * from "./horse/state-machine.js";
 export * from "./training/index.js";
+export * from "./training/auto.js";
 export * from "./race/track.js";
 export * from "./race/simulate.js";
 export * from "./race/commentary.js";

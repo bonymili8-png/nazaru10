@@ -95,6 +95,25 @@ describe("environment validation", () => {
   });
 });
 
+describe("local time", () => {
+  it("reads the owner's date and hour in their time zone", async () => {
+    const { localTime, validTimezone } = await import("../src/common/timezone.js");
+    const at = new Date("2026-11-17T07:30:00Z");
+    expect(localTime(at, "Europe/Kyiv")).toEqual({ date: "2026-11-17", hour: 9 });
+    expect(localTime(at, "Asia/Tokyo")).toEqual({ date: "2026-11-17", hour: 16 });
+    expect(localTime(at, "America/New_York")).toEqual({ date: "2026-11-17", hour: 2 });
+    expect(localTime(new Date("2026-11-17T23:30:00Z"), "Asia/Tokyo")).toEqual({
+      date: "2026-11-18",
+      hour: 8,
+    });
+    // Unknown or missing: UTC.
+    expect(localTime(at, null)).toEqual({ date: "2026-11-17", hour: 7 });
+    expect(localTime(at, "Mars/Olympus")).toEqual({ date: "2026-11-17", hour: 7 });
+    expect(validTimezone("Europe/Kyiv")).toBe(true);
+    expect(validTimezone("Nowhere/City")).toBe(false);
+  });
+});
+
 describe("rate limiter", () => {
   it("allows the burst capacity then refills over time", () => {
     const s = new MemoryRateStore();

@@ -4,7 +4,7 @@ import { CircleUserRound, Flag, Gem, Home, Store, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { getToken, loginDev, loginWithTelegram, onUnauthorized } from "@/lib/api";
+import { getToken, loginDev, loginWithTelegram, onUnauthorized, put } from "@/lib/api";
 import { errorMessage, fmt } from "@/lib/format";
 import { getLocale, type MessageKey, t, useLocale } from "@/lib/i18n";
 import { useApi } from "@/lib/hooks";
@@ -12,6 +12,14 @@ import { initTelegram, tg } from "@/lib/telegram";
 import { BackNav, markReplace } from "./BackNav";
 import { HorseIcon } from "./icons";
 import { Button, ToastProvider } from "./ui";
+
+const phoneZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+};
 
 type Phase = "booting" | "ready" | "login" | "outside" | "error";
 
@@ -58,6 +66,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         const { user } = await loginWithTelegram(app.initData);
         // A language chosen in the app (on any device) wins over the Telegram language.
         if (user.settings.locale && user.settings.locale !== getLocale()) setLocale(user.settings.locale);
+        // The phone's time zone, for what happens in local time (the auto-trainer's 09:00 / 16:00).
+        const zone = phoneZone();
+        if (zone && zone !== user.settings.timezone)
+          void put("/me/settings", { timezone: zone }).catch(() => undefined);
         setPhase("ready");
         const target = routeForStartParam(app.initDataUnsafe.start_param);
         if (target) {

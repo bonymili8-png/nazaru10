@@ -46,6 +46,8 @@ interface SessionRow {
     facilities?: { gainMultiplier: number; injuryMultiplier: number };
     /** Stable mastery (training track) at start; absent for sessions before mastery existed. */
     mastery?: { gainMultiplier: number };
+    /** Started by the auto-trainer. */
+    auto?: boolean;
   };
   started_at: Date;
   completes_at: Date;
@@ -127,6 +129,8 @@ export class TrainingService {
     horseId: string,
     type: TrainingType,
     intensity: TrainingIntensity,
+    /** Started by the auto-trainer: its routine sessions do not message the owner on completion. */
+    opts: { auto?: boolean } = {},
   ): Promise<TrainingSessionDto> {
     await this.settleDueForOwner(userId);
     const now = this.clock.now();
@@ -161,7 +165,15 @@ export class TrainingService {
           type,
           intensity,
           cost,
-          JSON.stringify({ condition, age, sessionsLast24h: recent!.n, trainer, facilities, mastery }),
+          JSON.stringify({
+            condition,
+            age,
+            sessionsLast24h: recent!.n,
+            trainer,
+            facilities,
+            mastery,
+            ...(opts.auto ? { auto: true } : {}),
+          }),
           now,
           completesAt,
         ],
@@ -266,6 +278,7 @@ export class TrainingService {
           horseName: h.name,
           gains: out.gains,
           injury: out.injury?.severity ?? null,
+          ...(s.start_state.auto ? { auto: true } : {}),
         },
       });
       await this.pass.addXp(c, s.owner_id, `training:${s.id}`, this.pass.trainingXp, s.completes_at);

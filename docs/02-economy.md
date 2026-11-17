@@ -189,6 +189,15 @@ with competitive horses for real money.
 - **Live events** are run by the game team within hard limits (purse ≤ ×1.5, XP ≤ ×3, ≤ 7 days) and
   are temporary credit sources to watch on the economy tab; limited horse drops are credit sinks.
 - **Expert trainer's advice** (live): 60 gems per horse, information from owner-visible data.
+- **Auto-trainer** (live, owner decision): 1 000 gems for 30 days (sink `AUTO_TRAINER`), paid
+  ahead, at most 60 days ahead, never renewed automatically; pausable. It starts the same
+  training sessions an owner can start by hand, at the usual credit prices (sink `TRAINING`), so
+  it is convenience, not power: twice a day in the owner's phone time zone, on free horses only,
+  and never when the session would take the wallet under 10 000 credits (it stops for the day
+  and messages the owner once). The month suits it: 1 000 gems ≈ 420–500 ⭐, in line with the
+  Owners' Circle (150 ⭐ a month) and the stable lads (≈ 430 gems a month for two lads), and a
+  shorter period would be too dear for what it saves. Rules in `engine/training/auto.ts`
+  (`autoTrainer.*` config).
 - **Stable lads** (live, owner decision): 50 gems per lad per week (sink `STABLE_LADS`), paid
   ahead, with no auto-renewal and at most 4 weeks ahead. One lad covers up to 5 horses; two lads
   cover the whole yard. A second lad can be added pro rata for the rest of the paid week. Lads only

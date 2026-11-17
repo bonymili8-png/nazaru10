@@ -537,6 +537,26 @@ The horse page has a "Daily care" section: jobs, why a job must wait, and time l
 cooldowns. The horses page has a "Yard round" with one-tap jobs for every horse. Config `care.*`,
 rules in `engine/care`.
 
+**Auto-trainer** (Staff → Trainers, top card; 1 000 gems for 30 days). Twice a day, by the
+owner's phone clock (the Mini App sends the phone's time zone at sign-in; `settings.timezone`),
+it trains every free horse — IDLE, so not entered in a race or cup, not in foal, not for sale,
+not injured or already training, and not standing at stud:
+
+- **Morning run (09:00–16:00 local).** Only a fully rested horse (fatigue 0). It picks the
+  attribute that matters most for the horse's distance (the expert advice's need × room left to
+  100); each auto session of a type in the last 3 days halves that attribute's turn, so after the
+  first session it rotates through the next three most relevant ones. **Hard** for a horse of 2–5
+  with health ≥ 90, normal otherwise (light for yearlings).
+- **Afternoon run (16:00–22:00 local).** One **normal** session on another attribute (never the
+  morning's type), only when it is safe: fatigue ≤ 30 now and ≤ 45 once the session is done,
+  health ≥ 75.
+- One session per horse per run and local day (`auto_training_runs`); a horse busy at 09:00 is
+  picked up later in the window once it is free and rested.
+- Each session costs the usual credits and is started exactly as by hand (trainer, facilities
+  and mastery apply). The trainer never takes the wallet under **10 000 credits**: it stops for
+  the day and messages the owner once. Its routine sessions don't send "finished training"
+  messages (injuries still do); the owner is told when the paid period ends.
+
 The "Yard round" section is folded by default. Inside it (and on the Staff page, "Stable lads" tab), owners can hire **stable lads** for
 gems to do the round for them (see economy §gem sinks). One lad handles up to 5 horses (the first
 5 in the string); two handle the whole yard. A job runner sends each paid team round every

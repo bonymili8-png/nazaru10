@@ -127,10 +127,10 @@ describe("the auto-trainer", () => {
     expect(v.body.recent.map((r) => r.slot)).toContain("AFTERNOON");
   });
 
-  it("leaves horses that are not free, or not rested, alone", async () => {
+  it("leaves horses that are not free, or too tired, alone; trains a little tired one gently", async () => {
     at(9);
     await rest();
-    // One is entered in a race; one is still tired.
+    // One is entered in a race; one is too tired for training to pay.
     const runner = t.service(RaceRunnerService);
     await runner.scheduleAhead();
     const race = (await t.get<RaceSummaryDto[]>("/races?status=upcoming&limit=50", me.token)).body.find(
@@ -142,15 +142,23 @@ describe("the auto-trainer", () => {
       me.token,
     );
     expect(entered.status, JSON.stringify(entered.body)).toBe(201);
-    await t.db.query("UPDATE horses SET fatigue = 20, condition_updated_at = $2 WHERE id = $1", [
-      horses[1],
-      t.clock.now(),
-    ]);
+    const tire = (fatigue: number) =>
+      t.db.query("UPDATE horses SET fatigue = $3, condition_updated_at = $2 WHERE id = $1", [
+        horses[1],
+        t.clock.now(),
+        fatigue,
+      ]);
+    await tire(40);
     const before = (await sessions()).length;
     await svc().runDue();
     const fresh = (await sessions()).slice(before).map((s) => s.horse_id);
     expect(fresh).not.toContain(horses[0]);
     expect(fresh).not.toContain(horses[1]);
+    // Rested to a fatigue it can train on safely: a normal (not hard) session, the same morning.
+    await tire(20);
+    await svc().runDue();
+    const later = (await sessions()).slice(before).find((s) => s.horse_id === horses[1]);
+    expect(later?.intensity).toBe("NORMAL");
     expect((await t.del(`/races/${race.id}/entries/${horses[0]}`, me.token)).status).toBe(200);
   });
 

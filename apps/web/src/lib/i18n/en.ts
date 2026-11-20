@@ -1665,9 +1665,9 @@ export const en = {
   "auto.pitch":
     "Trains every free horse in your stable for you, twice a day by your phone's clock ({am} and {pm}). Sessions cost the usual credits; it never takes your wallet below {min} credits.",
   "auto.rule.morning":
-    "From {am}: a fully rested horse (no fatigue) gets a session on what matters most for its distance — hard when it can take it — then the trainer rotates through its other key attributes.",
+    "From {am}: a horse fresh enough for training to pay (fatigue up to 30, no worse than 45 once done) trains what matters most for its distance — hard when it is nearly fresh, healthy and in its prime, otherwise normal or light — then the trainer rotates through its other key attributes. A more tired horse waits until it has recovered.",
   "auto.rule.afternoon":
-    "From {pm}: a second, normal session on another attribute — only if fatigue stays safe.",
+    "From {pm}: a second session on another attribute — normal, or light near the fatigue limit — only if it stays safe.",
   "auto.rule.free":
     "Only free horses: not entered in a race or cup, not in foal or at stud, not for sale, not injured.",
   "auto.rule.floor":

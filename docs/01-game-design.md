@@ -542,14 +542,19 @@ owner's phone clock (the Mini App sends the phone's time zone at sign-in; `setti
 it trains every free horse — IDLE, so not entered in a race or cup, not in foal, not for sale,
 not injured or already training, and not standing at stud:
 
-- **Morning run (09:00–16:00 local).** Only a fully rested horse (fatigue 0). It picks the
-  attribute that matters most for the horse's distance (the expert advice's need × room left to
-  100); each auto session of a type in the last 3 days halves that attribute's turn, so after the
-  first session it rotates through the next three most relevant ones. **Hard** for a horse of 2–5
-  with health ≥ 90, normal otherwise (light for yearlings).
+- **Fatigue.** A horse need not be fully rested: the trainer trains it while training still
+  pays and stays safe — fatigue at most 30 at the start (gains lose at most ~15 %, the injury
+  risk grows at most ~1.4×) and at most 45 expected once the session is done, so it recovers
+  overnight. Near that limit it trains lighter (hard → normal → light); a more tired horse waits
+  and is looked at again every few minutes while the run lasts. A tired horse (fatigue over 10),
+  and any horse in the afternoon run, also needs health ≥ 75.
+- **Morning run (09:00–16:00 local).** It picks the attribute that matters most for the horse's
+  distance (the expert advice's need × room left to 100); each auto session of a type in the last
+  3 days halves that attribute's turn, so after the first session it rotates through the next
+  three most relevant ones. **Hard** only for a nearly fresh horse (fatigue ≤ 10) of 2–5 with
+  health ≥ 90, normal otherwise (light for yearlings).
 - **Afternoon run (16:00–22:00 local).** One **normal** session on another attribute (never the
-  morning's type), only when it is safe: fatigue ≤ 30 now and ≤ 45 once the session is done,
-  health ≥ 75.
+  morning's type), light near the fatigue limit.
 - One session per horse per run and local day (`auto_training_runs`); a horse busy at 09:00 is
   picked up later in the window once it is free and rested.
 - Each session costs the usual credits and is started exactly as by hand (trainer, facilities

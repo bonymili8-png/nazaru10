@@ -153,13 +153,15 @@ export interface GameConfig {
     morningHour: number;
     afternoonHour: number;
     lastHour: number;
-    /** Morning: only a fully rested horse (fatigue at or below this). */
+    /** Most fatigue a horse may have for the morning / afternoon session (training still pays). */
     morningMaxFatigue: number;
-    /** Afternoon: fatigue now, and expected after the session, at or below these. */
     afternoonMaxFatigue: number;
-    afternoonMaxFatigueAfter: number;
-    /** Afternoon: health at least this much above the training minimum. */
-    afternoonHealthMargin: number;
+    /** Most fatigue expected once a session is done (else it trains lighter, or not). */
+    maxFatigueAfter: number;
+    /** Hard sessions only for a nearly fresh horse (fatigue at or below this). */
+    hardMaxFatigue: number;
+    /** A tired horse needs health at least this much above the training minimum. */
+    healthMargin: number;
     /** Hard sessions need at least this health. */
     hardMinHealth: number;
     /** How many of the most relevant attributes it rotates between. */
@@ -670,10 +672,11 @@ export const defaultConfig: GameConfig = {
     morningHour: 9,
     afternoonHour: 16,
     lastHour: 22,
-    morningMaxFatigue: 0.5,
+    morningMaxFatigue: 30,
     afternoonMaxFatigue: 30,
-    afternoonMaxFatigueAfter: 45,
-    afternoonHealthMargin: 15,
+    maxFatigueAfter: 45,
+    hardMaxFatigue: 10,
+    healthMargin: 15,
     hardMinHealth: 90,
     rotation: 4,
     lookbackDays: 3,

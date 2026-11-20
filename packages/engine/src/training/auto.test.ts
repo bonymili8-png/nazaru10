@@ -31,13 +31,28 @@ describe("auto-trainer", () => {
 
   it("trains the most relevant attribute first, hard in a rested prime horse", () => {
     expect(plan()).toEqual({ type: "SPEED", intensity: "HARD", attribute: "speed" });
-    // Not rested: no morning session.
-    expect(plan({ condition: { ...fresh, fatigue: 4 } })).toEqual({ skip: "NOT_RESTED" });
+    // Nearly fresh is fresh enough for hard work.
+    expect(plan({ condition: { ...fresh, fatigue: 8 } })).toMatchObject({ intensity: "HARD" });
     // Older, or not fully healthy: a normal session; a yearling trains lightly.
     expect(plan({ age: 7 })).toMatchObject({ intensity: "NORMAL" });
     expect(plan({ condition: { ...fresh, health: 85 } })).toMatchObject({ intensity: "NORMAL" });
     expect(plan({ age: 1.5 })).toMatchObject({ intensity: "LIGHT" });
     expect(plan({ age: 0.5 })).toEqual({ skip: "TOO_YOUNG" });
+  });
+
+  it("trains a tired horse while training still pays and stays safe", () => {
+    // Some fatigue: a normal session instead of a hard one.
+    expect(plan({ condition: { ...fresh, fatigue: 20 } })).toEqual({
+      type: "SPEED",
+      intensity: "NORMAL",
+      attribute: "speed",
+    });
+    // Close to the limit: lighter, so it is not overworked by the end of the session.
+    expect(plan({ condition: { ...fresh, fatigue: 30 } })).toMatchObject({ intensity: "LIGHT" });
+    // Too tired for training to be worth it: it waits.
+    expect(plan({ condition: { ...fresh, fatigue: 31 } })).toEqual({ skip: "NOT_RESTED" });
+    // Tired and not in full health: rest first.
+    expect(plan({ condition: { ...fresh, fatigue: 20, health: 70 } })).toEqual({ skip: "HEALTH" });
   });
 
   it("then balances between the other relevant attributes", () => {
@@ -68,7 +83,7 @@ describe("auto-trainer", () => {
     );
     expect(pm).toMatchObject({ intensity: "NORMAL" });
     expect("type" in pm && pm.type).not.toBe("SPEED");
-    // Too tired for a safe second session (now, or once it is done), or not healthy enough.
+    // Too tired for a safe second session; near the limit it trains lightly; or not healthy enough.
     expect(
       autoTrainingPlan(
         {
@@ -94,7 +109,7 @@ describe("auto-trainer", () => {
         },
         cfg,
       ),
-    ).toEqual({ skip: "UNSAFE" });
+    ).toMatchObject({ intensity: "LIGHT" });
     expect(
       autoTrainingPlan(
         {
